@@ -45,11 +45,12 @@ The launcher enables the simulated keyboard:
 
 - **Left/Right:** browse idle pages or select a teammate.
 - **Enter:** show the next synthetic incoming-call scene.
-- **Space:** return to the team/own view.
+- **Space:** open/close the BLF/speed-dial panel.
 - **S:** settings; **T:** theme settings; **K:** clock settings.
 - **N:** notification inbox; arrows browse, Enter dismisses, Space/Escape returns.
 - In settings, **Up/Down** select a row, **Left/Right** change it, **Enter/Space** finish.
-- **A–F:** badge buttons. Any simulated calling/DND action remains local to DEMO.
+- **F/B/E/C/D:** TB/PD/JH/SM/partner speed dials; **A:** menu. Any simulated calling/DND action remains local to DEMO.
+- **G:** start/stop the on-device feature demo.
 - **Escape:** exit.
 
 The side panel is a labelled hexpansion diagram. `-MatrixDemo` adds a simulated I2C sink for the real Liteloop adapter and its documented LED mapping; it is not physical hardware footage.

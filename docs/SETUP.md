@@ -24,7 +24,7 @@ In the bridge's `config.json`, replace the synthetic example data:
 - `queues`, `ddis` and `trunk_dns` identify routing information used to classify incoming calls. Unknown external routing stays unknown rather than being assumed to be a DDI.
 - `priority_callers`, `priority_extensions` and `priority_ddis` define priority matches. `country_code` supports national/international number normalization.
 - `contacts`, `internal_extensions` and `initials` provide explicit names and short labels. Optional live lookup is described below.
-- `speed_dials` is the server-side destination allowlist. The current badge maps A–E to IDs `tb`, `pd`, `jh`, `sm` and `kz` respectively; keep those IDs and change their labels/numbers for your own destinations. Array order does not change this mapping. The badge sends target IDs; it cannot submit an arbitrary destination number.
+- `speed_dials` is the server-side destination allowlist. The badge maps F→`tb`, B→`pd`, E→`jh`, C→`sm` and D→`kz`; A opens the menu; keep those IDs and change their labels/numbers for your own destinations. Array order does not change this mapping. The badge sends target IDs; it cannot submit an arbitrary destination number.
 
 Create a Call Control API application in 3CX and grant access to the DNs needed for the own extension, team and relevant routing. Set these values in `.env`:
 
@@ -99,9 +99,9 @@ When updating, preserve the device's private `config.json`, the appropriate `ca_
 
 ## Controls and appearance
 
-With a supported keyboard attached, physical A–E call the five allowlisted targets and F toggles the own extension's confirmed DND state. The app suppresses held/repeated/chord presses. In live mode these buttons perform real PBX actions; opening settings is a useful way to inspect brightness and appearance without issuing a call.
+Physical F/B/E/C/D request the five allowlisted targets with or without a keyboard; A opens the menu. DND is selected explicitly in that menu. The app suppresses held/repeated/chord presses. In live mode these buttons perform real PBX actions; opening settings is a useful way to inspect brightness and appearance without issuing a call.
 
-Keyboard shortcuts are `S` for settings, `T` for the theme row and `K` for the clock row. In settings, up/down select a row, left/right adjust it, and Enter, Space or Escape close the page. On the physical buttons, A/D select, B/E adjust and C/F close. Without a keyboard, hold C to open settings; a short C press retains its normal overview/detail action.
+Keyboard shortcuts are `S` for settings, `T` for the theme row and `K` for the clock row. In settings, up/down select a row, left/right adjust it, and Enter, Space or Escape close the page. On the physical buttons, A/D select, B/E adjust and C/F close. Without a keyboard, use A → Menu → Settings, then C to select.
 
 Ring and EEH brightness are independent. Defaults are 15% for the outer ring and 3% for the EEH logo. A live own priority call temporarily uses full brightness. Changes and appearance choices are saved in firmware settings; demo changes are not persisted.
 
@@ -123,7 +123,7 @@ Weather is disabled in the bridge example. Enable it in the bridge's `weather` o
 
 Idle pages rotate immediately when live phone state is quiet. The BLF/speed-dial panel appears when requested with Space or a badge button, or automatically while any teammate has an active call, including connected/held calls. The first button press from an idle page only wakes the panel; it never also dials. Manual wake lasts `idle_seconds` (default60s), then quiet pages resume. When the last teammate call ends, quiet pages return immediately unless a manual wake is still active. Own calls and notifications retain their existing display priority. Left/right browse idle pages. Forecasts become unavailable when stale; a missing rain forecast is not displayed as dry weather.
 
-The panel includes **E: Partner**, using your configured `partner_name`. With the keyboard expansion attached, badge button E requests the existing `kz` speed dial; keyboard E also requests it once the panel is awake. Destinations remain controlled by the bridge allowlist. `overview_on_demand: false` restores the legacy quiet-delay scheduling if required.
+The panel includes a full-size crowned partner tile, using your configured `partner_name`. Badge D or keyboard D requests the existing `kz` speed dial once the panel is awake. Space explicitly closes the panel even during a stable teammate call; new teammate call activity may wake it again. Destinations remain controlled by the bridge allowlist. `overview_on_demand: false` restores the legacy quiet-delay scheduling if required.
 
 Moon phases are calculated locally and marked approximate. Meteor pages use the bundled calendar, with a typical-season label outside the supported calendar years. Animated streaks are decoration, not observations or a visibility forecast. See [ASTRONOMY.md](ASTRONOMY.md) for sources and limitations.
 

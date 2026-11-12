@@ -203,3 +203,11 @@ checkout, with empty credentials and a generated DEMO configuration:
 opens the production inbox after the firmware's boot overlay. The tour changes
 synthetic input snapshots; the app's rendering and call-preemption rules are the
 same ones used on the badge.
+
+## Matrix text
+
+Version0.16 scrolls the selected notification's title, progress and body on the
+Lite Loop, using the native ASCII renderer. Normal call activity takes priority;
+urgent messages yield only to priority own calls. Messages remain eligible
+until their original TTL or local dismissal, even after the LCD popup ends.
+See [matrix behaviour and the animation](MATRIX.md#notification-scrolling-version016).

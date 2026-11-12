@@ -50,3 +50,20 @@ Primary sources: [manufacturer firmware text renderer](https://github.com/kristi
 [Video](gallery/own-calls.mp4) · [Timer diagram](gallery/own-call-held.png).
 These are actual official simulator captures with synthetic data, not physical
 camera footage or optical brightness measurements.
+
+## Notification scrolling, version0.16
+
+The current inbox item scrolls its title, optional progress percentage and body
+using native ASCII/offset mode at full matrix brightness. Accents are folded;
+the156-byte processor buffer holds up to155 printable characters and its NUL.
+Longer messages end in an ellipsis. Identical snapshots do not reload the text.
+
+Normal notifications yield to your own calls. Urgent notifications take matrix
+precedence over normal calls; a priority own call overrides them. Once the LCD's
+normal10-second popup finishes, the matrix can continue scrolling the selected
+message until dismissal/expiry or a call takes precedence. Expiry/dismissal
+restores the usual matrix display. Text is display-only; no commands execute.
+
+![Notification matrix animation, synthetic official simulator](gallery/matrix-notifications.gif)
+
+[Notification video](gallery/matrix-notifications.mp4).

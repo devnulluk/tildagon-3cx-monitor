@@ -270,14 +270,14 @@ class BadgeNotificationTests(unittest.TestCase):
         module, monitor, unused = self.monitor()
         self.source(monitor, [fixtures.item()])
         monitor.update(0)
-        monitor.buttons.values = {"A"}
+        monitor.buttons.values = {"F"}
         self.advance(module, monitor, 400)
         self.assertFalse(monitor.controls.is_busy)
         self.advance(module, monitor, 10000)
         self.assertFalse(monitor.controls.is_busy)
         monitor.buttons.values.clear()
         self.advance(module, monitor, 400)
-        monitor.buttons.values = {"A"}
+        monitor.buttons.values = {"F"}
         self.advance(module, monitor, 400)
         self.assertEqual(monitor.controls.pending["target"], "tb")
 

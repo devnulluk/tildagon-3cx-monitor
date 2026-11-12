@@ -395,3 +395,10 @@ renderer/integration checks. Decorative meteor streaks are not observations.
 A previous private version verified live DND and restored the original state.
 Long-term office Wi-Fi operation, real routing evidence for every DDI/queue and
 real partner-call timing remain deployment-specific checks.
+
+
+## Version 0.16.0 - crowned speed dials, menu and matrix notifications
+
+739 automated tests pass. Official SDL/ctx simulator previews use synthetic data; all 30 recorded badge source hashes match this build. The 180-frame GIF and complete MP4 decode successfully. Five equal tiles, exact F/B/E/C/D mapping, A menu, Space toggle, modal input guards and notification/call precedence are covered. No real calls or DND changes were made.
+
+**Physical installation and real matrix verification are pending:** the user unplugged the badge while away. The last verified installed version remains 0.15.1. These previews are simulator output, not camera footage.

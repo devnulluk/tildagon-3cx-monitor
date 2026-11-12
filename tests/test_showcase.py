@@ -36,14 +36,14 @@ class ShowcaseSequenceTests(unittest.TestCase):
         show = engine()
         self.assertEqual(len(show.themes), 13)
         self.assertEqual(len(show.clocks), 11)
-        self.assertEqual(show.count, 573)
-        self.assertEqual(show.count * show.step_ms, 2865000)
+        self.assertEqual(show.count, 586)
+        self.assertEqual(show.count * show.step_ms, 2930000)
         expected_features = {"intro", "weather", "rain", "clock", "moon", "meteors", "team",
-                             "team_detail", "call", "notification", "presence", "settings"}
+                             "team_detail", "call", "notification", "presence", "settings", "menu"}
         seen_order, last = [], None
         for key, name, available in show.themes:
             stages = [show.stage(index) for index in range(show.count) if show.stage(index)["theme"] == key]
-            self.assertEqual(len(stages), 45 if key == "christmas" else 44)
+            self.assertEqual(len(stages), 46 if key == "christmas" else 45)
             self.assertEqual(stages[0]["feature"], "intro")
             self.assertEqual({stage["clock"] for stage in stages if stage["feature"] == "clock"}, set(clocks.CLOCKS))
             self.assertEqual({stage["weather_kind"] for stage in stages if stage["feature"] == "weather"},

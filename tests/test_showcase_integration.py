@@ -111,6 +111,10 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
             self.assertTrue({"SETTINGS", "RING", "EEH"} <= set(words), words)
             self.assertIn("%d%%" % round(monitor.controller.ring_brightness * 100), words)
             self.assertIn("%d%%" % round(monitor.controller.eeh_brightness * 100), words)
+        elif feature == 'menu':
+            self.assertIn('MENU',words)
+            self.assertIn('Speed dials',words)
+            self.assertIn('A BACK',words)
         elif feature == "notification":
             item = payload["notifications"][0]
             text = " ".join(words)
@@ -164,7 +168,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
         self.assertEqual(themes, {"original", "christmas", "easter", "anniversary", "birthday_self",
                                   "birthday_partner", "cyberpunk", "lcars", "kitty", "photo", "noir", "ocean", "retro"})
         self.assertEqual(features, {"intro", "weather", "rain", "clock", "moon", "meteors", "advent",
-                                    "team", "team_detail", "call", "notification", "presence", "settings"})
+                                    "team", "team_detail", "call", "notification", "presence", "settings", "menu"})
         for theme in themes:
             self.assertEqual(clocks[theme], set(module.CLOCKS))
 
@@ -350,7 +354,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
         module, monitor, hardware, settings = self.monitor()
         module.time.now += 400
         monitor.buttons.values.add("A")
-        monitor.expansions.keys.append("D")
+        monitor.expansions.keys.append("G")
         with patch.object(module, "send_control") as send, patch.object(module, "post_json") as post:
             monitor.update(0)
         self.assertIsNotNone(monitor.showcase)
@@ -370,10 +374,9 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                     self.assertEqual(monitor.settings_selected, 5)
                     self.key(module, monitor, "ENTER")
                 else:
-                    monitor.buttons.values.add("C")
-                    monitor.update(0)
-                    module.time.now += 901
-                    monitor.update(0)
+                    self.physical(module,monitor,'A')
+                    monitor.menu_selected=3
+                    self.physical(module,monitor,'C')
                     self.assertTrue(monitor.settings_open)
                     monitor.buttons.values.clear()
                     monitor.update(0)
@@ -385,7 +388,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                 self.assertIsNone(monitor.controls.pending)
 
     def test_normal_b_e_and_d_speed_dials_keep_their_existing_meaning(self):
-        for key, target in (("B", "pd"), ("E", "kz"), ("D", "sm")):
+        for key, target in (("B", "pd"), ("E", "jh"), ("D", "kz")):
             with self.subTest(key=key):
                 module, monitor, hardware, settings = self.monitor()
                 self.physical(module, monitor, key)
@@ -432,7 +435,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
         post.assert_not_called()
 
     def test_escape_d_and_physical_f_return_to_monitor_without_terminating_app(self):
-        for key in ("ESCAPE", "D", "F"):
+        for key in ("ESCAPE", "G", "F"):
             with self.subTest(key=key):
                 module, monitor, hardware, settings = self.monitor()
                 self.assertTrue(monitor._start_showcase())
@@ -450,7 +453,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
         module, monitor, hardware, settings = self.monitor()
         self.assertTrue(monitor._start_showcase())
         monitor.update(0)
-        monitor.buttons.values.add("A")
+        monitor.buttons.values.add("B")
         module.time.now += 400
         monitor.update(0)
         self.key(module, monitor, "ESCAPE")
@@ -462,29 +465,21 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
         monitor.buttons.values.clear()
         monitor.update(0)
         module.time.now += 400
-        monitor.buttons.values.add("A")
+        monitor.buttons.values.add("B")
         monitor.update(0)
         self.assertIsNotNone(monitor.controls.pending)
-        self.assertEqual(monitor.controls.pending["target"], "tb")
+        self.assertEqual(monitor.controls.pending["target"], "pd")
 
-    def test_old_c_hold_cannot_confirm_dnd_after_shortcut_entry_and_f_exit(self):
-        module, monitor, hardware, settings = self.monitor()
-        monitor.expansions.keyboard_present = False
-        monitor.update(0)
-        monitor.controller.own_view = True
-        monitor.buttons.values.add("C")
-        monitor.update(0)
-        self.assertIsNotNone(monitor._settings_hold_started)
-        # A newly delivered keyboard shortcut can arrive while the existing
-        # physical hold still belongs to the no-keyboard input mapping.
-        self.key(module, monitor, "D")
+    def test_unsent_intent_cannot_reappear_after_demo_shortcut_and_exit(self):
+        module,monitor,hardware,settings=self.monitor()
+        monitor.expansions.keyboard_present=False;monitor.update(0)
+        monitor.buttons.values.add('C');module.time.now+=400;monitor.update(0)
+        self.assertEqual(monitor.controls.pending['target'],'sm')
+        self.key(module,monitor,'SHIFT+D')
         self.assertIsNotNone(monitor.showcase)
-        monitor.update(0)
-        self.physical(module, monitor, "F")
-        monitor.update(0)
+        monitor.update(0);self.physical(module,monitor,'F');monitor.update(0)
         self.assertIsNone(monitor.showcase)
         self.assertIsNone(monitor._settings_hold_started)
-        self.assertTrue(monitor.controller.own_view)
         self.assertIsNone(monitor.controls.pending)
         self.assertFalse(monitor.controls.is_busy)
 

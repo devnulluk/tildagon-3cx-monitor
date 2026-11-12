@@ -60,6 +60,9 @@ class IdlePages:
         self.rotate_ms = int(rotate_ms)
         self.overview_on_demand = overview_on_demand is True
         self._overview_until = 0
+        self._overview_hidden = False
+        self._own_blocked = True
+        self._team_signature = None
         self._quiet_since = None
         self._healthy = False
         self._blocked = True
@@ -100,14 +103,25 @@ class IdlePages:
         self._rotation_at = None
         self._rotation_index = 0
         if self.overview_on_demand and manual:
+            self._overview_hidden = False
             self._overview_until = now_ms + max(1000,self.idle_after_ms)
+
+    def close_overview(self, now_ms):
+        """Explicit Space close; a new team-call change may wake it again."""
+        self._overview_until = now_ms
+        self._overview_hidden = True
+        self._quiet_since = now_ms - self.idle_after_ms
+        self._rotation_at = now_ms
+        self._rotation_index = 0
 
     def observe(self, payload, live, now_ms):
         healthy, blocked, signature = False, True, None
+        own_blocked, team_signatures = True, []
         if isinstance(payload, dict) and payload.get("connected") is True and live:
             own = payload.get("own")
             team = payload.get("team")
             own_known, blocked, own_signature = _member(own, own=True)
+            own_blocked = blocked
             healthy = own_known and isinstance(team, list)
             team_signatures = []
             if isinstance(team, list):
@@ -122,10 +136,15 @@ class IdlePages:
                 valid, alert_state, alert_signature = _call(alert)
                 healthy = healthy and valid
                 blocked = blocked or alert_state in ACTIVE_CALLS
+                own_blocked = own_blocked or alert_state in ACTIVE_CALLS
             presence = own.get("presence") or {} if isinstance(own, dict) else {}
             presence_signature = tuple(str(presence.get(key) or "") for key in ("state", "profile", "confirmed")) if isinstance(presence, dict) else ()
             signature = (own_signature, tuple(team_signatures), alert_signature, presence_signature)
         if self.overview_on_demand:
+            team_signature = tuple(team_signatures)
+            if team_signature != self._team_signature:
+                self._overview_hidden = False
+            self._team_signature = team_signature
             if self._quiet_since is None or (healthy and not blocked and (not self._healthy or self._blocked)):
                 self._quiet_since = now_ms - self.idle_after_ms
                 self._rotation_at = now_ms
@@ -134,11 +153,13 @@ class IdlePages:
                 or signature != self._signature or self._quiet_since is None):
             self.touch(now_ms)
         self._healthy, self._blocked, self._signature = bool(healthy), bool(blocked), signature
+        self._own_blocked = bool(own_blocked)
         return self.active(now_ms)
 
     def active(self, now_ms):
         if self.overview_on_demand:
-            return bool(self.pages and self._healthy and not self._blocked and now_ms >= self._overview_until)
+            return bool(self.pages and self._healthy and not self._own_blocked
+                        and (not self._blocked or self._overview_hidden) and now_ms >= self._overview_until)
         return bool(self.pages and self._healthy and not self._blocked
                     and self._quiet_since is not None
                     and now_ms - self._quiet_since >= self.idle_after_ms)

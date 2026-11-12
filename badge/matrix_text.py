@@ -44,6 +44,26 @@ def caller_text(value):
     return ' '.join(''.join(result).split())[:48]
 
 
+def notification_text(item):
+    """Printable native ASCII, bounded to155 bytes plus the hardware NUL."""
+    raw=str(item.get('title') or 'Notification')
+    progress=item.get('progress')
+    if isinstance(progress,(int,float)) and not isinstance(progress,bool) and 0<=progress<=100:
+        raw+=' %d%%'%round(progress)
+    raw+=' - '+str(item.get('body') or '')
+    if item.get('priority')==5:raw='URGENT: '+raw
+    result=[]
+    for character in raw[:640]:
+        if character in ('’','‘'):character="'"
+        for base,variants in _ACCENTS.items():
+            if character.upper() in variants:
+                character=base if character.isupper() else base.lower()
+                break
+        result.append(character if 32<=ord(character)<=126 else '?' if character.isalpha() else ' ')
+    text=' '.join(''.join(result).split()) or 'Notification'
+    return text[:152]+'...' if len(text)>155 else text
+
+
 def columns(text):
     result = []
     for character in text[:48]:

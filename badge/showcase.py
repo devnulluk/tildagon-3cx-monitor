@@ -40,6 +40,7 @@ _AFTER = (
     ("presence", None, "team", "day", "Own status / away", "away"),
     ("presence", None, "team", "day", "Own status / DND", "dnd"),
     ("settings", "settings", "team", "day", "Brightness and appearance settings", None),
+    ("menu", None, "team", "day", "Main menu", None),
 )
 _DATES = {"easter": "2027-03-28", "anniversary": "2027-09-10",
           "birthday_self": "2027-02-03", "birthday_partner": "2027-06-07"}

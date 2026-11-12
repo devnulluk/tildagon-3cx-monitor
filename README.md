@@ -8,15 +8,32 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 
 ![Theme examples](docs/gallery/themes-contact-sheet.png)
 
-## Quiet by default, version0.15.1
+## Crowned speed dials and menu, version0.16
 
-Quiet live phone state goes straight to the rotating idle pages. Press Space or
-a badge button to reveal the BLF/speed-dial panel; the first press only wakes,
-never dials. Any teammate call keeps the panel visible until it ends. A manual
-wake lasts60seconds by default. The partner speed dial is shown as **E: Partner**
-(your configured name); after waking, badge E or keyboard E selects it.
+![Five equal speed-dial tiles, personalised synthetic simulator preview](docs/gallery/crowned-speed-dials.png)
 
-![Manually activated speed-dial panel, synthetic simulator](docs/gallery/on-demand-speeddial.png)
+The partner has a full-size tile with a gold corner crown and the configured
+name. All five contacts have the same tile footprint, arranged like the badge
+buttons. **Space** opens/closes the panel, including an explicit close during a
+teammate call; new team-call activity can wake it again. Quiet pages remain the
+default, and the first dial-key press from idle only wakes the panel.
+
+| Button | Action |
+| --- | --- |
+| F | TB |
+| B | PD |
+| E | JH |
+| C | SM |
+| D | Configured partner |
+| A | Menu |
+
+The menu contains speed dials, DND, notifications, settings, demo and exit.
+F/B or arrows move; C/Enter selects; A/Escape returns. Incoming calls retain
+display precedence. [Menu preview](docs/gallery/royal-menu.png).
+
+Notifications also scroll their title, progress and message on the native matrix.
+[Watch the simulator animation](docs/gallery/matrix-notifications.gif) ·
+[Video](docs/gallery/matrix-notifications.mp4) · [Matrix guide](docs/MATRIX.md).
 
 ## Urgent notifications
 
@@ -79,7 +96,7 @@ name line. Public previews use invented names; personal details stay local.
 - A waving bunny for your configured partner, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.15.1** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.16.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
 
 ## On-device demo tour
 
@@ -127,13 +144,23 @@ The previews use invented messages and reserved example numbers. External sender
 
 ## Controls
 
-With a keyboard expansion: **S** opens settings, **T** opens the theme row, **K** opens the clock row. **Up/Down** selects Ring, EEH, Theme, Clock, Matrix Call or Demo; **Left/Right** changes an appearance value; **Enter** closes appearance settings or starts the selected demo. Physical **A–D** request the four configured team speed dials, **E** requests the partner speed dial, and **F** requests a DND toggle. Settings, notification and showcase views capture those buttons while open.
+The five physical dial buttons use the table above with or without a keyboard.
+Keyboard F/B/E/C/D mirrors the same targets; keyboard A opens the menu. First
+press wakes the hidden panel; a second deliberate press requests the dial.
+Settings, notifications, menus and showcase views capture their own controls.
 
-**N** opens the notification inbox. Arrow keys browse, **Enter/C** dismisses the current item, and **Space/Escape/F** returns. Spaceagon joystick directions and touch-ring rotation also browse; the joystick centre press dismisses an open notification. The [Spaceagon guide](docs/SPACEAGON.md) describes the gestures and their display-only scope.
+**Space** toggles the BLF/speed-dial panel. **S** opens settings, **T** the theme
+row, **K** the clock row, and **G** the isolated demo. Up/Down adjusts EEH outside
+modal views; Left/Right browses idle pages or selects a team detail.
 
-During idle, keyboard **Left/Right** browses pages and **Space** returns to monitoring. Outside settings, keyboard **Up/Down** adjusts EEH brightness. Without a keyboard, hold **C** for settings; A/D selects a row, B/E changes it, C/F closes it. A short C opens your own status or confirms the current view; F exits the app.
+**N** opens the notification inbox. Arrows browse; Enter/C dismisses; Space,
+Escape or F returns. Spaceagon joystick/touch input navigates display views;
+sensor confirmation never authorizes a DND change. See [Spaceagon controls](docs/SPACEAGON.md).
 
-For the [on-device showcase](docs/SHOWCASE.md), press keyboard **D**, or use **S → DEMO → Enter**. Without a keyboard, hold **C** for settings, select **DEMO** and press **C**. In the tour, **B/E** steps through scenes, **A/D** changes theme, **C** pauses and **F** restores your previous view. Keyboard arrows navigate, **Space/Enter** pauses and **Escape/D** returns. Live polling and phone commands are paused while the synthetic tour is active; your normal settings return afterward.
+In settings, Up/Down or A/D selects, Left/Right or E/B adjusts, and C/F/Enter
+closes. DND and Exit are available from **A → Menu**.
+
+For the [on-device showcase](docs/SHOWCASE.md), press keyboard **G**, or use **S → DEMO → Enter**. Without a keyboard, use **A → Menu → Demo tour → C**. In the tour, **B/E** steps through scenes, **A/D** changes theme, **C** pauses and **F** restores your previous view. Keyboard arrows navigate, **Space/Enter** pauses and **Escape/G** returns. Live polling and phone commands are paused while the synthetic tour is active; your normal settings return afterward.
 
 ## Architecture
 

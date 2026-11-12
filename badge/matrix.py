@@ -10,7 +10,7 @@ https://github.com/kristianhentschel/tildagon-matrix-hexpansion-app
 """
 
 import asyncio
-from .matrix_text import caller_text, columns, timer_bits
+from .matrix_text import caller_text, columns, timer_bits, notification_text
 from .controls import initials
 
 # Physical grid derived from the manufacturer's MIT-licensed companion app.
@@ -411,6 +411,12 @@ class MatrixDisplay:
         self._clock_ms = now_ms
         if live and _active_calls(_dict(_dict(payload).get('own'))):
             self._peak = int(self.call_brightness * 255)
+        notice=_dict(payload).get('_matrix_notification')
+        if not _active_calls(_dict(_dict(payload).get('own'))):
+            self._call_anchor_id=None
+        if isinstance(notice,dict) and isinstance(notice.get('id'),str):
+            self._peak=255
+            return self._native_text(notice,now_ms,text=notification_text(notice),mode='notification')
         mode = _scene(payload, live, page, partner, weather_fresh)
         if mode == 'call_details':
             self._peak=255

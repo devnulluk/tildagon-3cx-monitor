@@ -17,7 +17,8 @@ param(
     [switch]$FeatureDemo,
     [string]$OutputPath,
     [ValidateRange(0, 600)][int]$CaptureFrames = 0,
-    [ValidateSet('A', 'B', 'C', 'D', 'E', 'F', 'S', 'N', 'ENTER', 'SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'SHIFT+D')][string]$Action,
+    [ValidateSet('A', 'B', 'C', 'D', 'E', 'F', 'G', 'S', 'N', 'ENTER', 'SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'SHIFT+D')][string]$Action,
+    [string]$PartnerName = 'Partner',
     [switch]$PartnerDemo,
     [switch]$MatrixDemo,
     [switch]$GalleryStills,
@@ -65,6 +66,7 @@ if ($DemoDate) { $simArguments += @('--demo-date', $DemoDate) }
 if ($DemoTime) { $simArguments += @('--demo-time', $DemoTime) }
 if ($Notification) { $simArguments += @('--notification', $Notification) }
 if ($PartnerDemo) { $simArguments += '--partner-demo' }
+if ($PartnerName) { $simArguments += @('--partner-name', $PartnerName) }
 if ($MatrixDemo) { $simArguments += '--matrix-demo' }
 if ($GalleryStills) { $simArguments += '--gallery-stills' }
 if ($FeatureDemo) { $simArguments += '--feature-demo' }

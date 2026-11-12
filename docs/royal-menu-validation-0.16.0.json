@@ -1,0 +1,12 @@
+{
+  "version": "0.16.0",
+  "tests_passed": 739,
+  "physical_installation": "pending - badge unplugged by user",
+  "simulator": {
+    "source_hashes_match": 30,
+    "gif_frames": 180,
+    "gif_seconds": 18,
+    "mp4_decodes": true
+  },
+  "pbx_actions_performed": false
+}

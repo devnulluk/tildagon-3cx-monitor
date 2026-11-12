@@ -283,22 +283,15 @@ class BadgeIdleTests(unittest.TestCase):
         self.advance(module, monitor, 59999)
         self.assertFalse(monitor.idle_pages.active(monitor.clock_ms))
 
-    def test_physical_speed_dials_and_dnd_wake_and_retain_existing_intents(self):
-        for key, action, target in (("A", "call", "tb"), ("B", "call", "pd"),
-                                    ("C", "call", "jh"), ("D", "call", "sm"),
-                                    ("E", "call", "kz"), ("F", "dnd", None)):
+    def test_legacy_idle_wake_uses_new_explicit_speed_dial_mappings(self):
+        for key,target in (('F','tb'),('B','pd'),('E','jh'),('C','sm'),('D','kz')):
             with self.subTest(key=key):
-                module, monitor, unused = self.monitor()
-                self.enter_idle(module, monitor)
-                with patch.object(module, "post_json") as post:
-                    monitor.buttons.values.add(key)
-                    self.advance(module, monitor, 400)
+                module,monitor,unused=self.monitor()
+                self.enter_idle(module,monitor)
+                with patch.object(module,'post_json') as post:
+                    monitor.buttons.values.add(key);self.advance(module,monitor,400)
                     self.assertFalse(monitor.idle_pages.active(monitor.clock_ms))
-                    self.assertEqual(monitor.controls.pending["action"], action)
-                    if target:
-                        self.assertEqual(monitor.controls.pending["target"], target)
-                    else:
-                        self.assertTrue(monitor.controls.pending["enabled"])
+                    self.assertEqual(monitor.controls.pending['target'],target)
                     post.assert_not_called()
 
     def test_up_down_wake_and_adjust_only_eeh_without_phone_intent(self):

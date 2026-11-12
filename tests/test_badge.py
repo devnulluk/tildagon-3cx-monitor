@@ -301,39 +301,29 @@ class BadgeAppTests(unittest.TestCase):
         monitor.update(elapsed)
 
     def test_actual_app_defaults_to_explicit_demo_and_only_owns_outer_leds(self):
-        app_module, hw = app_runtime()
-        # Local deployment credentials must not change the default-config test.
-        with patch("builtins.open", side_effect=OSError("No test configuration")):
-            monitor = app_module.ThreeCXMonitor()
+        app_module,hw=app_runtime()
+        with patch('builtins.open',side_effect=OSError('No test configuration')):
+            monitor=app_module.ThreeCXMonitor()
         self.assertTrue(monitor.demo_mode)
         monitor.update(50)
-        self.assertEqual(hw.leds[0], (1, 2, 3))
-        self.assertEqual(hw.leds[13:], [(1, 2, 3)] * 6)
-        monitor.buttons.values.add("F")
-        monitor.update(50)
+        self.assertEqual(hw.leds[0],(1,2,3))
+        self.assertEqual(hw.leds[13:],[(1,2,3)]*6)
+        monitor._open_menu();monitor.menu_selected=5;monitor._menu_key('ENTER')
         self.assertTrue(monitor.terminated)
-        self.assertEqual(hw.leds[1:13], [(0, 0, 0)] * 12)
+        self.assertEqual(hw.leds[1:13],[(0,0,0)]*12)
 
-    def test_live_navigation_returns_from_detail_to_overview_then_own(self):
-        app_module, _ = app_runtime()
-        with patch("builtins.open", side_effect=OSError("No test configuration")):
-            monitor = app_module.ThreeCXMonitor()
-        monitor.demo_mode = False
-        monitor.update(0)
-        self.press(app_module, monitor, "B")
-        self.assertTrue(monitor.controller.detail_view)
-        self.release(app_module, monitor)
-        self.press(app_module, monitor, "C")
-        self.release(app_module, monitor)
-        self.assertFalse(monitor.controller.detail_view)
+    def test_menu_returns_to_overview_without_own_status_or_phone_action(self):
+        module,monitor,unused=self.live_monitor(False)
+        self.press(module,monitor,'A')
+        self.assertTrue(monitor.menu_open)
+        monitor.menu_selected=0;monitor._menu_key('ENTER')
+        self.assertFalse(monitor.menu_open)
         self.assertFalse(monitor.controller.own_view)
-        self.release(app_module, monitor)
-        self.press(app_module, monitor, "C")
-        self.release(app_module, monitor)
-        self.assertTrue(monitor.controller.own_view)
+        self.assertFalse(monitor.controller.detail_view)
+        self.assertIsNone(monitor.controls.pending)
 
     def test_keyboard_mode_badge_buttons_map_to_team_and_keziah_without_network(self):
-        for key, target in (("A", "tb"), ("B", "pd"), ("C", "jh"), ("D", "sm"), ("E", "kz")):
+        for key, target in (("F", "tb"), ("B", "pd"), ("E", "jh"), ("C", "sm"), ("D", "kz")):
             with self.subTest(key=key):
                 app_module, monitor, _ = self.live_monitor()
                 with patch.object(app_module, "post_json") as post:
@@ -344,11 +334,11 @@ class BadgeAppTests(unittest.TestCase):
                 self.assertEqual(monitor.controller.eeh_brightness, 0.03)
                 post.assert_not_called()
 
-    def test_keyboard_mode_f_queues_explicit_dnd_and_does_not_exit(self):
-        app_module, monitor, _ = self.live_monitor()
-        self.press(app_module, monitor, "F")
-        self.assertEqual(monitor.controls.pending["action"], "dnd")
-        self.assertIs(monitor.controls.pending["enabled"], True)
+    def test_keyboard_mode_f_queues_tb_and_does_not_exit(self):
+        module,monitor,unused=self.live_monitor()
+        self.press(module,monitor,'F')
+        self.assertEqual(monitor.controls.pending['action'],'call')
+        self.assertEqual(monitor.controls.pending['target'],'tb')
         self.assertFalse(monitor._stopping)
 
     def test_keyboard_arrows_navigate_without_dialling(self):
@@ -360,27 +350,25 @@ class BadgeAppTests(unittest.TestCase):
         self.assertIsNone(monitor.controls.pending)
         self.assertFalse(monitor.controls.is_busy)
 
-    def test_without_keyboard_badge_navigation_never_queues_a_call(self):
-        app_module, monitor, _ = self.live_monitor(keyboard=False)
-        self.press(app_module, monitor, "B")
-        self.assertEqual(monitor.controller.selected, 1)
-        self.assertTrue(monitor.controller.detail_view)
-        self.assertIsNone(monitor.controls.pending)
+    def test_without_keyboard_badge_b_queues_pd(self):
+        module,monitor,unused=self.live_monitor(False)
+        self.press(module,monitor,'B')
+        self.assertEqual(monitor.controls.pending['target'],'pd')
+        self.assertFalse(monitor.controller.detail_view)
 
-    def test_held_navigation_button_cannot_dial_after_keyboard_hotplug(self):
-        app_module, monitor, _ = self.live_monitor(keyboard=False)
-        self.press(app_module, monitor, "A")
-        monitor.expansions.keyboard_present = True
-        monitor.update(0)
-        # A repeated native Down event can arrive while the same physical key
-        # remains held. It must not turn the old brightness press into a call.
-        app_module.time.now += 1000
-        monitor.buttons.values.add("A")
-        monitor.update(1000)
+    def test_held_menu_button_cannot_dial_after_keyboard_hotplug(self):
+        module,monitor,unused=self.live_monitor(False)
+        self.press(module,monitor,'A')
+        self.assertTrue(monitor.menu_open)
+        monitor.expansions.keyboard_present=True
+        module.time.now+=1000;monitor.update(1000)
         self.assertIsNone(monitor.controls.pending)
-        self.release(app_module, monitor)
-        self.press(app_module, monitor, "A")
-        self.assertEqual(monitor.controls.pending["target"], "tb")
+        self.release(module,monitor)
+        self.press(module,monitor,'A')
+        self.assertFalse(monitor.menu_open)
+        self.release(module,monitor)
+        self.press(module,monitor,'F')
+        self.assertEqual(monitor.controls.pending['target'],'tb')
 
     def test_stop_clears_both_outer_leds_and_expansion_status(self):
         app_module, monitor, hw = self.live_monitor()
@@ -412,7 +400,7 @@ class BadgeAppTests(unittest.TestCase):
         self.assertTrue(original_presence["confirmed"])
         self.assertEqual(original_presence["state"], "available")
         self.assertEqual(original_presence["age_seconds"], 4.9)
-        self.press(app_module, monitor, "F")
+        monitor._open_menu();monitor.menu_selected=1;monitor._menu_key('ENTER')
         self.assertIsNone(monitor.controls.pending)
         self.assertEqual(monitor.controls.message, "DND STATUS UNKNOWN")
         monitor.controller.own_view = True
@@ -438,8 +426,8 @@ class BadgeAppTests(unittest.TestCase):
         monitor.draw(context)
         names = [record for record in context.records if record["text"] in ("TB", "PD", "JH", "SM")]
         self.assertEqual(len(names), 4)
-        self.assertTrue(all(record["size"] >= 46 for record in names))
-        self.assertEqual(len({record["x"] for record in names}), 2)
+        self.assertTrue(all(record["size"] >= 30 for record in names))
+        self.assertEqual(len({record["x"] for record in names}), 4)
         self.assertEqual(len({record["y"] for record in names}), 2)
         self.assertTrue(all(record["colour"][1] > record["colour"][0] for record in names))
         texts = [record["text"] for record in context.records]
@@ -459,10 +447,10 @@ class BadgeAppTests(unittest.TestCase):
         own = next(record for record in context.records if record["text"] == "PD")
         peer = next(record for record in context.records if record["text"] == "245")
         first_name = next(record for record in context.records if record["text"] == "Alice")
-        self.assertGreaterEqual(own["size"], 24)
+        self.assertGreaterEqual(own["size"], 18)
         self.assertLess(own["size"], 40)
-        self.assertGreaterEqual(peer["size"], 26)
-        self.assertGreaterEqual(first_name["size"], 16)
+        self.assertGreaterEqual(peer["size"], 20)
+        self.assertGreaterEqual(first_name["size"], 10)
         self.assertLess(first_name["size"], peer["size"])
         self.assertGreater(first_name["y"], peer["y"])
         self.assertNotIn("AS", [record["text"] for record in context.records])
@@ -486,7 +474,7 @@ class BadgeAppTests(unittest.TestCase):
         context = RecordingCanvas()
         monitor.draw(context)
         rendered = next(record for record in context.records if record["text"] == "Christopher")
-        self.assertGreaterEqual(rendered["size"], 14)
+        self.assertGreaterEqual(rendered["size"], 10)
         self.assertLess(rendered["size"], 20)
         monitor.controller.selected = 1
         monitor.controller.detail_view = True
@@ -503,7 +491,7 @@ class BadgeAppTests(unittest.TestCase):
         context = RecordingCanvas()
         monitor.draw(context)
         name = next(record for record in context.records if record["text"] == "Christopher")
-        self.assertGreaterEqual(name["size"],14)
+        self.assertGreaterEqual(name["size"],10)
         self.assertLess(name["size"],20)
 
     def test_external_team_calls_show_only_external_without_customer_identity_or_number(self):
@@ -589,17 +577,17 @@ class BadgeAppTests(unittest.TestCase):
         self.assertIsNone(monitor.controls.pending)
 
     def test_no_keyboard_brightness_buttons_leave_outer_blf_levels_unchanged(self):
-        app_module, monitor, hw = self.live_monitor(keyboard=False)
-        for member in monitor.controller.payload["team"]:
-            member.update(state="idle", calls=[])
+        module,monitor,hw=self.live_monitor(False)
+        for member in monitor.controller.payload['team']:member.update(state='idle',calls=[])
+        monitor.update(0);before=list(hw.leds[1:13])
+        monitor._open_menu();monitor.menu_selected=3;monitor._menu_key('ENTER')
+        monitor.settings_selected=1
         monitor.update(0)
-        before = list(hw.leds[1:13])
-        self.press(app_module, monitor, "A")
-        self.assertEqual(monitor.controller.eeh_brightness, 0.04)
-        self.release(app_module, monitor)
-        self.press(app_module, monitor, "D")
-        self.assertEqual(monitor.controller.eeh_brightness, 0.03)
-        self.assertEqual(hw.leds[1:13], before)
+        self.press(module,monitor,'B')
+        self.assertEqual(monitor.controller.eeh_brightness,.04)
+        self.release(module,monitor);self.press(module,monitor,'E')
+        self.assertEqual(monitor.controller.eeh_brightness,.03)
+        self.assertEqual(hw.leds[1:13],before)
         self.assertIsNone(monitor.controls.pending)
 
     def test_offline_screen_and_outer_leds_do_not_keep_live_green_status(self):
@@ -709,49 +697,36 @@ class BadgeAppTests(unittest.TestCase):
         monitor.update(0)  # F remains held after closing; it must not become DND.
         self.assertIsNone(monitor.controls.pending)
 
-    def test_without_keyboard_long_c_opens_settings_without_first_toggling_dnd(self):
-        app_module, monitor, _ = self.live_monitor(keyboard=False)
-        monitor.controller.own_view = True
-        self.press(app_module, monitor, "C")
-        self.assertFalse(monitor.settings_open)
-        self.assertIsNone(monitor.controls.pending)
-        app_module.time.now += 900
-        monitor.update(900)
+    def test_without_keyboard_menu_opens_settings_and_held_close_never_calls(self):
+        module,monitor,unused=self.live_monitor(False)
+        self.press(module,monitor,'A');self.release(module,monitor)
+        monitor.menu_selected=3
+        self.press(module,monitor,'C');self.release(module,monitor)
         self.assertTrue(monitor.settings_open)
         self.assertIsNone(monitor.controls.pending)
-        self.release(app_module, monitor)
-        self.assertTrue(monitor.settings_open)
-        self.press(app_module, monitor, "F")
+        self.press(module,monitor,'F')
         self.assertFalse(monitor.settings_open)
-        self.assertFalse(monitor._stopping)
+        monitor.update(0)
         self.assertIsNone(monitor.controls.pending)
 
-    def test_keyboard_hotplug_cancels_an_incomplete_settings_hold(self):
-        app_module, monitor, _ = self.live_monitor(keyboard=False)
-        monitor.controller.own_view = True
-        self.press(app_module, monitor, "C")
-        monitor.expansions.keyboard_present = True
-        app_module.time.now += 100
-        monitor.update(100)
-        app_module.time.now += 1000
-        monitor.update(1000)
+    def test_keyboard_hotplug_does_not_select_menu_with_held_button(self):
+        module,monitor,unused=self.live_monitor(False)
+        self.press(module,monitor,'A')
+        monitor.expansions.keyboard_present=True
+        module.time.now+=1100;monitor.update(1100)
+        self.assertTrue(monitor.menu_open)
         self.assertFalse(monitor.settings_open)
-        self.assertIsNone(monitor.controls.pending)
-        self.release(app_module, monitor)
         self.assertIsNone(monitor.controls.pending)
 
-    def test_adding_another_button_cancels_pending_c_confirm_instead_of_toggling_dnd(self):
-        app_module, monitor, _ = self.live_monitor(keyboard=False)
-        monitor.controller.own_view = True
-        self.press(app_module, monitor, "C")
-        app_module.time.now += 100
-        monitor.buttons.values.add("B")
-        monitor.update(100)
-        app_module.time.now += 100
-        monitor.buttons.values.discard("C")
-        monitor.update(100)
-        self.assertFalse(monitor.settings_open)
+    def test_button_chord_does_not_call_until_released_and_pressed_again(self):
+        module,monitor,unused=self.live_monitor(False)
+        module.time.now+=400;monitor.buttons.values={'B','C'};monitor.update(400)
         self.assertIsNone(monitor.controls.pending)
+        monitor.buttons.values={'B'};module.time.now+=400;monitor.update(400)
+        self.assertIsNone(monitor.controls.pending)
+        self.release(module,monitor)
+        self.press(module,monitor,'C')
+        self.assertEqual(monitor.controls.pending['target'],'sm')
 
     def test_settings_display_both_large_percentages_and_incoming_call_overrides_page(self):
         _, monitor, _ = self.live_monitor()
@@ -864,7 +839,7 @@ class BadgeAppTests(unittest.TestCase):
 class BadgeControlPollingTests(unittest.IsolatedAsyncioTestCase):
     async def poll_once(self, outcome):
         app_module, monitor, _ = BadgeAppTests.live_monitor()
-        monitor._physical_control("A")
+        monitor._physical_control("F")
         value = monitor.controller.payload
         wifi = types.ModuleType("wifi")
         wifi.status = lambda: True

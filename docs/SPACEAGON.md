@@ -32,11 +32,11 @@ the current item, and **Space/Escape** returns. In the inbox, physical **B/E** b
 
 ## On-device showcase
 
-Press keyboard **D**, or select **DEMO** in keyboard settings with **S** and
-**Enter**, to start the isolated tour. Without a keyboard, hold physical **C** for
-settings, select **DEMO** and press **C**. Physical **B/E** moves between scenes, **A/D**
+Press keyboard **G**, or select **DEMO** in keyboard settings with **S** and
+**Enter**, to start the isolated tour. Without a keyboard, use **A → Menu → Demo
+tour → C**. Physical **B/E** moves between scenes, **A/D**
 changes theme, **C** pauses/resumes and **F** restores your previous view. Keyboard
-arrows navigate, **Space/Enter** pauses and **Escape/D** returns. Live bridge
+arrows navigate, **Space/Enter** pauses and **Escape/G** returns. Live bridge
 polling and phone commands are paused during the tour; it uses invented caller,
 weather and occasion data. The [showcase guide](SHOWCASE.md) explains restoration
 and the full control map.

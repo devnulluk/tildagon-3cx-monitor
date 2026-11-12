@@ -15,21 +15,19 @@ locations and occasion dates come from isolated fixtures, not your configuration
 
 ## Start and navigate
 
-Without a keyboard, hold **C** to open settings, select the final **DEMO** row with
-**A/D**, then press **C** to play. With an attached keyboard, press **D**, or open
-settings with **S**, choose **DEMO**, then press **Enter**. This works inside the
-existing app; no restart, bridge change or network connection is needed for the
-synthetic scenes.
+Use **A → Menu → Demo tour**, moving with F/B and selecting with C.
+Keyboard **G** also starts the isolated tour; settings still offers a DEMO row.
+No restart, bridge change or network connection is needed for synthetic scenes.
 
 | Action | Badge buttons | Keyboard |
 | --- | --- | --- |
-| Start showcase | Without keyboard: hold C for settings; select DEMO; press C | D, or Settings → DEMO → Enter |
+| Start showcase | A → Menu → Demo tour → C | G, or Settings → DEMO → Enter |
 | Next / previous scene | B / E | Right / Left |
 | Next / previous theme | A / D | Up / Down |
-| Pause / resume automatic advance | C | Space or Enter |
-| Leave showcase | F | Escape or D |
+| Pause / resume | C | Space or Enter |
+| Leave showcase | F | Escape or G |
 
-Physical **D** changes the theme while showcasing; keyboard **D** leaves it.
+These are display-only demo controls, not the normal speed-dial mapping.
 Leaving restores your previous view and resumes live monitoring while keeping
 the app running. If you entered from settings, that settings view returns.
 Buttons held across
@@ -44,9 +42,9 @@ all six rows without changing or saving their values. The photographic theme and
 use the same verified local assets and fallback behavior as normal operation.
 Optional EEH and Liteloop displays use their existing drivers when present.
 
-The thirteen built-in themes have **573 stages**: 44 per theme, plus Christmas
-Advent. At five seconds per stage, an uninterrupted full loop takes **47 minutes
-45 seconds**. It loops continuously; pause, skip a scene or jump to another theme
+The thirteen built-in themes have **586 stages**: 45 per theme, plus Christmas
+Advent. At five seconds per stage, an uninterrupted full loop takes **48 minutes
+50 seconds**. It loops continuously; pause, skip a scene or jump to another theme
 at any point.
 
 The preview above was recorded with version 0.11's nine-clock, 521-stage tour.
@@ -83,9 +81,9 @@ The portable official simulator can run this same production mode:
 ./Launch-Simulator.ps1 -FeatureDemo
 ```
 
-In that launcher, **Shift+D** sends the keyboard shortcut; plain PC **A–F** remain
-the simulator's physical badge buttons. This lets physical **D** change theme
-without being confused with the keyboard exit command.
+In that launcher, **G** sends the keyboard demo shortcut (the old Shift+D test
+alias is also accepted). Plain PC **A–F** remain simulated physical badge buttons;
+their meaning is captured by the active menu/settings/demo view.
 
 `tests/test_showcase_integration.py` exercises the real app with fake hardware and
 network work. It checks pending/in-flight command boundaries, delayed fetch

@@ -55,7 +55,8 @@ parser.add_argument("--gallery-stills", action="store_true", help="Export actual
 parser.add_argument("--weather-kind", choices=["clear", "day", "night", "rain", "rain-night", "heavy", "snow", "storm", "fog", "stale"], default="clear",
                     help="Synthetic weather condition; never requests live weather")
 parser.add_argument("--output", type=Path, help="Copy a completed DEMO screenshot and its status JSON to this path")
-parser.add_argument("--action", choices=list("ABCDEFSN") + ["ENTER", "SPACE", "UP", "DOWN", "LEFT", "RIGHT", "SHIFT+D"], help="Inject one synthetic badge/keyboard press in DEMO")
+parser.add_argument("--action", choices=list("ABCDEFGSN") + ["ENTER", "SPACE", "UP", "DOWN", "LEFT", "RIGHT", "SHIFT+D"], help="Inject one synthetic badge/keyboard press in DEMO")
+parser.add_argument('--partner-name',default='Partner',help='Synthetic personalisation label; no phone numbers or contacts are loaded')
 parser.add_argument("--capture-frames", type=int, default=None)
 parser.add_argument("--action-frame", type=int, default=12)
 parser.add_argument("--action-hold-frames", type=int, default=3, help="Duration of a synthetic held key in DEMO")
@@ -284,7 +285,7 @@ if film_recorder:
     "idle_seconds": 60,
     "theme": options.theme, "theme_auto": False, "personal_dates": {}, "clock_style": options.clock_style,
     "bridge_url": "", "token": "", "control_token": "",
-    "partner_name": "Partner", "partner_surname": "Example",
+    "partner_name": options.partner_name.strip()[:32] or 'Partner', "partner_surname": "Example",
     "demo_notifications": [],
     "eeh": {"slot": 6, "type": "EEH Logo"},
     "matrix": {"slot": 2, "type": "Liteloop", "brightness": 0.35} if options.matrix_demo else False,
@@ -761,7 +762,7 @@ def report_render():
     idle = getattr(preview_app, "idle_pages", None)
     idle_page = idle.page(preview_app._now()) if idle is not None else None
     if showcase_active:
-        side_text("Shift+D / Esc = stop demo", 570, 20)
+        side_text("G / Esc = stop demo", 570, 20)
         side_text("Enter / Space = pause", 594, 20)
         side_text("Left / Right = feature", 618, 20)
         side_text("Up / Down = theme", 642, 20)
@@ -774,6 +775,11 @@ def report_render():
         side_text("A / D = select", 642, 20)
         side_text("B / E = adjust", 666, 20)
         side_text("C / F = done", 690, 20)
+    elif preview_app is not None and getattr(preview_app,'menu_open',False):
+        side_text('F / B or arrows = move',570,20)
+        side_text('C / Enter = select',594,20)
+        side_text('A / Esc = back',618,20)
+        side_text('Space = close panel',642,20)
     elif options.keyboard and idle_page:
         side_text("Left / Right = idle pages", 570, 20)
         side_text("Enter = demo incoming call", 594, 20)
@@ -782,15 +788,15 @@ def report_render():
         side_text("A-F = badge buttons", 666, 20)
         side_text("Esc = exit", 690, 20)
     elif options.keyboard:
-        side_text("A-F = badge buttons", 570, 20)
-        side_text("Enter = next call scene", 594, 20)
-        side_text("Space = own / team", 618, 20)
-        side_text("Left / Right = select team", 642, 20)
-        side_text("S = brightness settings", 666, 20)
+        side_text('F TB / B PD / E JH',570,20)
+        side_text('C SM / D '+options.partner_name,594,20)
+        side_text('A = menu',618,20)
+        side_text('Space = open / close panel',642,20)
+        side_text('G = demo / S = settings',666,20)
         side_text("Esc = exit", 690, 20)
     else:
         side_text("A-F = badge buttons", 570, 20)
-        side_text("Hold C = brightness settings", 594, 20)
+        side_text("A = menu / settings", 594, 20)
     side_text("Offline demo / no real calls", 710, 19, (90,210,170))
     pygame.display.flip()
     if options.settings and frames in (6, 9):
@@ -801,8 +807,7 @@ def report_render():
     if options.action and frames in (options.action_frame,options.action_frame + max(1, options.action_hold_frames)):
         kind = pygame.KEYDOWN if frames == options.action_frame else pygame.KEYUP
         if options.action == "SHIFT+D":
-            pygame.event.post(pygame.event.Event(kind, key=pygame.K_d,
-                                               mod=pygame.KMOD_SHIFT if kind == pygame.KEYDOWN else 0))
+            pygame.event.post(pygame.event.Event(kind, key=pygame.K_g))
         else:
             action_key = {"ENTER":pygame.K_RETURN, "SPACE":pygame.K_SPACE, "UP":pygame.K_UP,
                           "DOWN":pygame.K_DOWN, "LEFT":pygame.K_LEFT, "RIGHT":pygame.K_RIGHT}.get(options.action)

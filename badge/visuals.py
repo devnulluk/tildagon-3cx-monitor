@@ -53,6 +53,18 @@ def settings_row(ctx, index, level, selected):
         ctx.rgb(*accent).round_rectangle(-83, top + 45, max(1, min(166, level * 166)), 3, 1.5).fill()
 
 
+def speed_card(ctx,x,y,colour,crowned=False,ringing=False,now=0):
+    """Equal-size dial tiles fitting five entries inside the round display."""
+    ctx.rgb(*PANEL).round_rectangle(x-43,y-28,86,56,11).fill()
+    gain=.55+.20*(math.sin(now/170)+1)/2 if ringing else .60
+    ctx.line_width=1.2
+    ctx.rgb(*(channel*gain for channel in colour)).round_rectangle(x-43,y-28,86,56,11).stroke()
+    ctx.rgb(*colour).round_rectangle(x-13,y-27,26,2,1).fill()
+    if crowned:
+        ctx.rgb(1,.78,.27).move_to(x+19,y-22).line_to(x+22,y-14).line_to(x+32,y-14).line_to(x+35,y-22).line_to(x+29,y-19).line_to(x+27,y-25).line_to(x+25,y-19).close_path().fill()
+        ctx.rgb(1,.78,.27).round_rectangle(x+22,y-12,10,2,1).fill()
+
+
 def notice_panel(ctx):
     ctx.rgb(*PANEL).round_rectangle(-105, -53, 210, 104, 23).fill()
     ctx.line_width = 1

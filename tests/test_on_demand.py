@@ -44,16 +44,16 @@ class OnDemandAppTests(unittest.TestCase):
         monitor.update(0)
         return module,monitor,hardware
 
-    def test_default_is_idle_first_key_only_wakes_then_e_queues_partner(self):
+    def test_default_is_idle_first_key_only_wakes_then_d_queues_partner(self):
         module,monitor,hardware=self.monitor()
         self.assertTrue(monitor.idle_pages.active(monitor.clock_ms))
         with patch.object(module,'send_control') as send:
-            monitor.expansions.keys=['E'];monitor.update(0)
+            monitor.expansions.keys=['D'];monitor.update(0)
             self.assertFalse(monitor.idle_pages.active(monitor.clock_ms))
             self.assertIsNone(monitor.controls.pending)
             canvas=support.RecordingCanvas();monitor.draw(canvas)
-            self.assertIn('E: Keziah',[r['text'] for r in canvas.records])
-            monitor.expansions.keys=['E'];monitor.update(0)
+            self.assertIn('Keziah',[r['text'] for r in canvas.records])
+            monitor.expansions.keys=['D'];monitor.update(0)
             self.assertEqual(monitor.controls.pending['target'],'kz')
             send.assert_not_called()
 

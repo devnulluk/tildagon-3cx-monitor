@@ -21,7 +21,7 @@ from .controls import ControlButtons, ControlQueue, initials, own_colour
 from .expansions import ExpansionManager
 from .idle import IdlePages, data_fresh
 from .idle_faces import draw_idle_face
-from .visuals import backdrop, team_card, settings_row, notice_panel
+from .visuals import backdrop, team_card, speed_card, settings_row, notice_panel
 from .themes import ThemeManager
 from .theme_assets import ThemeAssetStore
 from .theme_art import draw_theme_face
@@ -34,6 +34,8 @@ from .love import partner_call, partner_active, draw_love, draw_bunny
 from .notifications import NotificationInbox, draw_notification, led_frame as notification_leds, urgent_eeh_colour
 from .space_inputs import SpaceInputs
 from .showcase import Showcase, snapshot as showcase_snapshot, demo_config as showcase_config
+
+SPEED_DIAL_KEYS = {'F':'tb','B':'pd','E':'jh','C':'sm','D':'kz'}
 
 
 DEFAULT_CONFIG = {
@@ -120,6 +122,8 @@ class ThreeCXMonitor(app.App):
         self._brightness_save_at = None
         self.settings_open = False
         self.settings_selected = 0
+        self.menu_open = False
+        self.menu_selected = 0
         self._settings_hold_started = None
         self._last_keyboard_mode = None
         self._idle_draw_page = None
@@ -207,6 +211,7 @@ class ThreeCXMonitor(app.App):
             return False
         # An unsent intent must never reappear when this demonstration ends.
         self.controls.pending = None
+        self.menu_open = False
         fields = ("config", "controller", "themes", "demo_mode", "clock_style", "idle_pages",
                   "notifications", "controls", "settings_open", "settings_selected",
                   "_appearance_save_at", "_brightness_save_at", "_appearance_preview",
@@ -306,12 +311,14 @@ class ThreeCXMonitor(app.App):
         self._showcase_stage = stage
         if stage.get("feature") == "settings":
             self.settings_selected = min(5, stage["elapsed_ms"] * 6 // self.showcase.step_ms)
+        elif stage.get('feature')=='menu':
+            self.menu_selected=min(5,stage['elapsed_ms']*6//self.showcase.step_ms)
         if force or self._showcase_received is None or self.clock_ms - self._showcase_received >= 400:
             self.controller.accept(showcase_snapshot(stage, self.clock_ms), self.clock_ms)
             self._showcase_received = self.clock_ms
 
     def _showcase_input(self, keys, edges, events):
-        if any(key in keys for key in ("ESCAPE", "D")) or "F" in edges:
+        if any(key in keys for key in ("ESCAPE", "G", "SHIFT+D")) or "F" in edges:
             self._end_showcase()
             return
         commands = list(keys) + list(edges)
@@ -334,7 +341,7 @@ class ThreeCXMonitor(app.App):
         self._tick_showcase()
 
     def _showcase_entry(self, keys, down):
-        if "D" in keys:
+        if any(key in keys for key in ('G','SHIFT+D')):
             self._start_showcase()
             return True
         return False
@@ -403,6 +410,12 @@ class ThreeCXMonitor(app.App):
             own['calls']=[dict(call,elapsed_seconds=self.controller.call_elapsed(call,self.clock_ms))
                           if isinstance(call,dict) else call for call in calls]
             payload['own']=own
+        candidate=self.notifications.current(self.clock_ms)
+        active_own=bool(isinstance(calls,list) and any(isinstance(call,dict) and call.get('state') in ('ringing','dialing','connected','hold','held','busy') for call in calls))
+        if (candidate and not self.controller._priority_ring_override(self.clock_ms)
+                and (candidate.get('priority')==5 or (live and not active_own))):
+            payload=dict(payload)
+            payload['_matrix_notification']=candidate
         self.matrix.update(payload, live, self.clock_ms, page=self.idle_pages.page(self.clock_ms),
                            partner=matrix_partner, weather_fresh=fresh)
 
@@ -632,12 +645,51 @@ class ThreeCXMonitor(app.App):
 
     def _physical_control(self, key):
         payload, live = self._status_payload(), self.controller.live(self.clock_ms)
-        if key == "F":
-            self.controls.queue_dnd(payload, live, self.clock_ms)
+        if key == 'A':
+            self._open_menu()
         else:
-            target = {"A": "tb", "B": "pd", "C": "jh", "D": "sm", "E": "kz"}.get(key)
+            target = SPEED_DIAL_KEYS.get(key)
             if target:
                 self.controls.queue_call(payload, live, target, self.clock_ms)
+
+    def _open_menu(self):
+        self.menu_open = True
+        self.menu_selected = 0
+        self.controller.own_view = self.controller.detail_view = False
+        self._settings_hold_started = None
+        self.control_buttons = ControlButtons()
+        self.idle_pages.touch(self.clock_ms, manual=True)
+
+    def _close_menu(self):
+        self.menu_open = False
+        self.control_buttons = ControlButtons()
+
+    def _toggle_panel(self, was_idle):
+        self.controller.own_view = self.controller.detail_view = False
+        if was_idle:
+            self.idle_pages.touch(self.clock_ms, manual=True)
+        else:
+            self.idle_pages.close_overview(self.clock_ms)
+
+    def _menu_key(self, key):
+        if key in ('A','ESCAPE','CANCEL','SPACE'):
+            self._close_menu()
+            if key == 'SPACE':self.idle_pages.close_overview(self.clock_ms)
+            return
+        if self.controller.alert(self.clock_ms):return
+        if key in ('F','UP','LEFT'):
+            self.menu_selected=(self.menu_selected-1)%6
+        elif key in ('B','DOWN','RIGHT'):
+            self.menu_selected=(self.menu_selected+1)%6
+        elif key in ('C','ENTER','CONFIRM'):
+            selected=self.menu_selected
+            self._close_menu()
+            if selected==0:self.idle_pages.touch(self.clock_ms,manual=True)
+            elif selected==1:self.controls.queue_dnd(self._status_payload(),self.controller.live(self.clock_ms),self.clock_ms)
+            elif selected==2:self._open_notifications()
+            elif selected==3:self._open_settings()
+            elif selected==4:self._start_showcase()
+            else:self._stop()
 
     def _phone_attention(self, now):
         """Notifications and new sensors never obscure uncertain/active calls."""
@@ -687,7 +739,7 @@ class ThreeCXMonitor(app.App):
         priority_call = self.controller._priority_ring_override(now)
         alert = self.controller.alert(now)
         priority_call = priority_call or bool(alert and alert.get("priority"))
-        if ((priority_call if urgent else self._phone_attention(now)) or self.settings_open or self.controls.is_busy
+        if ((priority_call if urgent else self._phone_attention(now)) or self.settings_open or self.menu_open or self.controls.is_busy
                 or now < self.controls.message_until or now < self._brightness_notice_until):
             return None
         if current and self._notification_pending == current["id"]:
@@ -837,6 +889,19 @@ class ThreeCXMonitor(app.App):
             self._settings_hold_started = None
             self._write_leds()
             return True
+        if self.menu_open:
+            for key in edges + keys:
+                self._menu_key(key)
+                if not self.menu_open:break
+            for event in space_events:
+                if not self.menu_open:break
+                if event.get('kind')=='joystick':
+                    if event.get('action')=='confirm' and self.menu_selected==1:
+                        continue  # Sensors navigate; explicit keys consent to PBX actions.
+                    self._menu_key({'up':'UP','down':'DOWN','left':'LEFT','right':'RIGHT','confirm':'ENTER','cancel':'CANCEL'}.get(event.get('action')))
+            if self._stopping:return False
+            self._write_leds()
+            return True
         if keyboard:
             # Open settings before processing any other keys in the same frame.
             # Physical speed-dials are suppressed for this whole frame.
@@ -851,6 +916,10 @@ class ThreeCXMonitor(app.App):
                 self._open_notifications()
                 self._write_leds()
                 return True
+        if 'A' in edges or 'A' in keys:
+            self._open_menu()
+            self._write_leds()
+            return True
         notification = self._visible_notification(self.clock_ms)
         if self.notifications_open or notification:
             self._settings_hold_started = None
@@ -890,10 +959,9 @@ class ThreeCXMonitor(app.App):
                 elif key == "DOWN":
                     self._adjust_eeh_brightness(-1)
                 elif key == "SPACE":
-                    self.controller.own_view = False if was_idle else not self.controller.own_view
-                    self.controller.detail_view = False
-                elif key == 'E':
-                    self.controls.queue_call(self._status_payload(),self.controller.live(self.clock_ms),'kz',self.clock_ms)
+                    self._toggle_panel(was_idle)
+                elif key in SPEED_DIAL_KEYS:
+                    self._physical_control(key)
                 elif key == "ENTER" and self.demo_mode:
                     self._confirm()
             for key in edges:
@@ -902,36 +970,8 @@ class ThreeCXMonitor(app.App):
                 self._run_demo_control()
             self._write_leds()
             return True
-        key = edges[0] if edges else None
-        # Without the keyboard, hold C for settings. Its short action happens
-        # on release so holding it cannot accidentally toggle DND first.
-        if key == "C":
-            self._settings_hold_started = self.clock_ms
-            key = None
-        if self._settings_hold_started is not None:
-            if down - {"C"}:
-                self._settings_hold_started = None
-            elif "C" in down:
-                if self.clock_ms - self._settings_hold_started >= 900:
-                    self._open_settings()
-                    self._settings_hold_started = None
-            else:
-                self._settings_hold_started = None
-                self._confirm()
-        if key == "F":
-            self.buttons.clear()
-            self._stop()
-            return False
-        if key == "B":
-            self.controller.select(1)
-        elif key == "E":
-            self.controller.select(-1)
-        elif key == "A":
-            self._adjust_eeh_brightness(1)
-        elif key == "D":
-            self._adjust_eeh_brightness(-1)
-        elif key == "C":
-            self._confirm()
+        for key in edges:self._physical_control(key)
+        if self.demo_mode:self._run_demo_control()
         self._write_leds()
         return True
 
@@ -1002,6 +1042,12 @@ class ThreeCXMonitor(app.App):
             self._draw_showcase_footer(ctx)
             ctx.restore()
             return
+        if self.showcase is not None and self._showcase_stage.get('feature')=='menu':
+            backdrop(ctx,now,(0,145,25))
+            self._draw_menu(ctx)
+            self._draw_showcase_footer(ctx)
+            ctx.restore()
+            return
         demo = self.demo_mode or bool(self.controller.payload and self.controller.payload.get("demo"))
         live = self.controller.live(now)
         own_rgb = own_colour(self._status_payload(), live, now, 1.0)
@@ -1028,7 +1074,7 @@ class ThreeCXMonitor(app.App):
             self._draw_showcase_footer(ctx)
             ctx.restore()
             return
-        graphical_idle = (live and self.idle_pages.active(now) and not self.settings_open
+        graphical_idle = (live and self.idle_pages.active(now) and not self.settings_open and not self.menu_open
                           and not alert and not own_call and now >= self._brightness_notice_until
                           and now >= self.controls.message_until)
         if not graphical_idle:
@@ -1037,6 +1083,8 @@ class ThreeCXMonitor(app.App):
             backdrop(ctx, now, own_rgb, decorated_call, offline=not live)
         if self.settings_open and not alert:
             self._draw_settings(ctx)
+        elif self.menu_open and not alert:
+            self._draw_menu(ctx)
         elif not self.controller.live(now):
             self._text(ctx, "OFFLINE", -20, 32)
             self._text(ctx, "No live data", 18, 24)
@@ -1056,7 +1104,7 @@ class ThreeCXMonitor(app.App):
                 self._draw_idle(ctx, now)
             else:
                 self._draw_member(ctx)
-        if demo and not graphical_idle and self.showcase is None:
+        if demo and not graphical_idle and self.showcase is None and not self.menu_open:
             overview = not alert and not own_call and not self.settings_open and not self.controller.own_view and not self.controller.detail_view
             self._text(ctx, "DEMO", 115 if overview else 104, 8 if overview else 16, 70, (0.5, 0.65, 0.7))
         self._draw_showcase_footer(ctx)
@@ -1086,7 +1134,7 @@ class ThreeCXMonitor(app.App):
                 # Detail/status cues must stay on their actual phone view.
                 self.idle_pages.set_pages([], now)
             return
-        if (self.settings_open or self._settings_hold_started is not None
+        if (self.settings_open or self.menu_open or self._settings_hold_started is not None
                 or now < self._brightness_notice_until or now < self.controls.message_until
                 or self.controls.is_busy or self.notifications_open
                 or self._visible_notification(now)):
@@ -1198,6 +1246,24 @@ class ThreeCXMonitor(app.App):
         finish = "PLAY" if self.settings_selected == 5 else "DONE"
         self._text(ctx, ("ENTER: " if self._keyboard_present() else "C: ") + finish, 88, 18, 152, (0.6, 0.7, 0.7))
 
+    def _draw_menu(self,ctx):
+        presence=(self._status_payload().get('own') or {}).get('presence') or {}
+        state='ON' if presence.get('state')=='dnd' else 'OFF' if presence.get('state')=='available' else '?'
+        labels=('Speed dials','DND: '+state,'Notifications','Settings','Demo tour','Exit app')
+        self._text(ctx,'MENU',-84 if self.showcase else -91,27,160,(.24,.90,.83))
+        self._text(ctx,'%d / 6'%(self.menu_selected+1),-61 if self.showcase else -68,11,80,(.6,.7,.8))
+        start=max(0,min(3,self.menu_selected-1))
+        for row,index in enumerate(range(start,min(6,start+3))):
+            y=-36+row*45
+            selected=index==self.menu_selected
+            ctx.rgb(.025,.060,.085).round_rectangle(-94,y-18,188,37,10).fill()
+            ctx.line_width=1.5 if selected else .7
+            ctx.rgb(*((.24,.90,.83) if selected else (.12,.25,.30))).round_rectangle(-94,y-18,188,37,10).stroke()
+            self._text(ctx,labels[index],y,23,173,(.86,1,.97) if selected else (.50,.65,.72),minimum_size=16)
+        self._text(ctx,'F/B MOVE   C SELECT',94,11,141,(.62,.75,.79))
+        self._text(ctx,'A BACK',112,9,82,(.62,.75,.79))
+        if self.demo_mode and self.showcase is None:self._text(ctx,'DEMO',-113,8,50,(.55,.70,.75))
+
     def _draw_showcase_intro(self, ctx, now):
         stage = self._showcase_stage
         backdrop(ctx, now, (0, 145, 25))
@@ -1212,7 +1278,7 @@ class ThreeCXMonitor(app.App):
         if self.showcase is None:
             return
         stage = self._showcase_stage
-        notification = stage.get("feature") in ("notification", "team", "team_detail")
+        notification = stage.get("feature") in ("notification", "team", "team_detail", "menu")
         y = -109 if notification else 106
         ctx.rgb(.012, .026, .055).round_rectangle(-58, y - 8, 116, 16, 6).fill()
         prefix = "DEMO PAUSE" if self.showcase.paused else "DEMO"
@@ -1324,27 +1390,32 @@ class ThreeCXMonitor(app.App):
 
     def _draw_team_overview(self, ctx):
         team = self.controller.page_team()
-        for index, member in enumerate(team):
-            x, y = (-52 if index % 2 == 0 else 52), (-30 if index < 2 else 47)
+        positions=((-48,-50),(48,-50),(-52,18),(52,18))
+        labels=('F','B','E','C')
+        for index, member in enumerate(team[:4]):
+            x,y=positions[index]
             name = initials(member.get("name"), member.get("extension"))
             colour = self._member_colour(member)
-            team_card(ctx, x, y, colour, member.get("state") == "ringing", self.clock_ms)
+            speed_card(ctx,x,y,colour,ringing=member.get('state')=='ringing',now=self.clock_ms)
+            self._text(ctx,labels[index],y-18,10,14,colour,x=x-32)
             calls = member.get("calls") or []
             if calls:
                 call = calls[0]
-                self._text(ctx, name, y - 22, 26, 76, colour, x=x)
+                self._text(ctx,name,y-14,18,61,colour,x=x)
                 if call.get("kind") == "internal":
                     extension = call.get("peer_extension") or call.get("peer_number") or "?"
-                    self._text(ctx, extension, y + 4, 30, 90, x=x)
-                    self._text(ctx, call.get("peer_first_name") or "", y + 28, 20, 92,
-                               (0.7, 0.75, 0.8), x=x, minimum_size=14)
+                    self._text(ctx,extension,y+5,20,73,x=x,minimum_size=16)
+                    self._text(ctx,call.get('peer_first_name') or '',y+22,12,73,(.7,.75,.8),x=x,minimum_size=10)
                 else:
-                    self._text(ctx, "External", y + 8, 22, 102, x=x)
+                    self._text(ctx,'External',y+10,18,80,x=x)
             else:
-                self._text(ctx, name, y, 52, 94, colour, x=x)
-        targets=((self.controller.payload or {}).get('controls') or {}).get('targets') or []
-        if any(isinstance(target,dict) and target.get('id')=='kz' for target in targets):
-            self._text(ctx,'E: '+str(self.config.get('partner_name') or 'Partner'),99,14,116,(1,.45,.70),minimum_size=10)
+                self._text(ctx,name,y+5,34,75,colour,x=x,minimum_size=22)
+        speed_card(ctx,0,80,(1,.45,.70),crowned=True)
+        self._text(ctx,'D',62,10,14,(1,.45,.70),x=-32)
+        self._text(ctx,str(self.config.get('partner_name') or 'Partner'),87,23,75,(1,.77,.86),minimum_size=15)
+        if self.showcase is None:
+            ctx.rgb(.025,.080,.10).round_rectangle(-27,-113,54,17,7).fill()
+            self._text(ctx,'A MENU',-104,10,48,(.30,.92,.85))
 
 
 __app_export__ = ThreeCXMonitor
