@@ -33,7 +33,7 @@ class InitialsTests(unittest.TestCase):
 
     def test_names_become_compact_initials(self):
         for name, expected in (("Sarah B", "SB"), ("Mark H", "MH"), ("Tim Brown", "TB"),
-                               ("Partner", "K"), ("one two three four", "OTT"),
+                               ("Partner", "P"), ("one two three four", "OTT"),
                                ("Anne-Marie Smith", "AMS")):
             self.assertEqual(controls.initials(name), expected)
 
