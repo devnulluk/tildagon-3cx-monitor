@@ -5,9 +5,11 @@ and unknown styles return False before touching ctx, preserving the original
 renderer exactly. Moon phase is supplied astronomy, never a decorative guess.
 """
 import math
+from .clock_haute import draw as _haute_celestial
+from .clock_cyber import draw as _neon_orrery
 
-CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus")
-_NAMES = ("Original", "Celestial", "Tokyo Code", "Orbital Radar", "Flip Station", "Clean Analogue", "Corpus / Time Eater")
+CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus", "haute_celestial", "neon_orrery")
+_NAMES = ("Original", "Celestial", "Tokyo Code", "Orbital Radar", "Flip Station", "Clean Analogue", "Corpus / Time Eater", "Celestial Atelier", "Neon Orrery")
 TAU = math.pi * 2
 _DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 _MONTHS = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
@@ -355,10 +357,11 @@ def _corpus(ctx, value, elapsed, now, palette, sky):
 
 
 _DRAWERS = {"celestial": _celestial, "tokyoflash": _tokyo, "radar": _radar,
-            "flip": _flip, "analogue": _analogue, "corpus": _corpus}
+            "flip": _flip, "analogue": _analogue, "corpus": _corpus,
+            "haute_celestial": _haute_celestial, "neon_orrery": _neon_orrery}
 
 
-def draw_clock_content(ctx, style, weather, local, elapsed_ms, now_ms, palette=None, sky=None):
+def draw_clock_content(ctx, style, weather, local, elapsed_ms, now_ms, palette=None, sky=None, artwork=None):
     """Draw clock content only, returning True when the style is handled."""
     drawer = _DRAWERS.get(style) if isinstance(style, str) else None
     if drawer is None:
@@ -370,7 +373,10 @@ def draw_clock_content(ctx, style, weather, local, elapsed_ms, now_ms, palette=N
     try:
         ctx.text_align = ctx.CENTER
         ctx.text_baseline = ctx.MIDDLE
-        drawer(ctx, value, elapsed, now, _palette(palette), sky)
+        if style == "haute_celestial":
+            drawer(ctx, value, elapsed, now, _palette(palette), sky, artwork=artwork)
+        else:
+            drawer(ctx, value, elapsed, now, _palette(palette), sky)
     finally:
         ctx.restore()
     return True

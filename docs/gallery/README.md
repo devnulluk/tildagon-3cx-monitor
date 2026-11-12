@@ -17,6 +17,15 @@ are supplied. The isolated simulator config contains no PBX address or token.
 [Clock video](clocks.mp4) · [Clock contact sheet](clocks-contact-sheet.png) ·
 [Corpus-inspired loop](clock-corpus.mp4) · [Corpus animation](clock-corpus.gif)
 
+![Celestial Atelier and Neon Orrery](clocks-atelier.gif)
+
+[Celestial clock video](clocks-atelier.mp4) · [Celestial clock contact sheet](clocks-atelier-contact-sheet.png) ·
+[Celestial Atelier](clock-haute_celestial.png) · [Neon Orrery](clock-neon_orrery.png).
+This separate tour adds the two celestial faces to the original seven-clock
+collection. Their local time and moon phase use the app's calculations; planetary
+positions and mechanical motion are decorative. Dial artwork is original and
+contains no brand logos.
+
 ![Moon and meteor pages](sky.gif)
 
 [Sky video](sky.mp4) · [Sky stills](sky-gallery.png)
@@ -57,6 +66,7 @@ full-window and native LCD stills at each scene's midpoint.
 ```powershell
 ./Launch-Simulator.ps1 -Record ./docs/gallery/themes.mp4 -Showcase themes -Seconds 28 -DemoDate 2026-12-12 -GalleryStills
 ./Launch-Simulator.ps1 -Record ./docs/gallery/clocks.mp4 -Showcase clocks -Seconds 18 -DemoDate 2026-12-12 -GalleryStills
+./Launch-Simulator.ps1 -Page clock -Showcase atelier -Record ./docs/gallery/clocks-atelier.mp4 -Seconds 28 -GalleryStills -DemoDate 2026-12-12 -DemoTime 10:08:30
 ./Launch-Simulator.ps1 -Record ./docs/gallery/clock-corpus.mp4 -Showcase idle -Page clock -ClockStyle corpus -WeatherKind night -Seconds 8 -DemoDate 2026-12-12 -GalleryStills
 ./Launch-Simulator.ps1 -Record ./docs/gallery/sky.mp4 -Showcase sky -Seconds 12 -DemoDate 2026-12-12 -GalleryStills
 ./Launch-Simulator.ps1 -Record ./docs/gallery/partner-call.mp4 -Showcase calls -Page clock -Theme christmas -RecordView window -Seconds 12 -DemoDate 2026-12-12 -PartnerDemo -MatrixDemo -GalleryStills

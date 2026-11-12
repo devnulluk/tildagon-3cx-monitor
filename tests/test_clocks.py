@@ -1,22 +1,30 @@
 """Clock legibility, honest astronomy/unknown states and native ctx limits."""
 import importlib.util
 from pathlib import Path
+import sys
+import types
 import unittest
 
 PATH = Path(__file__).resolve().parents[1] / "badge/clocks.py"
-SPEC = importlib.util.spec_from_file_location("clock_faces_under_test", PATH)
+PACKAGE = types.ModuleType("clock_faces_fixture")
+PACKAGE.__path__ = [str(PATH.parent)]
+sys.modules[PACKAGE.__name__] = PACKAGE
+SPEC = importlib.util.spec_from_file_location(PACKAGE.__name__ + ".clocks", PATH)
 clocks = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = clocks
 SPEC.loader.exec_module(clocks)
 
 LOCAL = (2026, 11, 12, 21, 7, 0, 3, 316)
 SKY = {"valid": True, "moon": {"phase_fraction": .25, "illumination_percent": 50}}
+EXPECTED_CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus",
+                   "haute_celestial", "neon_orrery")
 
 
 class Canvas:
     CENTER, MIDDLE = 1, 2
     ARITIES = {"save": 0, "restore": 0, "rgb": 3, "move_to": 2, "line_to": 2,
                "text": 1, "arc": 6, "fill": 0, "stroke": 0, "round_rectangle": 5, "close_path": 0,
-               "translate": 2, "rotate": 1}
+               "translate": 2, "rotate": 1, "curve_to": 6, "image": 5}
     def __init__(self):
         self.operations = []
         self.words = []
@@ -44,18 +52,22 @@ class Canvas:
         return draw
 
 
-def render(style, local=LOCAL, sky=SKY, palette=None, elapsed=250, now=12345):
+def render(style, local=LOCAL, sky=SKY, palette=None, elapsed=250, now=12345, artwork=None):
     canvas = Canvas()
-    handled = clocks.draw_clock_content(canvas, style, {}, local, elapsed, now, palette=palette, sky=sky)
+    handled = clocks.draw_clock_content(canvas, style, {}, local, elapsed, now,
+                                       palette=palette, sky=sky, artwork=artwork)
     return handled, canvas
 
 
 class ClockTests(unittest.TestCase):
     def test_catalog_is_fixed_public_metadata_and_returns_copies(self):
         catalog = clocks.get_clock_catalog()
+        self.assertEqual(clocks.CLOCKS, EXPECTED_CLOCKS)
         self.assertEqual(tuple(entry["id"] for entry in catalog), clocks.CLOCKS)
-        self.assertEqual(len(catalog), 7)
+        self.assertEqual(len(catalog), 9)
         self.assertTrue(all(set(entry) == {"id", "name"} for entry in catalog))
+        self.assertEqual(catalog[-2:], [{"id": "haute_celestial", "name": "Celestial Atelier"},
+                                        {"id": "neon_orrery", "name": "Neon Orrery"}])
         catalog[0]["name"] = "modified"
         self.assertEqual(clocks.get_clock_catalog()[0]["name"], "Original")
 
@@ -73,7 +85,12 @@ class ClockTests(unittest.TestCase):
                 self.assertEqual(canvas.saved, 0)
                 primitives = sum(name in ("fill", "stroke", "text") for name, values in canvas.operations)
                 self.assertLess(primitives, 100)
-                self.assertFalse(any(name in ("image", "texture", "linear_gradient") for name, values in canvas.operations))
+                self.assertFalse(any(name in ("texture", "linear_gradient") for name, values in canvas.operations))
+                images = [values for name, values in canvas.operations if name == "image"]
+                if style == "haute_celestial":
+                    self.assertLessEqual(len(images), 1)
+                else:
+                    self.assertEqual(images, [])
 
     def test_primary_time_is_large_and_has_all_digits(self):
         for style in clocks.CLOCKS[1:]:
@@ -86,6 +103,46 @@ class ClockTests(unittest.TestCase):
                 primary = [(word, size) for word, size, position in canvas.words if word == "21:07"]
                 self.assertEqual(len(primary), 1)
                 self.assertGreaterEqual(primary[0][1], 45)
+
+    def test_only_atelier_uses_verified_bitmap_callback_and_time_remains_native_text(self):
+        for style in EXPECTED_CLOCKS:
+            calls = []
+            def artwork(canvas):
+                calls.append(True)
+                canvas.image("/synthetic/verified-atelier.png", -120, -120, 240, 240)
+                return True
+            handled, canvas = render(style, artwork=artwork)
+            self.assertEqual(len(calls), 1 if style == "haute_celestial" else 0)
+            images = [values for name, values in canvas.operations if name == "image"]
+            self.assertEqual(len(images), len(calls))
+            if style == "haute_celestial":
+                self.assertTrue(handled)
+                primary = [(word, size) for word, size, position in canvas.words if word == "21:07"]
+                self.assertEqual(len(primary), 1)
+                self.assertGreaterEqual(primary[0][1], 45)
+                self.assertEqual(canvas.saved, 0)
+
+    def test_atelier_missing_artwork_keeps_vector_face_and_legible_unknown_time(self):
+        for artwork in (None, lambda canvas: False):
+            for local, expected in ((LOCAL, "21:07"), (None, "--:--")):
+                handled, canvas = render("haute_celestial", local=local, artwork=artwork)
+                self.assertTrue(handled)
+                self.assertEqual(canvas.saved, 0)
+                self.assertFalse(any(name == "image" for name, values in canvas.operations))
+                primary = [(word, size) for word, size, position in canvas.words if word == expected]
+                self.assertEqual(len(primary), 1)
+                self.assertGreaterEqual(primary[0][1], 45)
+                self.assertGreater(sum(name == "fill" for name, values in canvas.operations), 1)
+
+    def test_atelier_native_image_failure_falls_back_without_losing_clock_or_canvas_state(self):
+        for failure in (OSError, ValueError, TypeError, AttributeError, MemoryError):
+            with self.subTest(failure=failure):
+                def artwork(canvas):
+                    raise failure("Synthetic missing artwork")
+                handled, canvas = render("haute_celestial", artwork=artwork)
+                self.assertTrue(handled)
+                self.assertEqual(canvas.saved, 0)
+                self.assertIn("21:07", [word for word, size, position in canvas.words])
 
     def test_every_face_handles_unknown_and_malformed_local_clock_without_inventing_time(self):
         for style in clocks.CLOCKS[1:]:
@@ -106,13 +163,15 @@ class ClockTests(unittest.TestCase):
             self.assertEqual(canvas.operations[index - 2], ("rgb", palette[3]))
 
     def test_missing_or_invalid_sky_moon_is_explicitly_unknown(self):
-        for sky in (None, {}, {"valid": False, "moon": {"phase_fraction": .5}},
-                    {"valid": True, "moon": "bad"}, {"valid": True, "moon": {"phase_fraction": float("nan")}}):
-            handled, canvas = render("celestial", sky=sky)
-            words = [word for word, size, position in canvas.words]
-            self.assertIn("MOON UNKNOWN", words)
-            self.assertIn("?", words)
-            self.assertIn("21:07", words)
+        for style in ("celestial", "haute_celestial", "neon_orrery"):
+            for sky in (None, {}, {"valid": False, "moon": {"phase_fraction": .5}},
+                        {"valid": True, "moon": "bad"}, {"valid": True, "moon": {"phase_fraction": float("nan")}}):
+                with self.subTest(style=style, sky=sky):
+                    handled, canvas = render(style, sky=sky)
+                    words = [word for word, size, position in canvas.words]
+                    self.assertIn("MOON UNKNOWN", words)
+                    self.assertIn("?", words)
+                    self.assertIn("21:07", words)
 
     def test_supplied_approximate_moon_illumination_is_labelled(self):
         handled, canvas = render("celestial")
@@ -125,6 +184,15 @@ class ClockTests(unittest.TestCase):
             self.assertTrue(clocks.draw_moon(canvas, 0, 0, 10, phase, (1, 1, 1), (0, 0, 0)))
             points = [values for name, values in canvas.operations if name == "line_to"]
             self.assertTrue(any(x * direction > 9 for x, y in points))
+            self.assertTrue(all(x * direction >= -1e-6 for x, y in points))
+
+    def test_atelier_moon_quarters_preserve_real_waxing_and_waning_orientation(self):
+        haute = sys.modules[clocks._haute_celestial.__module__]
+        for phase, direction in ((.25, 1), (.75, -1)):
+            canvas = Canvas()
+            haute._moon(canvas, phase)
+            points = [values for name, values in canvas.operations if name == "line_to"]
+            self.assertTrue(any(x * direction > 11 for x, y in points))
             self.assertTrue(all(x * direction >= -1e-6 for x, y in points))
 
     def test_unknown_seconds_do_not_draw_radar_sweep_or_analogue_hands(self):

@@ -35,7 +35,7 @@ def framed(source, label, view):
         canvas = Image.new("RGB", (720, 900), "#080d18")
         canvas.paste(source.resize((720, 720), Image.Resampling.NEAREST), (0, 90))
         draw = ImageDraw.Draw(canvas)
-        centered(draw, (360, 30), "TILDAGON / 3CX", 27, "#f0f6ff")
+        centered(draw, (360, 30), "SPACEAGON / 3CX", 27, "#f0f6ff")
         centered(draw, (360, 64), label, 22, "#88bdd9")
         centered(draw, (360, 839), "OFFICIAL SIMULATOR - SYNTHETIC DEMO", 22, "#ffd06c")
         centered(draw, (360, 873), "Real ctx-rendered pixels / no camera footage", 18, "#a0aec0")
@@ -43,7 +43,7 @@ def framed(source, label, view):
         canvas = Image.new("RGB", (1040, 816), "#080d18")
         canvas.paste(source.convert("RGB"), (0, 48))
         draw = ImageDraw.Draw(canvas)
-        centered(draw, (520, 24), "TILDAGON / 3CX - " + label, 24, "#f0f6ff")
+        centered(draw, (520, 24), "SPACEAGON / 3CX - " + label, 24, "#f0f6ff")
         centered(draw, (520, 798), "OFFICIAL SDL/ctx SIMULATOR / SYNTHETIC DEMO / NOT CAMERA FOOTAGE", 18, "#ffd06c")
     return canvas
 
@@ -89,7 +89,8 @@ def encode(directory):
                           "-level:v", "3.1", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
                           "-movflags", "+faststart", "-an", str(output)])
     gif = output.with_suffix(".gif")
-    gif_duration = min(duration, 42 if capture.get("showcase") in ("themes", "notifications") else 18)
+    gif_limit = 32 if capture.get("showcase") == "atelier" else 42 if capture.get("showcase") in ("themes", "notifications") else 18
+    gif_duration = min(duration, gif_limit)
     gif_width = 480 if view == "lcd" else 780
     filters = ("fps=10,scale=%d:-1:flags=lanczos,split[s0][s1];" % gif_width
                + "[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4")
@@ -117,7 +118,7 @@ def encode(directory):
     rows = (len(cells) + columns - 1) // columns
     sheet = Image.new("RGB", (columns * cell_width, 70 + rows * cell_height), "#080d18")
     draw = ImageDraw.Draw(sheet)
-    centered(draw, (sheet.width / 2, 25), "OFFICIAL TILDAGON SIMULATOR / DEMO", 19, "#ffd06c")
+    centered(draw, (sheet.width / 2, 25), "SPACEAGON / OFFICIAL SIMULATOR / DEMO", 18, "#ffd06c")
     centered(draw, (sheet.width / 2, 49), "Actual rendered frames - synthetic demonstration data", 13, "#a0aec0")
     for index, (label, frame) in enumerate(cells):
         x, y = index % columns * cell_width, 70 + index // columns * cell_height

@@ -1,6 +1,6 @@
 # Clocks and sky
 
-Seven clock styles can be combined with any theme. Press **K**, choose with Left/Right, then Enter. The local clock uses the bridge's time-zone offset; astronomy uses UTC. Invalid time shows an unavailable readout rather than invented positions.
+Nine clock styles can be combined with any theme. Press **K**, choose with Left/Right, then Enter. The local clock uses the bridge's time-zone offset; astronomy uses UTC. Invalid time shows an unavailable readout rather than invented positions.
 
 ![Animated clock collection](docs/gallery/clocks.gif)
 
@@ -17,6 +17,38 @@ Seven clock styles can be combined with any theme. Press **K**, choose with Left
 | Flip Station | Large split-flap inspired hours and minutes |
 | Clean Analogue | A restrained dial with hands and a digital reference |
 | Corpus / Time Eater | Brass ripples, three blue light rings and an animated escapement creature |
+| Celestial Atelier | A photographic celestial dial with large native time and a computed moon complication |
+| Neon Orrery | Luminous orbital instrumentation, a large digital readout and a computed lunar complication |
+
+## Celestial Atelier and Neon Orrery
+
+![Celestial Atelier](docs/gallery/clock-haute_celestial.png)
+![Neon Orrery](docs/gallery/clock-neon_orrery.png)
+
+![Animated celestial clock pair](docs/gallery/clocks-atelier.gif)
+
+[Play the celestial clock video](docs/gallery/clocks-atelier.mp4)
+
+These are original small-screen interpretations of celestial watchmaking and
+neon astronomical instruments, with no brand logos or affiliation.
+Visual references include [Van Cleef & Arpels' Poetic Complications](https://www.vancleefarpels.com/us/en/collections/watches/poetic-complications.html) and [Patek Philippe's Celestial](https://www.patek.com/en/collection/grand-complications/6102R-001).
+Celestial
+Atelier uses a bounded, verified local PNG as dial artwork; its readable time,
+moon phase and moving details are drawn by the app. If the artwork is unavailable,
+a native vector dial keeps the clock usable. Neon Orrery is drawn entirely with
+native vector paths and text.
+
+Time follows the bridge's local clock, and both lunar complications use the same
+computed phase as the moon page. Planet positions, orbital motion and other
+mechanical details are decorative, not a planetary ephemeris. They do not change
+the time or imply astronomical observations. The two faces remain independent of
+the selected theme, and phone activity interrupts them before their clock artwork
+is drawn.
+
+## Original clock collection
+
+The collection animation above shows the original seven styles. The separate
+celestial-pair animation shows the two additions.
 
 ![Corpus-inspired clock](docs/gallery/clock-corpus.png)
 

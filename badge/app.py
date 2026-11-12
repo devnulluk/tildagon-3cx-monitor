@@ -24,6 +24,7 @@ from .themes import ThemeManager
 from .theme_assets import ThemeAssetStore
 from .theme_art import draw_theme_face
 from .clocks import CLOCKS, get_clock_catalog, draw_clock_content
+from .clock_assets import ClockAssetStore
 from .astronomy import sky_snapshot
 from .astro_faces import draw_astro_face
 from .matrix import MatrixDisplay
@@ -89,6 +90,7 @@ class ThreeCXMonitor(app.App):
                 pass
         self.controller = Controller(float(level), ring_brightness=float(ring_level))
         self.assets = ThemeAssetStore(self.config)
+        self.clock_art = ClockAssetStore()
         self.themes = ThemeManager(self.config, self.assets.catalog_entries())
         self.clock_style = self.config.get("clock_style", "original")
         if not self.demo_mode:
@@ -843,11 +845,15 @@ class ThreeCXMonitor(app.App):
             return self.assets.draw_photo(canvas, tick, theme_id=asset_id)
         theme["photo_draw"] = photo_draw
         render_theme = "photo" if self.assets.photo_available(asset_id) else theme["id"]
+        # The full-bleed enamel plate has a dark outer field. Use the dark
+        # status chrome there so light themes cannot dim its presence label.
+        if page == "clock" and self.clock_style == "haute_celestial":
+            render_theme = "original"
         clock_draw = None
         if self.clock_style != "original":
             def clock_draw(canvas, palette):
                 return draw_clock_content(canvas, self.clock_style, weather, local, elapsed, now,
-                                          palette=palette, sky=sky)
+                                          palette=palette, sky=sky, artwork=self.clock_art.draw)
             theme["clock_draw"] = clock_draw
         own_rgb = own_colour(self._status_payload(), self.controller.live(now), now, 1.0)
         if page != self._idle_draw_page:

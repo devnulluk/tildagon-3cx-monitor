@@ -14,14 +14,26 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 - Large own caller ID with wrapping; exact company/personal 3CX contact lookup when enabled.
 - Allowlisted speed dials and DND with a keyboard expansion and a separate control token.
 - Independent ring and East Essex logo brightness, saved locally; priority calls override those two levels temporarily.
-- Thirteen themes, automatic seasonal/personal occasions, December Advent, and seven interchangeable clocks.
+- Thirteen themes, automatic seasonal/personal occasions, December Advent, and nine interchangeable clocks.
 - Weather, next-hour rain, moon phase and animated meteor calendar pages during quiet periods. Call activity interrupts them immediately.
 - Rich Apprise/ntfy notification cards with local icons, severity colours and progress updates. Calls take precedence over notification cards.
 - Spaceagon joystick and capacitive touch-ring navigation, including notification browsing. These gestures never place calls or change DND.
 - A personal caller celebration, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.9.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.10.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+
+## Celestial clocks
+
+![Celestial Atelier and Neon Orrery, official simulator with synthetic data](docs/gallery/clocks-atelier.gif)
+
+[Celestial Atelier screenshot](docs/gallery/clock-haute_celestial.png) · [Neon Orrery screenshot](docs/gallery/clock-neon_orrery.png) · [Watch the MP4](docs/gallery/clocks-atelier.mp4) · [All nine clocks](CLOCKS.md)
+
+Celestial Atelier combines verified local dial artwork with native time and moon
+complications; Neon Orrery uses luminous vector orbital instrumentation. Both are
+original interpretations without brand logos. The time and lunar phase are
+computed; planetary positions and mechanical motion are decorative. Calls
+interrupt both faces immediately.
 
 ## Notifications
 

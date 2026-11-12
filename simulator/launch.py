@@ -17,13 +17,19 @@ HERE = Path(__file__).resolve().parent
 CACHE = Path(os.environ.get("TILDAGON_SIM_ROOT", ROOT / ".simulator")).expanduser().resolve()
 RUN = CACHE / "run"
 SIM = CACHE / "firmware/sim"
+CLOCK_STYLES = (("original", "Original"), ("celestial", "Celestial"),
+                ("tokyoflash", "Coded lights"), ("radar", "Radar"),
+                ("flip", "Flip"), ("analogue", "Analogue"),
+                ("corpus", "Corpus Time Eater"),
+                ("haute_celestial", "Celestial Atelier"),
+                ("neon_orrery", "Neon Orrery"))
 parser = argparse.ArgumentParser()
 parser.add_argument("--screenshot", action="store_true")
 parser.add_argument("--record", "--video", type=Path, help="Record actual DEMO renderer frames to an MP4, GIF preview and contact sheet")
 parser.add_argument("--seconds", type=float, default=24, help="Bounded recording duration (1..60 real seconds)")
 parser.add_argument("--video-fps", type=int, default=15, help="Maximum capture sampling rate (5..30), not device FPS")
 parser.add_argument("--record-view", choices=["lcd", "window"], default="lcd")
-parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "sky", "notifications"], default="tour")
+parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "atelier", "sky", "notifications"], default="tour")
 parser.add_argument("--notification", choices=["info", "success", "warning", "failure", "progress"],
                     help="Show a synthetic rich notification through the production badge UI")
 parser.add_argument("--scene", default="team")
@@ -32,8 +38,9 @@ parser.add_argument("--settings", action="store_true", help="Open settings throu
 parser.add_argument("--detail", action="store_true", help="Start a synthetic team fixture in its selected-member detail view")
 parser.add_argument("--idle-page", choices=["weather", "rain", "clock", "moon", "meteors", "advent"], help="Fast-forward to a clearly labelled synthetic idle page")
 parser.add_argument("--theme", choices=["original", "christmas", "easter", "anniversary", "birthday_self", "birthday_partner", "cyberpunk", "lcars", "kitty", "photo", "noir", "ocean", "retro"], default="original")
-parser.add_argument("--clock-style", choices=["original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus"], default="original")
+parser.add_argument("--clock-style", choices=[key for key, name in CLOCK_STYLES], default="original")
 parser.add_argument("--demo-date", help="Synthetic YYYY-MM-DD calendar date; never reads personal dates")
+parser.add_argument("--demo-time", help="Synthetic HH:MM or HH:MM:SS local time; never sets a badge clock")
 parser.add_argument("--component-theme", action="store_true", help="DEMO-only direct component review before app theme dispatch is integrated")
 parser.add_argument("--partner-demo", action="store_true", help="Synthetic KZ priority caller using a reserved example number")
 parser.add_argument("--matrix-demo", action="store_true", help="Show the real Liteloop adapter output through a simulated I2C sink and labelled diagram")
@@ -48,6 +55,9 @@ parser.add_argument("--action-hold-frames", type=int, default=3, help="Duration 
 parser.add_argument("--diagnose", action="store_true")
 options = parser.parse_args()
 from notification_fixture import notification as demo_notification
+if options.showcase == "atelier":
+    options.demo_date = options.demo_date or "2026-12-12"
+    options.demo_time = options.demo_time or "10:08:30"
 if options.notification:
     options.keyboard = True
     options.idle_page = options.idle_page or "weather"
@@ -61,6 +71,14 @@ if options.demo_date:
         calendar_date.fromisoformat(options.demo_date)
     except (ValueError, TypeError):
         parser.error("--demo-date must be a valid synthetic calendar date")
+demo_hms = None
+if options.demo_time:
+    fields = options.demo_time.split(":")
+    if (len(fields) not in (2, 3) or any(len(value) != 2 or not value.isdigit() for value in fields)
+            or not 0 <= int(fields[0]) < 24 or not 0 <= int(fields[1]) < 60
+            or (len(fields) == 3 and not 0 <= int(fields[2]) < 60)):
+        parser.error("--demo-time must be a valid synthetic HH:MM or HH:MM:SS local time")
+    demo_hms = tuple(int(value) for value in fields) + ((0,) if len(fields) == 2 else ())
 if options.record and options.screenshot:
     parser.error("Choose either --record or --screenshot")
 if options.record and (options.record.suffix.lower() != ".mp4" or not 1 <= options.seconds <= 60 or not 5 <= options.video_fps <= 30):
@@ -103,10 +121,10 @@ if options.record:
         scenes = [dict(page="moon", kind="night", date="2026-12-12", label="Moon / calendar demonstration"),
                   dict(page="meteors", kind="night", date="2026-12-12", label="Meteors / Geminids season"),
                   dict(page="moon", kind="night", date="2026-12-20", label="Moon / later calendar date")]
-    elif options.showcase == "clocks":
+    elif options.showcase in ("clocks", "atelier"):
         scenes = [dict(page="clock", clock=key, kind="night", label="Clock / " + label)
-                  for key, label in (("original", "Original"), ("celestial", "Celestial"), ("tokyoflash", "Coded lights"),
-                                     ("radar", "Radar"), ("flip", "Flip"), ("analogue", "Analogue"), ("corpus", "Corpus TimeEater"))]
+                  for key, label in CLOCK_STYLES
+                  if options.showcase == "clocks" or key in ("haute_celestial", "neon_orrery")]
     elif options.showcase == "themes":
         scenes = [dict(theme=key, page="weather", kind="clear", label="Theme / " + label)
                   for key, label in (("original", "Original"), ("christmas", "Christmas"), ("easter", "Easter"),
@@ -189,6 +207,27 @@ if source_assets.is_dir() and not source_assets.is_symlink():
                 asset_hashes["assets/" + entry["file"]] = entry["sha256"]
     except (OSError, ValueError, TypeError):
         verified_assets = []
+    # Clock artwork is a separately approved asset, never a selectable weather
+    # theme. Its fixed metadata uses the same path/PNG/hash verifier as photos.
+    if (target / "clock_assets.py").is_file():
+        clock_spec = importlib.util.spec_from_file_location("simulator_public_clock_assets",
+                                                          target / "clock_assets.py",
+                                                          submodule_search_locations=[str(target)])
+        clock_assets = importlib.util.module_from_spec(clock_spec)
+        sys.modules[clock_spec.name] = clock_assets
+        clock_spec.loader.exec_module(clock_assets)
+        entries = assets_module.parse_catalog({"schema": 1, "themes": list(clock_assets.asset_entries())})
+        for entry in entries:
+            if entry["id"] != "atelier_dial" or entry["file"] != "clocks/atelier-dial.png":
+                raise ValueError("Clock asset is outside the explicitly approved simulator fixture")
+            source_asset = source_assets / entry["file"]
+            if (source_asset.resolve().is_relative_to(source_assets.resolve())
+                    and assets_module._no_symlinks(str(source_assets), entry["file"])
+                    and assets_module.verify_png(str(source_asset), entry)):
+                destination = target_assets / entry["file"]
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source_asset, destination)
+                asset_hashes["assets/" + entry["file"]] = entry["sha256"]
 (target_assets / "catalog.json").write_text(json.dumps({"schema": 1, "themes": verified_assets}), encoding="utf-8")
 if film_recorder:
     film_recorder.source_hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
@@ -229,8 +268,9 @@ def demo_weather():
     today = host_time.localtime(host_time.time())
     year, month, day = (int(value) for value in options.demo_date.split("-")) if options.demo_date else (today.tm_year, today.tm_mon, today.tm_mday)
     night = options.weather_kind in ("night", "rain-night")
-    now = int(host_time.mktime((year, month, day,
-                               21 if night else 12, 7, 0, 0, 0, -1))) + int(host_time.monotonic() - fixture_clock_started)
+    hour, minute, second = demo_hms or (21 if night else 12, 7, 0)
+    now = int(host_time.mktime((year, month, day, hour, minute, second,
+                               0, 0, -1))) + int(host_time.monotonic() - fixture_clock_started)
     local = host_time.localtime(now)
     kind = options.weather_kind
     current = {"temperature_c": 18.4, "apparent_temperature_c": 17.0, "condition": "Clear",
@@ -465,6 +505,10 @@ class PreviewMonitor(ThreeCXMonitor):
             idle = getattr(self, "idle_pages", None)
             if idle is None:
                 raise RuntimeError("The badge idle-page UI is not available yet")
+            if options.record and options.showcase == "atelier":
+                # This selective two-face film keeps each production clock on
+                # screen for14seconds; only the DEMO rotation dwell is extended.
+                idle.rotate_ms = max(idle.rotate_ms, int(options.seconds * 1000) + 1000)
             requested_page = options.idle_page
             if options.component_theme and requested_page == "advent" and requested_page not in idle.pages:
                 idle.pages.append("advent")
@@ -624,6 +668,7 @@ def report_render():
         "eeh_brightness": eeh_level, "ring_brightness": ring_level, "idle_page": idle_page,
         "weather_kind": options.weather_kind, "weather_is_synthetic": True,
         "theme": options.theme, "clock_style": options.clock_style, "demo_date": options.demo_date,
+        "demo_time": options.demo_time,
         "component_preview": options.component_theme, "partner_demo": options.partner_demo,
         "matrix_diagram": options.matrix_demo, "alerting": alerting, "heartbeat": host_time.time(),
         "notification_fixture": options.notification,
@@ -664,6 +709,8 @@ def report_render():
                 stem = None
                 if options.showcase == "themes":
                     stem = "theme-advent" if event.get("page") == "advent" else "theme-" + event["theme"]
+                elif options.showcase == "atelier":
+                    stem = "clocks-atelier-" + event["clock"]
                 elif options.showcase == "clocks":
                     stem = "clock-" + event["clock"]
                 elif options.showcase == "sky":

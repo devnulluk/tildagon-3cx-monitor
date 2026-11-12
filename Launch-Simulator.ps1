@@ -4,7 +4,8 @@ param(
     [ValidateSet('weather', 'rain', 'clock', 'moon', 'meteors', 'advent')][string]$Page = 'weather',
     [ValidateSet('original', 'christmas', 'easter', 'anniversary', 'birthday_self', 'birthday_partner', 'cyberpunk', 'lcars', 'kitty', 'photo', 'noir', 'ocean', 'retro')][string]$Theme = 'original',
     [string]$DemoDate,
-    [ValidateSet('original', 'celestial', 'tokyoflash', 'radar', 'flip', 'analogue', 'corpus')][string]$ClockStyle = 'original',
+    [string]$DemoTime,
+    [ValidateSet('original', 'celestial', 'tokyoflash', 'radar', 'flip', 'analogue', 'corpus', 'haute_celestial', 'neon_orrery')][string]$ClockStyle = 'original',
     [ValidateSet('clear', 'day', 'night', 'rain', 'rain-night', 'heavy', 'snow', 'storm', 'fog', 'stale')][string]$WeatherKind = 'clear',
     [ValidateSet('info', 'success', 'warning', 'failure', 'progress')][string]$Notification,
     [switch]$Screenshot,
@@ -12,7 +13,7 @@ param(
     [ValidateRange(1, 60)][double]$Seconds = 24,
     [ValidateRange(5, 30)][int]$VideoFps = 15,
     [ValidateSet('lcd', 'window')][string]$RecordView = 'lcd',
-    [ValidateSet('idle', 'tour', 'calls', 'themes', 'clocks', 'sky', 'notifications')][string]$Showcase = 'tour',
+    [ValidateSet('idle', 'tour', 'calls', 'themes', 'clocks', 'atelier', 'sky', 'notifications')][string]$Showcase = 'tour',
     [string]$OutputPath,
     [ValidateRange(0, 600)][int]$CaptureFrames = 0,
     [ValidateSet('A', 'B', 'C', 'D', 'E', 'F', 'S', 'N', 'ENTER', 'SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT')][string]$Action,
@@ -60,6 +61,7 @@ $verification = & $simPython $setup --sim-root $SimRoot --check
 if ($LASTEXITCODE -ne 0) { throw 'Simulator verification failed. See simulator/README.md.' }
 $simArguments = @($simLaunch, '--keyboard', '--idle-page', $Page, '--weather-kind', $WeatherKind, '--theme', $Theme, '--clock-style', $ClockStyle)
 if ($DemoDate) { $simArguments += @('--demo-date', $DemoDate) }
+if ($DemoTime) { $simArguments += @('--demo-time', $DemoTime) }
 if ($Notification) { $simArguments += @('--notification', $Notification) }
 if ($PartnerDemo) { $simArguments += '--partner-demo' }
 if ($MatrixDemo) { $simArguments += '--matrix-demo' }
