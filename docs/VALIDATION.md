@@ -23,6 +23,22 @@ pinned firmware cache. Captures wait for the app after the firmware boot overlay
 Gallery text, clocks, weather, occasions and calls are synthetic. These recordings
 are not camera footage or physical badge frame-rate measurements.
 
+## Real Apprise compatibility
+
+The real [Apprise 2.2.0 CLI](https://pypi.org/project/apprise/2.2.0/) passed nine
+checks against the unmodified production HTTP receiver on loopback HTTPS, with
+a generated CA explicitly trusted and certificate verification enabled. The
+documented `jsons://` URL and `+Authorization=Bearer%20...` header option worked
+without changes. All four message types and custom `style`/`icon` additions returned
+202; an exact duplicate returned 200. Read/control-role tokens each returned 401,
+and an untrusted certificate failed before any HTTP request reached the receiver.
+
+Apprise emitted `version`, `title`, `message`, `type` and `attachments: []`. The
+authenticated state response contained exactly five accepted alerts with the
+expected types, styles and icons. All content and credentials were synthetic;
+no external notification service or PBX was contacted. This validates the sender
+format and local receiver, not deployed public-webhook activation or delivery.
+
 ## Bridge 0.6.0 live checks
 
 Read-only checks after the bridge update confirmed a healthy service, verified
