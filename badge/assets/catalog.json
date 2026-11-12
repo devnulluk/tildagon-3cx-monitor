@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "themes": [
+    {
+      "id": "photo",
+      "name": "Alpine dawn",
+      "renderer": "photo",
+      "file": "photo/alpine-dawn.png",
+      "bytes": 74053,
+      "sha256": "6f7d1469b91642eada3504e048076c5fb7585369924447600e0a3bb01ef7df19",
+      "width": 240,
+      "height": 240
+    }
+  ]
+}

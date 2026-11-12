@@ -1,0 +1,27 @@
+{
+  "demo": true,
+  "bridge_url": "http://192.0.2.10:8787",
+  "token": "REPLACE_WITH_BRIDGE_TOKEN",
+  "ca_file": "ca.der",
+  "poll_seconds": 0.75,
+  "control_token": "",
+  "eeh": {
+    "slot": 6,
+    "type": "EEH Logo"
+  },
+  "demo_keyboard": false,
+  "eeh_brightness": 0.03,
+  "ring_brightness": 0.15,
+  "idle_seconds": 60,
+  "rotate_seconds": 12,
+  "theme": "original",
+  "theme_auto": false,
+  "clock_style": "original",
+  "personal_dates": {},
+  "partner_name": "Partner",
+  "partner_numbers": [],
+  "matrix": {
+    "type": "Liteloop",
+    "brightness": 0.15
+  }
+}

@@ -1,0 +1,7 @@
+# First three pins match the official simulator at f10ecb8b18631b0cd328c765b4a3d9f39dbe1ede.
+pygame==2.6.1
+requests==2.32.3
+wasmtime==39.0.0
+# Screenshot/contact-sheet and bundled FFmpeg recording support.
+Pillow==12.3.0
+imageio-ffmpeg==0.8.1

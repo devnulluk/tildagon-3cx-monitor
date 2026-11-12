@@ -1,0 +1,7 @@
+{
+  "name": "3CX Monitor",
+  "callable": "ThreeCXMonitor",
+  "category": "Apps",
+  "hidden": false,
+  "version": "0.8.0"
+}

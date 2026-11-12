@@ -1,0 +1,35 @@
+services:
+  tildagon-3cx:
+    build: .
+    image: tildagon-3cx-monitor:0.5.0
+    restart: unless-stopped
+    stop_grace_period: 30s
+    ports:
+      - "${BRIDGE_BIND_ADDRESS:-127.0.0.1}:8787:8787"
+    environment:
+      PBX_URL: ${PBX_URL:?Set PBX_URL in .env}
+      PBX_CLIENT_ID: ${PBX_CLIENT_ID:?Set PBX_CLIENT_ID in .env}
+      PBX_CLIENT_SECRET: ${PBX_CLIENT_SECRET:?Set PBX_CLIENT_SECRET in .env}
+      PBX_TOKEN_FORMAT: ${PBX_TOKEN_FORMAT:-multipart}
+      BRIDGE_TOKEN: ${BRIDGE_TOKEN:?Set BRIDGE_TOKEN in .env}
+      BRIDGE_CONTROL_TOKEN: ${BRIDGE_CONTROL_TOKEN:-}
+      PBX_USER_USERNAME: ${PBX_USER_USERNAME:-}
+      PBX_USER_PASSWORD: ${PBX_USER_PASSWORD:-}
+      PBX_USER_SECURITY_CODE: ${PBX_USER_SECURITY_CODE:-}
+      PBX_USER_REFRESH_TOKEN: ${PBX_USER_REFRESH_TOKEN:-}
+      PBX_USER_TOKEN_FILE: /data/own-user-grant.json
+    volumes:
+      - ./config.json:/config/config.json:ro
+      - own-status-grant:/data
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/healthz', timeout=3).close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  own-status-grant:

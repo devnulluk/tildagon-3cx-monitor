@@ -1,0 +1,87 @@
+services:
+  tildagon-3cx:
+    image: tildagon-3cx-monitor:0.5.0
+    restart: unless-stopped
+    stop_grace_period: 30s
+    command: [python, -m, bridge, --host, 0.0.0.0, --port, "8787"]
+    ports:
+      - "${BRIDGE_BIND_ADDRESS:-0.0.0.0}:8787:8787"
+    environment:
+      PBX_URL: ${PBX_URL:-https://pbx.example.com}
+      PBX_CLIENT_ID: ${PBX_CLIENT_ID:-tildagonblf}
+      PBX_TOKEN_FORMAT: ${PBX_TOKEN_FORMAT:-multipart}
+      PBX_CLIENT_SECRET: ${PBX_CLIENT_SECRET:?Enter the 3CX application key}
+      BRIDGE_TOKEN: ${BRIDGE_TOKEN:?Enter a separate random badge token}
+      BRIDGE_CONTROL_TOKEN: ${BRIDGE_CONTROL_TOKEN:-}
+      PBX_USER_USERNAME: ${PBX_USER_USERNAME:-}
+      PBX_USER_PASSWORD: ${PBX_USER_PASSWORD:-}
+      PBX_USER_SECURITY_CODE: ${PBX_USER_SECURITY_CODE:-}
+      PBX_USER_REFRESH_TOKEN: ${PBX_USER_REFRESH_TOKEN:-}
+      PBX_USER_TOKEN_FILE: /data/own-user-grant.json
+      BRIDGE_CONFIG_JSON: |-
+        {
+          "own_extension": "100",
+          "own_name": "Me",
+          "team": [
+            {
+              "extension": "101",
+              "name": "Alex"
+            },
+            {
+              "extension": "102",
+              "name": "Sam"
+            },
+            {
+              "extension": "103",
+              "name": "Jo"
+            },
+            {
+              "extension": "104",
+              "name": "Pat"
+            }
+          ],
+          "queues": {
+            "800": "Support"
+          },
+          "ddis": {
+            "01632960100": "Direct line"
+          },
+          "trunk_dns": [
+            "10000"
+          ],
+          "priority_callers": [
+            "01632960002"
+          ],
+          "priority_extensions": [
+            "101"
+          ],
+          "priority_ddis": [],
+          "contacts": {
+            "01632960002": "Priority contact"
+          },
+          "internal_extensions": {
+            "100": "Me",
+            "101": "Alex",
+            "102": "Sam",
+            "103": "Jo",
+            "104": "Pat"
+          },
+          "country_code": "44",
+          "stale_after_seconds": 5,
+          "refresh_interval_seconds": 2
+        }
+    volumes:
+      - own-status-grant:/data
+    read_only: true
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/healthz', timeout=3).close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  own-status-grant:

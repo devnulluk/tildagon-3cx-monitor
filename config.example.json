@@ -1,0 +1,85 @@
+{
+  "own_extension": "100",
+  "own_name": "Me",
+  "team": [
+    {
+      "extension": "101",
+      "name": "Alex"
+    },
+    {
+      "extension": "102",
+      "name": "Sam"
+    },
+    {
+      "extension": "103",
+      "name": "Jo"
+    },
+    {
+      "extension": "104",
+      "name": "Pat"
+    }
+  ],
+  "queues": {
+    "800": "Support"
+  },
+  "ddis": {
+    "01632960100": "Direct line"
+  },
+  "trunk_dns": [
+    "10000"
+  ],
+  "priority_callers": [
+    "01632960002"
+  ],
+  "priority_extensions": [
+    "101"
+  ],
+  "priority_ddis": [],
+  "contacts": {
+    "01632960002": "Priority contact"
+  },
+  "internal_extensions": {
+    "100": "Me",
+    "101": "Alex",
+    "102": "Sam",
+    "103": "Jo",
+    "104": "Pat"
+  },
+  "country_code": "44",
+  "stale_after_seconds": 5,
+  "refresh_interval_seconds": 2,
+  "speed_dials": [
+    {
+      "id": "tb",
+      "label": "TB",
+      "number": "101"
+    },
+    {
+      "id": "pd",
+      "label": "PD",
+      "number": "102"
+    },
+    {
+      "id": "jh",
+      "label": "JH",
+      "number": "103"
+    },
+    {
+      "id": "sm",
+      "label": "SM",
+      "number": "104"
+    },
+    {
+      "id": "kz",
+      "label": "KZ",
+      "number": "01632960002"
+    }
+  ],
+  "initials": {
+    "01632960002": "KZ"
+  },
+  "phonebook_lookup": false,
+  "weather": {
+    "enabled": false
+  }
+}

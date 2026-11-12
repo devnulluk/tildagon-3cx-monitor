@@ -1,0 +1,14 @@
+[app]
+name = "3CX Monitor"
+category = "Apps"
+menu = "Apps"
+wifi_preference = true
+
+[entry]
+class = "ThreeCXMonitor"
+
+[metadata]
+author = "devnulluk"
+license = "MIT"
+description = "Live team BLFs and incoming caller ID through a local 3CX bridge."
+version = "0.8.0"

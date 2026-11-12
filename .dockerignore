@@ -1,0 +1,9 @@
+.env
+.git
+config.json
+badge
+docs
+tests
+*.zip
+*.tar
+**/__pycache__
