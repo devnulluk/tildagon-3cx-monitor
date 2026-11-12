@@ -1,8 +1,8 @@
-# Validation: badge 0.10.0 / bridge 0.6.0
+# Validation: badge 0.11.0 / bridge 0.6.0
 
 ## Automated and simulator checks
 
-All **638 automated tests pass**. The full suite completed in 71.462 seconds.
+All **680 automated tests pass**. The full suite completed in 70.407 seconds.
 It covers bridge transport/authentication, allowlisted phone controls, one-shot
 command outcomes, contact privacy, freshness, idle interruptions, calendar rules,
 assets, native drawing API arities, clock geometry, partner matching and matrix
@@ -15,6 +15,31 @@ interruption by incoming/connected calls or an offline source. A light-theme
 regression checks bright status chrome over the full-frame Atelier artwork.
 Tests use reserved numbers and local fake services; they do not place live calls
 or change DND.
+
+The showcase checks traverse all **521 stages** through the actual app with a
+test canvas: thirteen themes, all nine clocks per theme and every feature kind.
+Every stage verifies its actual view contents as well as the DEMO footer and
+synthetic data: detail names/numbers, presence colours, grid initials, settings,
+notification bodies/progress and the expected weather/clock/sky/call readouts.
+Phone-detail and presence cues cannot silently fall back to idle weather. The
+progress readout is geometrically separate from the showcase footer; the timed
+settings scene exposes all five rows without writes. Integration checks cover
+four delayed live-read success/failure races across entry and exit, paused network
+work, unsent/in-flight phone commands, held-button release, preference and private
+date isolation, and returning to the previous view. An old physical C hold cannot
+replay a DND confirmation after the tour. The old state transport is closed at
+entry and a fresh client is retained for resuming monitoring. Ordinary caller
+types remain distinct from the partner celebration. These are automated checks,
+not camera evidence.
+
+The 0.11 official-simulator preview contains **811 real captured frames over
+56.014952 seconds**. Its 56.00-second MP4 fully decodes, and the complete GIF has
+560 frames over 56 seconds. All 27 recorded runtime/asset hashes match the frozen
+source. It uses production showcase navigation to select sixteen representative
+stages, with explicit **CUT** labels; it does not depict the full 521-stage loop
+or speed up its animation. Native-LCD stills were checked for the internal
+245/Alex detail, External-only detail, magenta own status and the full 75% readout.
+The partner still was captured separately through the same production showcase.
 
 The 0.10 celestial-clock simulator tour contains **322 actual captured frames**
 over 28.050923 seconds. The MP4 is 28.07 seconds and fully decodes; the complete
@@ -63,7 +88,28 @@ The dedicated `NOTIFY_TOKEN` and public `/v1/notify` ingress remain a separate
 deployment step. There is no claim of a live Apprise or ntfy end-to-end delivery
 test. See [notification setup](NOTIFICATIONS.md).
 
-## Native badge 0.10.0
+## Native badge 0.11.0
+
+The final frozen source passed **all 521 native stages** on the physical
+Spaceagon: thirteen themes, 40 stages each plus Christmas Advent, including all
+117 theme/clock pairs. The accelerated seek probe rendered **1,042 native frames
+over 242 seconds**, with no render errors or missing stages. This checks every
+stage; it is not an uninterrupted 43-minute tour or a hardware FPS measurement.
+
+During the demo there were **zero new bridge reads and zero phone-control
+attempts**. The maximum observed ring channel was 38, within the configured demo
+cap of 38. The Liteloop completed 39 display frames. The app stayed focused with
+Spaceagon inputs, keyboard, EEH Logo and matrix ready.
+
+Exit restored the original configuration/controller objects and appearance
+settings, then live monitoring resumed with demo mode false. Free-heap snapshots
+were 966,768 bytes before, 1,225,456 afterward and a sampled minimum of 399,424.
+Those measurements do not establish long-term memory stability. No real incoming
+call was placed and no PBX presence was changed for this display-only check.
+Earlier physical appearance and notification checks below retain their original
+version scope.
+
+## Previous native validation: badge 0.10.0
 
 The 26-file runtime update was read back and byte-verified on the physical
 Spaceagon. Private configuration and the TLS trust root were preserved. The

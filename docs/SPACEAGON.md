@@ -13,6 +13,7 @@ sensor, change port power or replace firmware.
 | Idle pages | Left/up and right/down browse pages. Centre returns to the monitoring view. | Rotation browses the idle pages. |
 | Settings | Up/down selects a row; left/right changes its value; centre finishes settings. | Touch gestures do not change settings. |
 | Open notifications | Directions browse; centre dismisses the current notification. | Rotation browses notifications. A touch-ring tap does not dismiss them. |
+| Showcase | Left/right steps scenes; up/down changes theme; centre pauses/resumes. | Rotation steps scenes. |
 
 Touch rotation requires deliberate movement across neighbouring pads. Short taps
 are distinguished from rotation, and simultaneous contacts, implausibly quick
@@ -28,6 +29,17 @@ With an attached keyboard, **N** opens the inbox. Arrows browse, **Enter** dismi
 the current item, and **Space/Escape** returns. In the inbox, physical **B/E** browse,
 **C** dismisses and **F** returns. See the
 [notification guide](NOTIFICATIONS.md) for sender setup and animated examples.
+
+## On-device showcase
+
+Press keyboard **D**, or select **DEMO** in keyboard settings with **S** and
+**Enter**, to start the isolated tour. Without a keyboard, hold physical **C** for
+settings, select **DEMO** and press **C**. Physical **B/E** moves between scenes, **A/D**
+changes theme, **C** pauses/resumes and **F** restores your previous view. Keyboard
+arrows navigate, **Space/Enter** pauses and **Escape/D** returns. Live bridge
+polling and phone commands are paused during the tour; it uses invented caller,
+weather and occasion data. The [showcase guide](SHOWCASE.md) explains restoration
+and the full control map.
 
 ## Optional inputs
 

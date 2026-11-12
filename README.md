@@ -4,7 +4,7 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 
 ![Animated theme selection, official simulator with synthetic data](docs/gallery/themes.gif)
 
-[Theme gallery and authoring guide](THEMES.md) · [Clock gallery](CLOCKS.md) · [Setup](docs/SETUP.md) · [Notifications](docs/NOTIFICATIONS.md) · [Spaceagon controls](docs/SPACEAGON.md) · [Astronomy sources and accuracy](docs/ASTRONOMY.md)
+[Theme gallery and authoring guide](THEMES.md) · [Clock gallery](CLOCKS.md) · [On-device showcase](docs/SHOWCASE.md) · [Setup](docs/SETUP.md) · [Notifications](docs/NOTIFICATIONS.md) · [Spaceagon controls](docs/SPACEAGON.md) · [Astronomy sources and accuracy](docs/ASTRONOMY.md)
 
 ![Theme examples](docs/gallery/themes-contact-sheet.png)
 
@@ -15,13 +15,25 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 - Allowlisted speed dials and DND with a keyboard expansion and a separate control token.
 - Independent ring and East Essex logo brightness, saved locally; priority calls override those two levels temporarily.
 - Thirteen themes, automatic seasonal/personal occasions, December Advent, and nine interchangeable clocks.
+- An on-device **DEMO** showcase covering themes, clocks and features, with isolated synthetic data and no phone commands.
 - Weather, next-hour rain, moon phase and animated meteor calendar pages during quiet periods. Call activity interrupts them immediately.
 - Rich Apprise/ntfy notification cards with local icons, severity colours and progress updates. Calls take precedence over notification cards.
 - Spaceagon joystick and capacitive touch-ring navigation, including notification browsing. These gestures never place calls or change DND.
 - A personal caller celebration, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.10.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.11.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+
+## On-device demo tour
+
+Press **D** on the keyboard, or choose **DEMO** in settings. The badge shows every
+feature in each theme before moving to the next: **521 scenes**, all nine clocks
+per theme, and a **43m25s** loop. **C** pauses; **F** exits and resumes monitoring.
+Your normal appearance and private configuration return when the tour ends.
+
+![Abbreviated production showcase, official simulator with manual scene cuts](docs/gallery/showcase.gif)
+
+[Watch the short preview](docs/gallery/showcase.mp4) · [Controls and full tour](docs/SHOWCASE.md)
 
 ## Celestial clocks
 
@@ -45,11 +57,13 @@ The previews use invented messages and reserved example numbers. External sender
 
 ## Controls
 
-With a keyboard expansion: **S** opens settings, **T** opens the theme row, **K** opens the clock row. **Up/Down** selects Ring, EEH, Theme or Clock; **Left/Right** changes the selected value; **Enter** closes settings and previews an appearance change when there is no call activity. Physical **A–D** request the four configured team speed dials, **E** requests the partner speed dial, and **F** requests a DND toggle. Settings and notification views capture those buttons while open.
+With a keyboard expansion: **S** opens settings, **T** opens the theme row, **K** opens the clock row. **Up/Down** selects Ring, EEH, Theme, Clock or Demo; **Left/Right** changes an appearance value; **Enter** closes appearance settings or starts the selected demo. Physical **A–D** request the four configured team speed dials, **E** requests the partner speed dial, and **F** requests a DND toggle. Settings, notification and showcase views capture those buttons while open.
 
 **N** opens the notification inbox. Arrow keys browse, **Enter/C** dismisses the current item, and **Space/Escape/F** returns. Spaceagon joystick directions and touch-ring rotation also browse; the joystick centre press dismisses an open notification. The [Spaceagon guide](docs/SPACEAGON.md) describes the gestures and their display-only scope.
 
 During idle, keyboard **Left/Right** browses pages and **Space** returns to monitoring. Outside settings, keyboard **Up/Down** adjusts EEH brightness. Without a keyboard, hold **C** for settings; A/D selects a row, B/E changes it, C/F closes it. A short C opens your own status or confirms the current view; F exits the app.
+
+For the [on-device showcase](docs/SHOWCASE.md), press keyboard **D**, or use **S → DEMO → Enter**. Without a keyboard, hold **C** for settings, select **DEMO** and press **C**. In the tour, **B/E** steps through scenes, **A/D** changes theme, **C** pauses and **F** restores your previous view. Keyboard arrows navigate, **Space/Enter** pauses and **Escape/D** returns. Live polling and phone commands are paused while the synthetic tour is active; your normal settings return afterward.
 
 ## Architecture
 

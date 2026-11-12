@@ -30,7 +30,7 @@ def centered(draw, xy, value, size, colour):
     draw.text(xy, value, font=font(size), fill=colour, anchor="mm")
 
 
-def framed(source, label, view):
+def framed(source, label, view, abbreviated=False):
     if view == "lcd":
         canvas = Image.new("RGB", (720, 900), "#080d18")
         canvas.paste(source.resize((720, 720), Image.Resampling.NEAREST), (0, 90))
@@ -38,13 +38,15 @@ def framed(source, label, view):
         centered(draw, (360, 30), "SPACEAGON / 3CX", 27, "#f0f6ff")
         centered(draw, (360, 64), label, 22, "#88bdd9")
         centered(draw, (360, 839), "OFFICIAL SIMULATOR - SYNTHETIC DEMO", 22, "#ffd06c")
-        centered(draw, (360, 873), "Real ctx-rendered pixels / no camera footage", 18, "#a0aec0")
+        centered(draw, (360, 873), "ABBREVIATED / MANUAL FEATURE JUMPS" if abbreviated
+                 else "Real ctx-rendered pixels / no camera footage", 18, "#a0aec0")
     else:
         canvas = Image.new("RGB", (1040, 816), "#080d18")
         canvas.paste(source.convert("RGB"), (0, 48))
         draw = ImageDraw.Draw(canvas)
         centered(draw, (520, 24), "SPACEAGON / 3CX - " + label, 24, "#f0f6ff")
-        centered(draw, (520, 798), "OFFICIAL SDL/ctx SIMULATOR / SYNTHETIC DEMO / NOT CAMERA FOOTAGE", 18, "#ffd06c")
+        centered(draw, (520, 798), "PRODUCTION SHOWCASE / EXPLICIT CUTS / SYNTHETIC DEMO" if abbreviated
+                 else "OFFICIAL SDL/ctx SIMULATOR / SYNTHETIC DEMO / NOT CAMERA FOOTAGE", 18, "#ffd06c")
     return canvas
 
 
@@ -66,6 +68,7 @@ def encode(directory):
         raise ValueError("Invalid bounded simulator recording")
     output = Path(capture["output"])
     view, fps, duration = capture["source_view"], capture["requested_sample_fps"], capture["duration_seconds"]
+    abbreviated = capture.get("showcase") == "feature-demo"
     canvases = directory / "framed"
     canvases.mkdir(exist_ok=True)
     images, entries = [], []
@@ -74,7 +77,7 @@ def encode(directory):
         if not source.is_relative_to(directory) or source.suffix != ".png":
             raise ValueError("Invalid captured frame path")
         with Image.open(source) as native:
-            image = framed(native.convert("RGB"), frame.get("label", "DEMO"), view)
+            image = framed(native.convert("RGB"), frame.get("label", "DEMO"), view, abbreviated)
         canvas = canvases / ("canvas-%05d.png" % index)
         image.save(canvas)
         next_time = frames[index + 1]["elapsed"] if index + 1 < len(frames) else duration
@@ -89,7 +92,7 @@ def encode(directory):
                           "-level:v", "3.1", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
                           "-movflags", "+faststart", "-an", str(output)])
     gif = output.with_suffix(".gif")
-    gif_limit = 32 if capture.get("showcase") == "atelier" else 42 if capture.get("showcase") in ("themes", "notifications") else 18
+    gif_limit = 60 if abbreviated else 32 if capture.get("showcase") == "atelier" else 42 if capture.get("showcase") in ("themes", "notifications") else 18
     gif_duration = min(duration, gif_limit)
     gif_width = 480 if view == "lcd" else 780
     filters = ("fps=10,scale=%d:-1:flags=lanczos,split[s0][s1];" % gif_width
@@ -108,7 +111,7 @@ def encode(directory):
         selected.append((event.get("label", "DEMO"), frame))
     for index, (label, frame) in enumerate(selected):
         with Image.open(directory / frame["file"]) as native:
-            poster = framed(native.convert("RGB"), label, view)
+            poster = framed(native.convert("RGB"), label, view, abbreviated)
             poster.save(output.with_name(output.stem + "-scene-%02d.png" % (index + 1)))
     # LCD crops are native240px; window contact cells are fit within320px.
     cells = selected[:16]
@@ -119,7 +122,8 @@ def encode(directory):
     sheet = Image.new("RGB", (columns * cell_width, 70 + rows * cell_height), "#080d18")
     draw = ImageDraw.Draw(sheet)
     centered(draw, (sheet.width / 2, 25), "SPACEAGON / OFFICIAL SIMULATOR / DEMO", 18, "#ffd06c")
-    centered(draw, (sheet.width / 2, 49), "Actual rendered frames - synthetic demonstration data", 13, "#a0aec0")
+    centered(draw, (sheet.width / 2, 49), "Abbreviated production showcase / explicit feature cuts" if abbreviated
+             else "Actual rendered frames - synthetic demonstration data", 13, "#a0aec0")
     for index, (label, frame) in enumerate(cells):
         x, y = index % columns * cell_width, 70 + index // columns * cell_height
         with Image.open(directory / frame["file"]) as source:
@@ -142,6 +146,10 @@ def encode(directory):
                    "output_fps": fps, "gif_preview_seconds": gif_duration,
                    "ffmpeg_version": imageio_ffmpeg.get_ffmpeg_version(),
                    "verified_decode": True})
+    if abbreviated:
+        result.update(production_showcase=True, abbreviated_showcase=True, manual_feature_jumps=True,
+                      complete_device_showcase=False, idle_waits_skipped=False,
+                      stage_selection_api="app._showcase_seek", startup_api="app._start_showcase")
     output.with_suffix(".json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
 

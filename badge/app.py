@@ -4,6 +4,7 @@ import app
 import asyncio
 import json
 import time
+import gc
 
 from app_components import clear_background
 from events.input import Buttons, BUTTON_TYPES
@@ -31,6 +32,7 @@ from .matrix import MatrixDisplay
 from .love import partner_call, partner_active, draw_love
 from .notifications import NotificationInbox, draw_notification, led_frame as notification_leds
 from .space_inputs import SpaceInputs
+from .showcase import Showcase, snapshot as showcase_snapshot, demo_config as showcase_config
 
 
 DEFAULT_CONFIG = {
@@ -79,6 +81,12 @@ class ThreeCXMonitor(app.App):
         self.config = load_config()
         self.buttons = Buttons(self)
         self.demo_mode = self.config.get("demo") is True
+        self.showcase = None
+        self._showcase_saved = None
+        self._showcase_stage = None
+        self._showcase_signature = None
+        self._showcase_received = None
+        self._network_generation = 0
         level = self.config.get("eeh_brightness", 0.03)
         ring_level = self.config.get("ring_brightness", 0.15)
         if not self.demo_mode:
@@ -145,6 +153,9 @@ class ThreeCXMonitor(app.App):
             self._accept_demo()
 
     def _accept_demo(self):
+        if self.showcase is not None:
+            self._tick_showcase()
+            return
         value = snapshot(SCENARIOS[self.demo_scene])
         own = value["own"]
         own["state"] = "ringing" if own["calls"] else "idle"
@@ -165,6 +176,157 @@ class ThreeCXMonitor(app.App):
 
     def _keyboard_present(self):
         return self.expansions.keyboard_present or (self.demo_mode and self.config.get("demo_keyboard") is True)
+
+    def _network_current(self, generation, controller):
+        return self.showcase is None and generation == self._network_generation and controller is self.controller
+
+    def _showcase_reset_inputs(self):
+        self.buttons.clear()
+        self.control_buttons = ControlButtons()
+        self.expansions.pop_keys()
+        self.space_inputs.close()
+        self.space_inputs = SpaceInputs(self, self.config, clock=lambda: self.clock_ms)
+        self._last_leds = None
+
+    def _start_showcase(self):
+        if self.showcase is not None:
+            return False
+        if self.controls._in_flight is not None:
+            self.controls._message("FINISH CURRENT ACTION", self.clock_ms)
+            return False
+        # An unsent intent must never reappear when this demonstration ends.
+        self.controls.pending = None
+        fields = ("config", "controller", "themes", "demo_mode", "clock_style", "idle_pages",
+                  "notifications", "controls", "settings_open", "settings_selected",
+                  "_appearance_save_at", "_brightness_save_at", "_appearance_preview",
+                  "_brightness_notice_until", "_brightness_notice_kind", "_settings_hold_started",
+                  "_notification_snapshot", "_notification_received", "_notification_pending",
+                  "_notification_until", "_notification_entered", "_notification_presented",
+                  "_notification_input_mode", "notifications_open", "_idle_draw_page", "_idle_entered_ms",
+                  "_sky_key", "_sky_value")
+        catalog = self.themes.catalog()
+        for item in catalog:
+            if item.get("requires_asset"):
+                item["available"] = self.assets.photo_available(item["id"])
+        self._showcase_saved = {name: getattr(self, name) for name in fields}
+        # Discard a C press begun in the previous input mode; its eventual
+        # release must not become phone consent after leaving the tour.
+        self._showcase_saved["_settings_hold_started"] = None
+        # Drop the idle transport while showing sample data. An active worker
+        # owns its old client until it finishes; close defers its TLS cleanup.
+        self.state_client.close()
+        self.state_client = StateClient()
+        self._network_generation += 1
+        self.showcase = Showcase(catalog, get_clock_catalog())
+        keyboard = self._keyboard_present()
+        self.config = showcase_config()
+        self.config["demo_keyboard"] = keyboard
+        self.controller = Controller(self._showcase_saved["controller"].eeh_brightness,
+                                     ring_brightness=self._showcase_saved["controller"].ring_brightness)
+        self.themes = ThemeManager(self.config, self.assets.catalog_entries())
+        self.demo_mode = True
+        self.controls = ControlQueue()
+        self.idle_pages = IdlePages(idle_after_ms=0, rotate_ms=3600000)
+        self._brightness_save_at = self._appearance_save_at = None
+        self._appearance_preview = False
+        self._brightness_notice_until = 0
+        self._settings_hold_started = None
+        self.settings_open = False
+        self._showcase_stage = self._showcase_signature = self._showcase_received = None
+        self._showcase_reset_inputs()
+        self._tick_showcase()
+        return True
+
+    def _end_showcase(self):
+        if self.showcase is None:
+            return False
+        self._network_generation += 1
+        saved = self._showcase_saved
+        self.showcase = None
+        for name, value in saved.items():
+            setattr(self, name, value)
+        self._showcase_saved = None
+        self._showcase_stage = self._showcase_signature = self._showcase_received = None
+        self._showcase_reset_inputs()
+        gc.collect()
+        return True
+
+    def _showcase_step(self, direction=1):
+        if self.showcase is not None:
+            self.showcase.advance(direction, self.clock_ms)
+            self._tick_showcase(force=True)
+
+    def _showcase_theme(self, direction=1):
+        if self.showcase is not None:
+            self.showcase.next_theme(direction, self.clock_ms)
+            self._tick_showcase(force=True)
+
+    def _showcase_seek(self, index):
+        if self.showcase is not None:
+            self.showcase.seek(index, self.clock_ms)
+            self._tick_showcase(force=True)
+            return True
+        return False
+
+    def _tick_showcase(self, force=False):
+        if self.showcase is None:
+            return
+        stage = self.showcase.current(self.clock_ms)
+        signature = (stage["index"], stage["loop"], stage["id"])
+        if signature != self._showcase_signature:
+            self._showcase_signature = signature
+            self._showcase_received = None
+            self.themes.select(stage["theme"])
+            self.clock_style = stage.get("clock") or "original"
+            self._sky_key, self._sky_value = None, None
+            self._idle_draw_page = None
+            self.notifications = NotificationInbox()
+            self.notifications_open = False
+            self._notification_snapshot = self._notification_received = None
+            self._notification_pending = None
+            self._notification_until = self._notification_entered = 0
+            self._notification_presented = []
+            self._notification_input_mode = False
+            self.settings_open = stage.get("page") == "settings"
+            self.settings_selected = 0
+            self.controller.selected = stage.get("team_index", 0)
+            self.controller.detail_view = bool(stage.get("detail"))
+            self.controller.own_view = bool(stage.get("own_view"))
+        self._showcase_stage = stage
+        if stage.get("feature") == "settings":
+            self.settings_selected = min(4, stage["elapsed_ms"] * 5 // self.showcase.step_ms)
+        if force or self._showcase_received is None or self.clock_ms - self._showcase_received >= 400:
+            self.controller.accept(showcase_snapshot(stage, self.clock_ms), self.clock_ms)
+            self._showcase_received = self.clock_ms
+
+    def _showcase_input(self, keys, edges, events):
+        if any(key in keys for key in ("ESCAPE", "D")) or "F" in edges:
+            self._end_showcase()
+            return
+        commands = list(keys) + list(edges)
+        for event in events:
+            action, kind = event.get("action"), event.get("kind")
+            if kind == "joystick":
+                commands.append({"left": "LEFT", "right": "RIGHT", "up": "UP", "down": "DOWN", "confirm": "ENTER"}.get(action))
+            elif kind == "touch" and action == "rotate":
+                commands.append("RIGHT" if event.get("delta", 0) > 0 else "LEFT")
+        if any(key in commands for key in ("C", "SPACE", "ENTER")):
+            self.showcase.toggle_pause(self.clock_ms)
+        elif any(key in commands for key in ("B", "RIGHT")):
+            self._showcase_step(1)
+        elif any(key in commands for key in ("E", "LEFT")):
+            self._showcase_step(-1)
+        elif any(key in commands for key in ("A", "UP")):
+            self._showcase_theme(1)
+        elif any(key in commands for key in ("D", "DOWN")):
+            self._showcase_theme(-1)
+        self._tick_showcase()
+
+    def _showcase_entry(self, keys, down):
+        if "D" in keys:
+            self._start_showcase()
+            return True
+        return False
 
     def _status_payload(self):
         value = self.controller.payload
@@ -194,6 +356,9 @@ class ThreeCXMonitor(app.App):
         notification = self._visible_notification(self.clock_ms)
         if notification and self.clock_ms - self._notification_entered < 2500:
             frame = notification_leds(notification, self.clock_ms, self.controller.ring_brightness)
+        if self.showcase is not None:
+            ceiling = int(255 * self.controller.ring_brightness)
+            frame = [tuple(min(channel, ceiling) for channel in colour) for colour in frame]
         if frame != self._last_leds:
             for index, colour in enumerate(frame):
                 tildagonos.leds[index + 1] = colour
@@ -201,8 +366,11 @@ class ThreeCXMonitor(app.App):
             self._last_leds = frame
         payload, live = self._status_payload(), self.controller.live(self.clock_ms)
         partner = partner_active(payload, live, self.config, self.demo_mode)
-        self.expansions.write_own_status(own_colour(payload, live, self.clock_ms,
-            self.controller.eeh_brightness), now_ms=self.clock_ms, heartbeat=partner)
+        own_rgb = own_colour(payload, live, self.clock_ms, self.controller.eeh_brightness)
+        if self.showcase is not None:
+            ceiling = int(255 * self.controller.eeh_brightness)
+            own_rgb = tuple(min(channel, ceiling) for channel in own_rgb)
+        self.expansions.write_own_status(own_rgb, now_ms=self.clock_ms, heartbeat=partner)
         weather, fresh, elapsed = self._weather(self.clock_ms)
         self.matrix.update(payload, live, self.clock_ms, page=self.idle_pages.page(self.clock_ms),
                            partner=partner, weather_fresh=fresh)
@@ -222,6 +390,8 @@ class ThreeCXMonitor(app.App):
             self._brightness_save_at = self.clock_ms + 1000
 
     def _save_eeh_brightness(self):
+        if self.showcase is not None:
+            return
         if self._brightness_save_at is None:
             return
         try:
@@ -240,6 +410,8 @@ class ThreeCXMonitor(app.App):
         self._brightness_notice_until = 0
 
     def _save_appearance(self):
+        if self.showcase is not None:
+            return
         if self._appearance_save_at is None:
             return
         try:
@@ -265,7 +437,9 @@ class ThreeCXMonitor(app.App):
             self._appearance_save_at = self.clock_ms + 1000
 
     def _settings_key(self, key):
-        if key in ("S", "ESCAPE", "ENTER", "SPACE", "C", "F"):
+        if self.settings_selected == 4 and key in ("ENTER", "C"):
+            self._start_showcase()
+        elif key in ("S", "ESCAPE", "ENTER", "SPACE", "C", "F"):
             self.settings_open = False
             self._save_eeh_brightness()
             self._save_appearance()
@@ -274,16 +448,16 @@ class ThreeCXMonitor(app.App):
                 self.idle_pages.preview(self.clock_ms)
                 self._appearance_preview = False
         elif key in ("UP", "A"):
-            self.settings_selected = (self.settings_selected - 1) % 4
+            self.settings_selected = (self.settings_selected - 1) % 5
         elif key in ("DOWN", "D"):
-            self.settings_selected = (self.settings_selected + 1) % 4
+            self.settings_selected = (self.settings_selected + 1) % 5
         elif key in ("LEFT", "E", "RIGHT", "B"):
             direction = 1 if key in ("RIGHT", "B") else -1
             if self.settings_selected == 0:
                 self._adjust_ring_brightness(direction)
             elif self.settings_selected == 1:
                 self._adjust_eeh_brightness(direction)
-            else:
+            elif self.settings_selected < 4:
                 self._adjust_appearance(direction)
 
     async def _network_yield(self):
@@ -312,57 +486,76 @@ class ThreeCXMonitor(app.App):
             await asyncio.sleep(.05)
 
     async def _background_task(self):
-        if self.demo_mode:
+        base_config = self._showcase_saved["config"] if self.showcase is not None else self.config
+        base_demo = self._showcase_saved["demo_mode"] if self.showcase is not None else self.demo_mode
+        base_controller = self._showcase_saved["controller"] if self.showcase is not None else self.controller
+        if base_demo:
             while not self._stopping:
                 self._now()
                 self._accept_demo()
                 await asyncio.sleep(0.5)
             return
-        url = str(self.config.get("bridge_url") or "").rstrip("/")
-        token = str(self.config.get("token") or "")
-        control_token = str(self.config.get("control_token") or "")
+        url = str(base_config.get("bridge_url") or "").rstrip("/")
+        token = str(base_config.get("token") or "")
+        control_token = str(base_config.get("control_token") or "")
         if not url.startswith(("http://", "https://")) or "?" in url or "#" in url or "@" in url:
-            self.controller.failed("SET BRIDGE URL")
+            base_controller.failed("SET BRIDGE URL")
             return
         if not token or "\r" in token or "\n" in token:
-            self.controller.failed("SET BRIDGE TOKEN")
+            base_controller.failed("SET BRIDGE TOKEN")
             return
         import wifi
         import async_helpers
-        ca_file = str(self.config.get("ca_file") or "ca.der")
+        ca_file = str(base_config.get("ca_file") or "ca.der")
         if not ca_file.startswith("/"):
             ca_file = __file__.replace("\\", "/").rsplit("/", 1)[0] + "/" + ca_file
-        interval = max(0.5, min(5.0, float(self.config.get("poll_seconds", 0.75))))
+        interval = max(0.5, min(5.0, float(base_config.get("poll_seconds", 0.75))))
         while not self._stopping:
+            if self.showcase is not None:
+                await asyncio.sleep(.1)
+                continue
+            generation, target, queue = self._network_generation, self.controller, self.controls
             try:
                 if not wifi.status():
-                    self.controller.failed("CONNECTING WI-FI")
+                    target.failed("CONNECTING WI-FI")
                     wifi.connect()
                     if not await wifi.async_wait(10):
-                        self.controller.failed("WI-FI DISCONNECTED")
+                        if self._network_current(generation, target):
+                            target.failed("WI-FI DISCONNECTED")
                         await asyncio.sleep(3)
                         continue
-                intent = self.controls.take()
+                if not self._network_current(generation, target):
+                    continue
+                intent = queue.take()
                 if intent:
                     try:
                         result = await async_helpers.unblock(send_control, self._network_yield,
                                                             url, control_token, intent, ca_file)
-                        self.controls.finish(result, self._now())
+                        if self._network_current(generation, target):
+                            queue.finish(result, self._now())
                     except Exception:
-                        self.controls.fail_unknown(self._now())
+                        if self._network_current(generation, target):
+                            queue.fail_unknown(self._now())
+                if not self._network_current(generation, target):
+                    continue
                 value = await async_helpers.unblock(fetch_snapshot, self._network_yield, url, token, ca_file, self.state_client)
                 if not control_token or control_token == token:
                     value.setdefault("controls", {})["enabled"] = False
-                self.controller.accept(value, self._now())
+                if self._network_current(generation, target):
+                    target.accept(value, self._now())
             except (ClockError, TLSError, HTTPError) as error:
                 # These exception messages are fixed app text or HTTP status only.
-                self.controller.failed(str(error))
+                if self._network_current(generation, target):
+                    target.failed(str(error))
             except Exception:
                 # Do not log credentials, caller IDs, URLs, or raw response data.
-                self.controller.failed("BRIDGE UNREACHABLE")
+                if self._network_current(generation, target):
+                    target.failed("BRIDGE UNREACHABLE")
             await asyncio.sleep(interval)
 
     def _stop(self):
+        if self.showcase is not None:
+            self._end_showcase()
         self._stopping = True
         self.state_client.close()
         self._save_eeh_brightness()
@@ -555,6 +748,12 @@ class ThreeCXMonitor(app.App):
         self.space_inputs.update()
         space_events = self.space_inputs.pop()
         keyboard = self._keyboard_present()
+        if self.showcase is not None:
+            down = {key for key, button in FRONTBOARD_BUTTON_TYPES.items() if self.buttons.get(button)}
+            edges = self.control_buttons.physical_edges(down, keyboard, self.clock_ms)
+            self._showcase_input(self.expansions.pop_keys(), edges, space_events)
+            self._write_leds()
+            return True
         notification_mode = bool(self.notifications_open or self._visible_notification(self.clock_ms))
         if notification_mode != self._notification_input_mode:
             # A button held across a popup boundary must be released before
@@ -567,6 +766,9 @@ class ThreeCXMonitor(app.App):
         down = {key for key, button in FRONTBOARD_BUTTON_TYPES.items() if self.buttons.get(button)}
         edges = self.control_buttons.physical_edges(down, keyboard, self.clock_ms)
         keys = self.expansions.pop_keys()
+        if self._showcase_entry(keys, down):
+            self._write_leds()
+            return True
         self._observe_idle(self.clock_ms)
         was_idle = self.idle_pages.active(self.clock_ms)
         if edges or any(key not in ("LEFT", "RIGHT") or not was_idle for key in keys):
@@ -722,10 +924,16 @@ class ThreeCXMonitor(app.App):
 
     def draw(self, ctx):
         now = self._now()
+        self._tick_showcase()
         self._observe_idle(now)
         ctx.save()
         ctx.text_align = ctx.CENTER
         ctx.text_baseline = ctx.MIDDLE
+        if self.showcase is not None and self._showcase_stage.get("page") == "intro":
+            self._draw_showcase_intro(ctx, now)
+            self._draw_showcase_footer(ctx)
+            ctx.restore()
+            return
         demo = self.demo_mode or bool(self.controller.payload and self.controller.payload.get("demo"))
         live = self.controller.live(now)
         own_rgb = own_colour(self._status_payload(), live, now, 1.0)
@@ -746,8 +954,9 @@ class ThreeCXMonitor(app.App):
                 self._text(ctx, "INBOX", -20, 32)
                 self._text(ctx, "No notifications", 20, 24)
                 self._text(ctx, "F: BACK", 68, 18)
-            if demo:
+            if demo and self.showcase is None:
                 self._text(ctx, "DEMO", -111, 9, 40, (.55, .70, .75))
+            self._draw_showcase_footer(ctx)
             ctx.restore()
             return
         graphical_idle = (live and self.idle_pages.active(now) and not self.settings_open
@@ -777,8 +986,9 @@ class ThreeCXMonitor(app.App):
                 self._draw_idle(ctx, now)
             else:
                 self._draw_member(ctx)
-        if demo and not graphical_idle:
+        if demo and not graphical_idle and self.showcase is None:
             self._text(ctx, "DEMO", 104, 16, 70, (0.5, 0.65, 0.7))
+        self._draw_showcase_footer(ctx)
         ctx.restore()
 
     def _observe_idle(self, now):
@@ -795,6 +1005,16 @@ class ThreeCXMonitor(app.App):
         if theme.get("advent"):
             pages.append("advent")
         self.idle_pages.set_pages(pages, now)
+        if self.showcase is not None:
+            page = (self._showcase_stage or {}).get("page")
+            if page in ("weather", "rain", "clock", "moon", "meteors", "advent"):
+                self.idle_pages.set_pages([page], now)
+                self.idle_pages.preview(now)
+            else:
+                # Zero quiet delay belongs to the curated idle scenes only.
+                # Detail/status cues must stay on their actual phone view.
+                self.idle_pages.set_pages([], now)
+            return
         if (self.settings_open or self._settings_hold_started is not None
                 or now < self._brightness_notice_until or now < self.controls.message_until
                 or self.controls.is_busy or self.notifications_open
@@ -888,9 +1108,10 @@ class ThreeCXMonitor(app.App):
         self._text(ctx, "SETTINGS", -67, 25, 180)
         rows = (("RING", self.controller.ring_brightness), ("EEH", self.controller.eeh_brightness),
                 ("THEME", "Auto" if self.themes.selection == "auto" else next(item["name"] for item in self.themes.catalog() if item["id"] == self.themes.selection)),
-                ("CLOCK", next(item["name"] for item in get_clock_catalog() if item["id"] == self.clock_style)))
+                ("CLOCK", next(item["name"] for item in get_clock_catalog() if item["id"] == self.clock_style)),
+                ("DEMO", "Play all themes"))
         start = max(0, self.settings_selected - 1)
-        for index in range(start, min(4, start + 2)):
+        for index in range(start, min(5, start + 2)):
             label, level = rows[index]
             row = index - start
             settings_row(ctx, row, level if index < 2 else 0, self.settings_selected == index)
@@ -902,7 +1123,29 @@ class ThreeCXMonitor(app.App):
             else:
                 self._text(ctx, label, y - 16, 12, 120, colour)
                 self._text(ctx, level, y + 5, 25, 192, colour, minimum_size=16)
-        self._text(ctx, "ENTER: DONE" if self._keyboard_present() else "C: DONE", 88, 18, 152, (0.6, 0.7, 0.7))
+        finish = "PLAY" if self.settings_selected == 4 else "DONE"
+        self._text(ctx, ("ENTER: " if self._keyboard_present() else "C: ") + finish, 88, 18, 152, (0.6, 0.7, 0.7))
+
+    def _draw_showcase_intro(self, ctx, now):
+        stage = self._showcase_stage
+        backdrop(ctx, now, (0, 145, 25))
+        self._text(ctx, "DEMO TOUR", -70, 19, 150, (.31, .90, 1))
+        self._text(ctx, "THEME %d / %d" % (stage["theme_index"] + 1, stage["theme_count"]), -39, 16)
+        self._text(ctx, stage["theme_name"], 2, 34, 202, minimum_size=22)
+        caption = "%d FEATURES" % stage["step_count"] if stage.get("available", True) else "ART UNAVAILABLE"
+        self._text(ctx, caption, 42, 17, 175, (.65, .75, .85))
+        self._text(ctx, "C PAUSE / F EXIT", 73, 13, 174, (.65, .75, .85))
+
+    def _draw_showcase_footer(self, ctx):
+        if self.showcase is None:
+            return
+        stage = self._showcase_stage
+        notification = stage.get("feature") == "notification"
+        y = -109 if notification else 106
+        ctx.rgb(.012, .026, .055).round_rectangle(-58, y - 8, 116, 16, 6).fill()
+        prefix = "DEMO PAUSE" if self.showcase.paused else "DEMO"
+        self._text(ctx, "%s %d/%d %d/%d" % (prefix, stage["theme_index"] + 1, stage["theme_count"],
+                   stage["step_index"] + 1, stage["step_count"]), y, 9, 112, (1, .79, .36), minimum_size=8)
 
     def _draw_notice(self, ctx, message):
         notice_panel(ctx)

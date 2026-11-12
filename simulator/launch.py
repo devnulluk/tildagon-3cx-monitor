@@ -29,7 +29,11 @@ parser.add_argument("--record", "--video", type=Path, help="Record actual DEMO r
 parser.add_argument("--seconds", type=float, default=24, help="Bounded recording duration (1..60 real seconds)")
 parser.add_argument("--video-fps", type=int, default=15, help="Maximum capture sampling rate (5..30), not device FPS")
 parser.add_argument("--record-view", choices=["lcd", "window"], default="lcd")
-parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "atelier", "sky", "notifications"], default="tour")
+parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "atelier", "sky", "notifications", "feature-demo"], default="tour")
+parser.add_argument("--feature-demo", action="store_true",
+                    help="Start the app's production showcase; recordings explicitly abbreviate it with manual feature jumps")
+parser.add_argument("--feature-stage", type=int,
+                    help="Begin a standalone production showcase at one zero-based catalogue position")
 parser.add_argument("--notification", choices=["info", "success", "warning", "failure", "progress"],
                     help="Show a synthetic rich notification through the production badge UI")
 parser.add_argument("--scene", default="team")
@@ -48,13 +52,22 @@ parser.add_argument("--gallery-stills", action="store_true", help="Export actual
 parser.add_argument("--weather-kind", choices=["clear", "day", "night", "rain", "rain-night", "heavy", "snow", "storm", "fog", "stale"], default="clear",
                     help="Synthetic weather condition; never requests live weather")
 parser.add_argument("--output", type=Path, help="Copy a completed DEMO screenshot and its status JSON to this path")
-parser.add_argument("--action", choices=list("ABCDEFSN") + ["ENTER", "SPACE", "UP", "DOWN", "LEFT", "RIGHT"], help="Inject one synthetic badge/keyboard press in DEMO")
+parser.add_argument("--action", choices=list("ABCDEFSN") + ["ENTER", "SPACE", "UP", "DOWN", "LEFT", "RIGHT", "SHIFT+D"], help="Inject one synthetic badge/keyboard press in DEMO")
 parser.add_argument("--capture-frames", type=int, default=None)
 parser.add_argument("--action-frame", type=int, default=12)
 parser.add_argument("--action-hold-frames", type=int, default=3, help="Duration of a synthetic held key in DEMO")
 parser.add_argument("--diagnose", action="store_true")
 options = parser.parse_args()
 from notification_fixture import notification as demo_notification
+if options.showcase == "feature-demo" or options.feature_stage is not None:
+    options.feature_demo = True
+if options.feature_demo:
+    if options.notification or options.settings or options.component_theme or options.partner_demo:
+        parser.error("Production feature demo cannot be combined with simulator-only notification, settings, component or partner fixtures")
+    options.showcase = "feature-demo"
+    options.keyboard = True
+    options.idle_page = None
+    options.scene = "team"
 if options.showcase == "atelier":
     options.demo_date = options.demo_date or "2026-12-12"
     options.demo_time = options.demo_time or "10:08:30"
@@ -81,6 +94,8 @@ if options.demo_time:
     demo_hms = tuple(int(value) for value in fields) + ((0,) if len(fields) == 2 else ())
 if options.record and options.screenshot:
     parser.error("Choose either --record or --screenshot")
+if options.feature_stage is not None and (options.record or not 0 <= options.feature_stage < 4096):
+    parser.error("--feature-stage is for standalone previews and must be0..4095")
 if options.record and (options.record.suffix.lower() != ".mp4" or not 1 <= options.seconds <= 60 or not 5 <= options.video_fps <= 30):
     parser.error("Recording needs an MP4 path, duration 1..60 seconds and sampling 5..30 FPS")
 if options.output and not options.screenshot:
@@ -105,8 +120,11 @@ if options.record:
     film_recorder = FrameRecorder(CACHE, options.record, options.seconds, options.video_fps,
                                   options.record_view, options.showcase)
     options.keyboard = True
-    options.idle_page = options.idle_page or ("clock" if options.showcase == "calls" else "weather")
-    if options.showcase == "notifications":
+    if not options.feature_demo:
+        options.idle_page = options.idle_page or ("clock" if options.showcase == "calls" else "weather")
+    if options.feature_demo:
+        scenes = [dict(production_showcase=True, label="Production showcase / continuous")]
+    elif options.showcase == "notifications":
         scenes = [dict(notification="info", label="Notification / information"),
                   dict(notification="success", label="Notification / success"),
                   dict(notification="warning", label="Notification / warning"),
@@ -161,7 +179,7 @@ if options.record:
     options.notification = film_plan[0].get("notification", options.notification)
 if options.settings:
     options.keyboard = True
-if options.idle_page:
+if options.idle_page and not options.feature_demo:
     options.scene = "idle"
 
 # A detached GUI must own its log file handles. PowerShell's Start-Process
@@ -320,7 +338,7 @@ def demo_weather():
                     peak_overlapping_hourly_probability_percent=None)
     return value
 
-if options.scene in fixture_scenes:
+if options.scene in fixture_scenes and not options.feature_demo:
     original_call_snapshot = monitor_app.snapshot
     def fixture_call_snapshot(scene):
         value = original_call_snapshot("team" if options.scene in ("idle", "team-long-number", "team-internal", "team-external") else "ddi")
@@ -363,7 +381,7 @@ if options.scene in fixture_scenes:
         return value
     monitor_app.snapshot = fixture_call_snapshot
 
-if options.partner_demo:
+if options.partner_demo and not options.feature_demo:
     ordinary_snapshot = monitor_app.snapshot
     def partner_snapshot(scene):
         value = ordinary_snapshot(scene)
@@ -424,9 +442,18 @@ original_events = _sim._sim.process_events
 key_names = {pygame.K_UP:"UP", pygame.K_DOWN:"DOWN", pygame.K_LEFT:"LEFT", pygame.K_RIGHT:"RIGHT", pygame.K_ESCAPE:"ESCAPE", pygame.K_RETURN:"ENTER", pygame.K_SPACE:"SPACE", pygame.K_BACKSPACE:"BACKSPACE"}
 badge_keys = [getattr(pygame, "K_" + letter) for letter in "abcdef"]
 enter_events = 0
+keyboard_d_down = False
 def process_events():
-    global enter_events
+    global enter_events, keyboard_d_down
     for event in pygame.event.get():
+        if (options.keyboard and event.type in (pygame.KEYDOWN, pygame.KEYUP) and event.key == pygame.K_d
+                and ((event.type == pygame.KEYDOWN and getattr(event, "mod", pygame.key.get_mods()) & pygame.KMOD_SHIFT)
+                     or keyboard_d_down)):
+            # PC A–F keep representing the six physical buttons. Shift+D is
+            # the separate expansion-keyboard D key, including its matching Up.
+            keyboard_d_down = event.type == pygame.KEYDOWN
+            eventbus.emit((ButtonDownEvent if keyboard_d_down else ButtonUpEvent)(KEYBOARD_BUTTONS["D"]))
+            continue
         if options.keyboard and event.type in (pygame.KEYDOWN, pygame.KEYUP) and event.key not in badge_keys:
             name = key_names.get(event.key)
             if name is None and 32 <= event.key < 127:
@@ -444,11 +471,63 @@ _sim._sim.process_events = process_events
 preview_app = None
 
 
+def feature_film_plan(app):
+    """Select real production stages without modifying playback or fixtures."""
+    engine = app.showcase
+    if engine is None or not 1 <= engine.count <= 4096:
+        raise RuntimeError("Production showcase catalogue is unavailable")
+    stages = [engine.stage(index) for index in range(engine.count)]
+    highlights = (
+        ("Original theme", {"theme": "original", "feature": "intro"}),
+        ("Weather / Original", {"theme": "original", "feature": "weather", "weather_kind": "day"}),
+        ("Next-hour rain", {"theme": "original", "feature": "rain", "weather_kind": "rain"}),
+        ("Celestial Atelier", {"theme": "original", "feature": "clock", "clock": "haute_celestial"}),
+        ("Neon Orrery", {"theme": "original", "feature": "clock", "clock": "neon_orrery"}),
+        ("Team BLF", {"theme": "original", "feature": "team"}),
+        ("Team call detail", {"theme": "original", "feature": "team_detail", "detail": "internal"}),
+        ("Direct call", {"theme": "original", "feature": "call", "scene": "ddi"}),
+        ("Internal call", {"theme": "original", "feature": "call", "scene": "internal"}),
+        ("Queue call", {"theme": "original", "feature": "call", "scene": "queue"}),
+        ("Partner / priority", {"theme": "original", "feature": "call", "scene": "partner"}),
+        ("Progress alert", {"theme": "original", "feature": "notification", "notification": "progress75"}),
+        ("Own status / DND", {"theme": "original", "feature": "presence", "presence": "dnd"}),
+        ("Christmas theme", {"theme": "christmas", "feature": "intro"}),
+        ("Weather / Christmas", {"theme": "christmas", "feature": "weather", "weather_kind": "day"}),
+        ("Christmas Advent", {"theme": "christmas", "feature": "advent"}),
+    )
+    plan = []
+    for label, selector in highlights:
+        stage = next((item for item in stages if all(item.get(key) == value for key, value in selector.items())), None)
+        if stage is None:
+            raise RuntimeError("Missing production showcase highlight: " + label)
+        plan.append({"at": len(plan) * options.seconds / len(highlights), "label": "CUT / " + label,
+                     "stage_index": stage["index"], "manual_feature_jump": True,
+                     "production_showcase": True, **selector})
+    return plan
+
+
+def feature_stage_metadata():
+    stage = getattr(preview_app, "_showcase_stage", None)
+    if not isinstance(stage, dict):
+        return None
+    return {key: stage.get(key) for key in ("index", "theme", "theme_name", "feature", "clock", "scene", "date", "weather_kind",
+                                           "notification", "presence", "theme_index", "theme_count",
+                                           "step_index", "step_count", "paused", "loop")}
+
+
 def apply_film_event(event):
     """Change synthetic inputs, then let the production app draw each view."""
     global film_label
     app = preview_app
     if app is None:
+        return
+    if options.feature_demo:
+        app._showcase_seek(event["stage_index"])
+        stage = feature_stage_metadata()
+        if not stage or stage["index"] != event["stage_index"]:
+            raise RuntimeError("Production showcase jump was not applied")
+        film_label = event["label"]
+        film_recorder.events.append(dict(event, at=round(film_recorder.elapsed(), 6)))
         return
     app.settings_open = False
     app.controller.detail_view = False
@@ -495,6 +574,10 @@ class PreviewMonitor(ThreeCXMonitor):
         global preview_app
         super().__init__()
         preview_app = self
+        if options.feature_demo:
+            # The genuine showcase starts once this app is foregrounded after
+            # boot. None of the legacy simulator fixtures modifies its state.
+            return
         if options.detail:
             self.controller.detail_view = True
         if options.scene not in ("team",) + fixture_scenes:
@@ -554,11 +637,13 @@ native_screenshot = None
 latest_render_status = None
 gallery_stills_saved = set()
 notification_fixture_opened = False
+feature_started_frame = None
 def side_text(text, y, size=20, colour=(220,230,240)):
     font = pygame.font.Font(None, size)
     _sim.screen.blit(font.render(text, True, colour), (755,y))
 def report_render():
     global frames, film_event_index, native_screenshot, latest_render_status, notification_fixture_opened
+    global feature_started_frame, film_plan
     if options.screenshot:
         native_screenshot = pygame.Surface((240, 240))
         native_screenshot.fill((0, 0, 0))
@@ -570,6 +655,22 @@ def report_render():
     app_ready = preview_app is not None and scheduler.app_is_foregrounded(preview_app) and not boot_overlay
     if options.screenshot and not app_ready:
         _sim.SCREENSHOT_DELAY = max(2, _sim.SCREENSHOT_DELAY)
+    if options.feature_demo and app_ready and feature_started_frame is None:
+        if getattr(preview_app, "showcase", None) is None and not preview_app._start_showcase():
+            raise RuntimeError("The production showcase did not start")
+        feature_started_frame = frames
+        if options.feature_stage is not None:
+            if options.feature_stage >= preview_app.showcase.count:
+                raise RuntimeError("The requested production showcase stage does not exist")
+            preview_app._showcase_seek(options.feature_stage)
+        if film_recorder:
+            film_plan = feature_film_plan(preview_app)
+            apply_film_event(film_plan[0])
+            film_event_index = 1
+        if options.screenshot:
+            _sim.SCREENSHOT_DELAY = max(3, _sim.SCREENSHOT_DELAY)
+    showcase_active = bool(getattr(preview_app, "showcase", None))
+    feature_stage = feature_stage_metadata()
     if options.notification and app_ready and not notification_fixture_opened:
         # Equivalent to opening the production inbox with N. Do this after
         # the upstream boot overlay, which may outlast an automatic toast.
@@ -581,7 +682,9 @@ def report_render():
     side_text("EEH LOGO", 38, 32)
     side_text("SIMULATED HEXPANSIONS" if options.matrix_demo else "SIMULATED HEXPANSION", 76, 17, (140,160,180))
     side_text("Slot 6 / 14 LEDs / own status", 102, 20)
-    if options.idle_page:
+    if showcase_active:
+        side_text("PRODUCTION SHOWCASE / DEMO", 126, 17, (240,205,100))
+    elif options.idle_page:
         side_text("WEATHER = SYNTHETIC DEMO", 126, 17, (240,205,100))
     for index, colour in enumerate(eeh_values):
         # Schematic fixture view; no claim about the PCB's LED placement.
@@ -616,10 +719,17 @@ def report_render():
     settings_open = bool(getattr(preview_app, "settings_open", False))
     idle = getattr(preview_app, "idle_pages", None)
     idle_page = idle.page(preview_app._now()) if idle is not None else None
-    if settings_open:
-        side_text("Up / Down = select Ring / EEH", 570, 20)
+    if showcase_active:
+        side_text("Shift+D / Esc = stop demo", 570, 20)
+        side_text("Enter / Space = pause", 594, 20)
+        side_text("Left / Right = feature", 618, 20)
+        side_text("Up / Down = theme", 642, 20)
+        side_text("Continuous on the badge", 666, 20)
+        side_text("Film uses labelled feature cuts" if options.record else "All features, then next theme", 690, 18)
+    elif settings_open:
+        side_text("Up / Down = select setting", 570, 20)
         side_text("Left / Right = adjust 1%", 594, 20)
-        side_text("Enter / Space = done", 618, 20)
+        side_text("Enter / C = start demo" if preview_app.settings_selected == 4 else "Enter / Space = done", 618, 20)
         side_text("A / D = select", 642, 20)
         side_text("B / E = adjust", 666, 20)
         side_text("C / F = done", 690, 20)
@@ -647,11 +757,15 @@ def report_render():
         pygame.event.post(pygame.event.Event(kind, key=pygame.K_s))
     if options.action and frames in (options.action_frame,options.action_frame + max(1, options.action_hold_frames)):
         kind = pygame.KEYDOWN if frames == options.action_frame else pygame.KEYUP
-        action_key = {"ENTER":pygame.K_RETURN, "SPACE":pygame.K_SPACE, "UP":pygame.K_UP,
-                      "DOWN":pygame.K_DOWN, "LEFT":pygame.K_LEFT, "RIGHT":pygame.K_RIGHT}.get(options.action)
-        if action_key is None:
-            action_key = getattr(pygame,"K_"+options.action.lower())
-        pygame.event.post(pygame.event.Event(kind, key=action_key))
+        if options.action == "SHIFT+D":
+            pygame.event.post(pygame.event.Event(kind, key=pygame.K_d,
+                                               mod=pygame.KMOD_SHIFT if kind == pygame.KEYDOWN else 0))
+        else:
+            action_key = {"ENTER":pygame.K_RETURN, "SPACE":pygame.K_SPACE, "UP":pygame.K_UP,
+                          "DOWN":pygame.K_DOWN, "LEFT":pygame.K_LEFT, "RIGHT":pygame.K_RIGHT}.get(options.action)
+            if action_key is None:
+                action_key = getattr(pygame,"K_"+options.action.lower())
+            pygame.event.post(pygame.event.Event(kind, key=action_key))
     alerting = preview_app is not None and preview_app.controller.alert(preview_app._now()) is not None
     visible_notification = preview_app._visible_notification(preview_app._now()) if preview_app else None
     if options.screenshot and alerting and not any(any(c>0 for c in led) for led in _sim._sim.led_state[1:13]):
@@ -666,14 +780,18 @@ def report_render():
         "caption": pygame.display.get_caption()[0], "frames": frames, "demo_keyboard": options.keyboard,
         "eeh_writes": eeh_writes, "eeh_rgb": eeh_values[0], "eeh_default_brightness": 0.03,
         "eeh_brightness": eeh_level, "ring_brightness": ring_level, "idle_page": idle_page,
-        "weather_kind": options.weather_kind, "weather_is_synthetic": True,
-        "theme": options.theme, "clock_style": options.clock_style, "demo_date": options.demo_date,
+        "weather_kind": feature_stage["weather_kind"] if feature_stage else options.weather_kind, "weather_is_synthetic": True,
+        "theme": feature_stage["theme"] if feature_stage else options.theme,
+        "clock_style": feature_stage["clock"] if feature_stage else options.clock_style,
+        "demo_date": feature_stage["date"] if feature_stage else options.demo_date,
         "demo_time": options.demo_time,
         "component_preview": options.component_theme, "partner_demo": options.partner_demo,
         "matrix_diagram": options.matrix_demo, "alerting": alerting, "heartbeat": host_time.time(),
         "notification_fixture": options.notification,
         "notification_visible": bool(visible_notification),
         "demo_scene": getattr(preview_app, "demo_scene", None), "enter_events": enter_events,
+        "production_showcase": options.feature_demo,
+        "showcase_active": showcase_active, "showcase_stage": feature_stage,
     }
     if options.matrix_demo and preview_app is not None:
         latest_render_status["matrix_mode"] = preview_app.matrix.displayed_mode
@@ -681,7 +799,8 @@ def report_render():
         name = "status-record.json" if options.record else "status-capture.json" if options.screenshot else "status.json"
         with open(str(RUN / name),"w") as handle:
             json.dump(latest_render_status, handle)
-    if film_recorder is not None and app_ready and frames >= 8:
+    if (film_recorder is not None and app_ready and frames >= 8
+            and (not options.feature_demo or (feature_started_frame is not None and frames >= feature_started_frame + 2))):
         if options.record_view == "lcd":
             recorded = pygame.Surface((240, 240))
             recorded.fill((0, 0, 0))
@@ -695,6 +814,10 @@ def report_render():
                     "settings": settings_open, "theme": options.theme, "clock_style": options.clock_style}
         metadata.update(notification_fixture=options.notification, notification_visible=bool(visible_notification),
                         notification_progress=visible_notification.get("progress") if visible_notification else None)
+        if options.feature_demo:
+            metadata.update(production_showcase=True, abbreviated_showcase=True, manual_feature_jumps=True,
+                            showcase_stage=feature_stage, theme=feature_stage["theme"],
+                            clock_style=feature_stage["clock"], weather_kind=feature_stage["weather_kind"])
         if options.matrix_demo:
             metadata.update(matrix_diagram=True, matrix_mode=preview_app.matrix.displayed_mode,
                             matrix_simulated_frames=preview_app.matrix.frames_written)
@@ -704,10 +827,15 @@ def report_render():
         if options.gallery_stills:
             for index, event in enumerate(film_plan):
                 end = film_plan[index + 1]["at"] if index + 1 < len(film_plan) else options.seconds
-                if elapsed < (event["at"] + end) / 2:
+                target_time = event["at"] if options.feature_demo and event.get("scene") == "partner" else (event["at"] + end) / 2
+                if elapsed < target_time:
+                    continue
+                if options.feature_demo and (not feature_stage or feature_stage["index"] != event["stage_index"]):
                     continue
                 stem = None
-                if options.showcase == "themes":
+                if options.feature_demo:
+                    stem = "showcase-%02d-%s" % (index + 1, event["feature"])
+                elif options.showcase == "themes":
                     stem = "theme-advent" if event.get("page") == "advent" else "theme-" + event["theme"]
                 elif options.showcase == "atelier":
                     stem = "clocks-atelier-" + event["clock"]
@@ -731,6 +859,12 @@ def report_render():
                 if stem is None or stem in gallery_stills_saved:
                     continue
                 if stem == "partner-call" and max(eeh_values[0]) < 128:
+                    continue
+                if (options.feature_demo and event.get("scene") == "partner"
+                        and ((eeh_level > 0 and eeh_values[0][0] == 0)
+                             or (options.matrix_demo and preview_app.matrix.displayed_mode != "heart"))):
+                    # Choose an actual red heartbeat still; the film keeps
+                    # all observed phases and its original elapsed timing.
                     continue
                 destination = film_recorder.output.parent
                 pygame.image.save(_sim.screen, str(destination / (stem + ".png")))

@@ -13,10 +13,11 @@ param(
     [ValidateRange(1, 60)][double]$Seconds = 24,
     [ValidateRange(5, 30)][int]$VideoFps = 15,
     [ValidateSet('lcd', 'window')][string]$RecordView = 'lcd',
-    [ValidateSet('idle', 'tour', 'calls', 'themes', 'clocks', 'atelier', 'sky', 'notifications')][string]$Showcase = 'tour',
+    [ValidateSet('idle', 'tour', 'calls', 'themes', 'clocks', 'atelier', 'sky', 'notifications', 'feature-demo')][string]$Showcase = 'tour',
+    [switch]$FeatureDemo,
     [string]$OutputPath,
     [ValidateRange(0, 600)][int]$CaptureFrames = 0,
-    [ValidateSet('A', 'B', 'C', 'D', 'E', 'F', 'S', 'N', 'ENTER', 'SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT')][string]$Action,
+    [ValidateSet('A', 'B', 'C', 'D', 'E', 'F', 'S', 'N', 'ENTER', 'SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'SHIFT+D')][string]$Action,
     [switch]$PartnerDemo,
     [switch]$MatrixDemo,
     [switch]$GalleryStills,
@@ -66,6 +67,7 @@ if ($Notification) { $simArguments += @('--notification', $Notification) }
 if ($PartnerDemo) { $simArguments += '--partner-demo' }
 if ($MatrixDemo) { $simArguments += '--matrix-demo' }
 if ($GalleryStills) { $simArguments += '--gallery-stills' }
+if ($FeatureDemo) { $simArguments += '--feature-demo' }
 if ($Record) { $simArguments += @('--record', $Record, '--seconds', [string]$Seconds, '--video-fps', [string]$VideoFps, '--record-view', $RecordView, '--showcase', $Showcase) }
 if ($Action) { $simArguments += @('--action', $Action) }
 if ($CaptureFrames -gt 0) { $simArguments += @('--capture-frames', [string]$CaptureFrames) }
@@ -101,5 +103,5 @@ try {
     else { $env:TILDAGON_SIM_ROOT = $previousRoot }
 }
 if (-not $offlineCapture) {
-    Write-Host 'Official simulator opened with synthetic DEMO data. Left/Right: browse; N: notification inbox; Enter: dismiss notification or next demo call; Space: back; S: settings; T: theme; K: clock; A-F: badge buttons; Esc: exit.'
+    Write-Host 'Official simulator opened with synthetic DEMO data. Shift+D: production showcase; Left/Right: browse; N: inbox; S: settings; T: theme; K: clock; A-F: badge buttons; Esc: exit.'
 }

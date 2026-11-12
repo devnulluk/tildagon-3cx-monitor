@@ -7,6 +7,20 @@ invented location**, **Partner is a placeholder name**, and the caller number
 calendar and Advent pages; no personal birthdays, anniversary dates or ages
 are supplied. The isolated simulator config contains no PBX address or token.
 
+![On-device feature showcase](showcase.gif)
+
+[56-second feature preview](showcase.mp4) · [Feature contact sheet](showcase-contact-sheet.png) ·
+[Validation and capture scope](../VALIDATION.md) · [On-device showcase controls](../SHOWCASE.md).
+
+This preview starts the app's production showcase and selects sixteen real
+stages through its own navigation method. **CUT** labels and the video footer
+identify these representative jumps. The film is abbreviated; it does not show
+the complete cycle or speed up its animations. On the badge, the normal mode
+plays every feature in each theme before moving to the next: 521 five-second
+stages across thirteen themes, or **43 minutes 25 seconds** per full cycle.
+Calls, presence changes, notifications and occasion dates in this mode are
+fictional, and its telephone controls remain disabled.
+
 ![Theme tour](themes.gif)
 
 [Theme video](themes.mp4) · [Theme contact sheet](themes-contact-sheet.png) ·
@@ -61,7 +75,8 @@ py -3.10 tools/prepare_simulator.py
 ```
 
 Then run the public launcher. The `GalleryStills` switch exports matching
-full-window and native LCD stills at each scene's midpoint.
+full-window and native LCD stills near each scene's midpoint. A Partner still
+may use another actual heartbeat phase.
 
 ```powershell
 ./Launch-Simulator.ps1 -Record ./docs/gallery/themes.mp4 -Showcase themes -Seconds 28 -DemoDate 2026-12-12 -GalleryStills
@@ -70,6 +85,7 @@ full-window and native LCD stills at each scene's midpoint.
 ./Launch-Simulator.ps1 -Record ./docs/gallery/clock-corpus.mp4 -Showcase idle -Page clock -ClockStyle corpus -WeatherKind night -Seconds 8 -DemoDate 2026-12-12 -GalleryStills
 ./Launch-Simulator.ps1 -Record ./docs/gallery/sky.mp4 -Showcase sky -Seconds 12 -DemoDate 2026-12-12 -GalleryStills
 ./Launch-Simulator.ps1 -Record ./docs/gallery/partner-call.mp4 -Showcase calls -Page clock -Theme christmas -RecordView window -Seconds 12 -DemoDate 2026-12-12 -PartnerDemo -MatrixDemo -GalleryStills
+./Launch-Simulator.ps1 -FeatureDemo -Record ./docs/gallery/showcase.mp4 -Seconds 56 -GalleryStills -MatrixDemo
 ```
 
 A single screenshot or an interactive preview can use any theme and clock:
@@ -77,7 +93,12 @@ A single screenshot or an interactive preview can use any theme and clock:
 ```powershell
 ./Launch-Simulator.ps1 -Screenshot -Page weather -Theme cyberpunk -DemoDate 2026-12-12 -OutputPath ./theme-example.png
 ./Launch-Simulator.ps1 -Page clock -Theme ocean -ClockStyle corpus -MatrixDemo
+./Launch-Simulator.ps1 -FeatureDemo
 ```
 
 For direct Python use, see the [portable simulator instructions](../../simulator/README.md).
 No live PBX action, contact lookup or weather request is made by these fixtures.
+In the interactive simulator, **Shift+D** emits the expansion keyboard's D key
+to start or stop the production showcase; unshifted A–F retain their physical
+badge-button mappings. The standalone `-FeatureDemo` preview runs continuously
+without the recording's manual feature jumps.
