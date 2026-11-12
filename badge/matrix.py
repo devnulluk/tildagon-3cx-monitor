@@ -11,6 +11,7 @@ https://github.com/kristianhentschel/tildagon-matrix-hexpansion-app
 
 import asyncio
 from .matrix_text import caller_text, columns
+from .controls import initials
 
 # Physical grid derived from the manufacturer's MIT-licensed companion app.
 # Copyright (c)2026 Kristian Hentschel.
@@ -304,11 +305,21 @@ class MatrixDisplay:
             ringing = [call for call in _active_calls(_dict(_dict(payload).get("own")))
                        if call.get("state") == "ringing"]
             call = ringing[0]
+            static = call.get("kind") == "internal"
             text = caller_text(call.get("peer_name"))
+            if static:
+                short = initials(call.get("peer_name"), call.get("peer_extension") or call.get("peer_number"))
+                text = short[:3] if short.isdigit() else caller_text(short)[:3]
             key = (str(call.get("id") or '')[:80], text)
+            if static:
+                key += ('initials',)
             if key != self._scroll_key:
                 self._scroll_key = key
                 self._scroll_columns = columns(text)
+                if static:
+                    letters = self._scroll_columns[:len(text) * 6 - 1]
+                    left = (WIDTH - len(letters)) // 2
+                    self._scroll_columns = (0,) * left + letters + (0,) * (WIDTH - left - len(letters))
                 self._scroll_position = 0
                 self._scroll_next = now_ms + 1000
                 scroll_changed = True
@@ -323,7 +334,7 @@ class MatrixDisplay:
         frame = None
         peak = self._peak
         if mode == "caller":
-            if now_ms >= self._scroll_next and not scroll_changed:
+            if len(self._scroll_key) == 2 and now_ms >= self._scroll_next and not scroll_changed:
                 self._scroll_position = (self._scroll_position + 1) % len(self._scroll_columns)
                 self._scroll_next = now_ms + (1000 if self._scroll_position == 0 else 180)
             frame = ('text', peak, self._scroll_key, self._scroll_position)

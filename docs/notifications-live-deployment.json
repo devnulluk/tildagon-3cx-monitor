@@ -1,0 +1,11 @@
+{
+  "unauthenticated_send_rejected": true,
+  "read_token_cannot_send": true,
+  "send_token_cannot_read": true,
+  "test_accepted": true,
+  "test_in_live_feed": true,
+  "pbx_connected": true,
+  "four_team_members": true,
+  "presence_preserved": true,
+  "controls_preserved": true
+}

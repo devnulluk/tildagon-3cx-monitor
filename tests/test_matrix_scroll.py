@@ -25,6 +25,40 @@ class ScrollTests(unittest.TestCase):
         self.assertNotEqual(first,self.image())
         self.assertLessEqual(max(self.image()),7)
 
+    def test_internal_initials_are_centred_static_and_caller_changes_preempt(self):
+        display=self.display()
+        value=self.call('Alex Example')
+        value['own']['calls'][0]['kind']='internal'
+        display.update(value,True,0)
+        self.drain(display)
+        first=self.image()
+        self.assertEqual(display._scroll_key,('a','AE','initials'))
+        self.assertEqual(len(display._scroll_columns),18)
+        letters=matrix.columns('AE')[:11]
+        self.assertEqual(display._scroll_columns,(0,)*3+letters+(0,)*4)
+        frames=display.frames_written
+        for now in (1000,2000,10000,60000):
+            display.update(value,True,now)
+            self.drain(display)
+            self.assertEqual(display._scroll_position,0)
+            self.assertEqual(self.image(),first)
+        self.assertEqual(display.frames_written,frames)
+        value['own']['calls'][0].update(id='b',peer_name='Jo Example')
+        display.update(value,True,60001)
+        self.drain(display)
+        self.assertNotEqual(self.image(),first)
+        self.assertEqual(max(self.image()),255)
+
+    def test_internal_three_letter_name_or_extension_fits_without_scrolling(self):
+        for name,number,expected in (('Alex Example Smith','245','AES'),('', '245','245'),('TB','223','TB')):
+            display=self.display()
+            value=self.call(name)
+            value['own']['calls'][0].update(kind='internal',peer_extension=number)
+            display.update(value,True,0)
+            self.drain(display)
+            self.assertEqual(display._scroll_key[1],expected)
+            self.assertEqual(len(display._scroll_columns),18)
+
     def test_slow_transfer_retains_every_column_and_new_caller_preempts(self):
         display=self.display()
         display.update(self.call(),True,0)

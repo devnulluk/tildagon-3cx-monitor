@@ -342,7 +342,7 @@ def draw_notification(ctx, item, now_ms, entered_ms, theme_id="original"):
             c, s = _UNIT[(angle + index * 16) & 127]
             ctx.rectangle(c * 102 - 1, s * 102 - 1, 2, 2)
         ctx.fill()
-        _label(ctx, item["type"].upper(), -94, 13, accent)
+        _label(ctx, "URGENT" if item["priority"] == 5 else item["type"].upper(), -94, 13, accent)
         title = _wrap(ctx, item["title"], 176, 26, 2)
         for index, line in enumerate(title):
             _label(ctx, line, -66 + index * 25, 26, (.96, .98, 1))

@@ -1,0 +1,6 @@
+{
+  "apprise_version": "2.2.0",
+  "apprise_cli_success": true,
+  "apprise_message_in_authenticated_feed": true,
+  "pbx_connected": true
+}

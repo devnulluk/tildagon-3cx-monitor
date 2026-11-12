@@ -8,6 +8,12 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 
 ![Theme examples](docs/gallery/themes-contact-sheet.png)
 
+## Urgent notifications
+
+Priority5 notifications stay visible until dismissed or their original TTL
+expires. Only your own priority calls interrupt them, then the card returns.
+Normal alerts retain the ten-second popup. [Webhook and Apprise setup](docs/NOTIFICATIONS.md).
+
 ## Full-screen clock faces
 
 ![Neon Orrery using the full round LCD, synthetic simulator preview](docs/gallery/fullscreen-neon-lcd.png)
@@ -16,14 +22,16 @@ Neon Orrery, Mondaine and Great British Railways now fill the round display,
 with 19% larger dial geometry and no outer theme/status margin. Neon's lower
 complications have been rearranged to keep the enlarged readout clear.
 
-## Scrolling matrix caller names, version 0.14
+## Matrix caller initials, version 0.14.1
 
-![Scrolling caller and partner heart, simulator diagram](docs/gallery/matrix-caller.gif)
+![External caller scrolling and partner heart, simulator diagram](docs/gallery/matrix-caller.gif)
 
 [Watch the matrix preview](docs/gallery/matrix-caller.mp4) ·
 [Matrix Call brightness setting](docs/gallery/matrix-call-settings.png)
 
-Incoming calls scroll the caller name on the optional Liteloop matrix. The
+Internal incoming calls display centred, static initials on the optional Liteloop
+matrix (up to three letters, or the extension if no name is available). External
+callers retain scrolling names. The
 configured partner keeps the animated heart. Unknown callers show INCOMING CALL
 on the matrix; their full number remains available on the LCD. Names are shown
 in a bounded five-by-seven uppercase font, with common Latin accents folded.
@@ -34,8 +42,10 @@ including off. This preference is saved separately from Ring and EEH brightness.
 When the call ends, the matrix returns to its existing idle brightness. The
 private `matrix.call_brightness` configuration default is 1.0; a saved badge
 preference takes precedence. No new phone permission or bridge update is needed.
-Scrolling can be slow on the current bytewise matrix driver; the LCD continues
-to show the complete caller name immediately.
+The current bytewise matrix driver is too slow for useful internal-name scrolling;
+static initials stay readable without waiting. The LCD continues to show the
+complete caller name immediately. The older animation above illustrates external
+caller scrolling and the partner heart.
 
 ## Caller display, version 0.13
 
@@ -65,7 +75,7 @@ name line. Public previews use invented names; personal details stay local.
 - A waving bunny for your configured partner, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.14.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.14.1** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
 
 ## On-device demo tour
 

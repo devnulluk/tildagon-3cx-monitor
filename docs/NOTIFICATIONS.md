@@ -49,6 +49,18 @@ priority and TTL values; those fields must be JSON numbers rather than strings.
 Current Apprise also sends `attachments: []` when none are supplied; this empty
 compatibility field is accepted. Nonempty attachments are rejected.
 
+## Urgent alerts
+
+Set numeric `priority: 5` for an urgent alert. It stays on the LCD beyond the
+normal ten-second popup, until dismissed or its sender-selected TTL expires.
+Only a live priority call on your own extension interrupts it; the alert returns
+when that call finishes. Normal calls and team ringing do not replace the card.
+Call LEDs and the matrix retain their call indications. Manual settings and
+telephone action confirmations remain accessible. Press C or joystick centre to
+dismiss; lower-priority notifications retain the normal timeout and call rules.
+Use `ttl_seconds: 86400` for up to 24 hours. Expiry and dismissal are never reset
+by updates with the same ID.
+
 ## Rich JSON
 
 Send `Content-Type: application/json` and `Authorization: Bearer YOUR_NOTIFY_TOKEN`:

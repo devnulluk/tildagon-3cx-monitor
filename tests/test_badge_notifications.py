@@ -72,6 +72,42 @@ class BadgeNotificationTests(unittest.TestCase):
         self.assertTrue(monitor.notifications_open)
         self.assertIn("Backup completed", self.texts(monitor))
 
+    def test_urgent_stays_over_normal_call_then_priority_call_preempts_and_resumes(self):
+        module, monitor, hardware = self.monitor()
+        self.source(monitor, [fixtures.item(priority=5,ttl_seconds=300)])
+        monitor.update(0)
+        self.advance(module,monitor,15000)
+        self.assertIn('URGENT',self.texts(monitor))
+        incoming={'state':'ringing','direction':'inbound','kind':'internal','priority':False,
+                  'peer_name':'Example caller','peer_number':'245'}
+        value=self.source(monitor,alert=incoming)
+        value['own'].update(state='ringing',calls=[incoming])
+        monitor.update(0)
+        self.assertIn('Backup completed',self.texts(monitor))
+        incoming['priority']=True
+        value=self.source(monitor,alert=incoming)
+        value['own'].update(state='ringing',calls=[incoming])
+        monitor.update(0)
+        self.assertNotIn('Backup completed',self.texts(monitor))
+        self.assertEqual(hardware.leds[1:13],monitor.controller.led_frame(monitor.clock_ms))
+        value=self.source(monitor,alert=None)
+        value['own'].update(state='idle',calls=[])
+        monitor.update(0)
+        self.assertIn('Backup completed',self.texts(monitor))
+
+    def test_urgent_can_be_dismissed_during_normal_call_and_still_honours_expiry(self):
+        module, monitor, unused=self.monitor()
+        value=self.source(monitor,[fixtures.item(priority=5)])
+        value['own'].update(state='busy',calls=[{'state':'connected','priority':False}])
+        monitor.update(0)
+        monitor._notification_key('C')
+        self.assertEqual(monitor.notifications.count,0)
+        self.assertFalse(monitor.controls.is_busy)
+        value=self.source(monitor,[fixtures.item(key='urgent-2',priority=5,ttl_seconds=20)])
+        monitor.update(0)
+        self.advance(module,monitor,20000)
+        self.assertIsNone(monitor._visible_notification(monitor.clock_ms))
+
     def test_same_id_progress_update_never_renews_automatic_popup(self):
         module, monitor, unused = self.monitor()
         self.source(monitor, [fixtures.item(progress=10)])

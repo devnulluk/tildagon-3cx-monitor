@@ -1,0 +1,39 @@
+{
+  "version": "0.14.1",
+  "changed_files": [
+    "matrix.py",
+    "app.py",
+    "notifications.py",
+    "metadata.json",
+    "tildagon.toml"
+  ],
+  "private_configuration_preserved": true,
+  "changed_file_readback_verified": true,
+  "launch_method": "mpremote run --no-follow; graceful RTS-before-DTR close",
+  "verified_at_utc": "2026-11-12T12:15:51.681332+00:00",
+  "startup": {
+    "live": true,
+    "demo": false,
+    "idle_pages": [
+      "weather",
+      "rain",
+      "clock",
+      "moon",
+      "meteors"
+    ],
+    "clock_preview": true,
+    "focused": true,
+    "matrix_ready": true,
+    "keyboard": true,
+    "eeh_ready": true,
+    "ring_brightness": 0.2,
+    "matrix_call_brightness": 1.0,
+    "eeh_brightness": 0.03,
+    "weather_fresh": true,
+    "clock_style": "neon_orrery",
+    "version": "0.14.1",
+    "keyboard_slots": [
+      4
+    ]
+  }
+}

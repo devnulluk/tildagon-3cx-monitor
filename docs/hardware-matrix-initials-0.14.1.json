@@ -1,0 +1,59 @@
+{
+  "scope": "synthetic matrix data only; real LCD/live monitoring continue; no phone commands generated",
+  "samples": [
+    {
+      "pattern": 598740,
+      "static_initials": true,
+      "mode": "caller",
+      "position": 0,
+      "phase": "caller",
+      "peak": 255
+    },
+    {
+      "pattern": 526065,
+      "static_initials": true,
+      "mode": "caller",
+      "position": 0,
+      "phase": "changed",
+      "peak": 255
+    },
+    {
+      "pattern": 129969,
+      "static_initials": true,
+      "mode": "caller",
+      "position": 0,
+      "phase": "dimmed",
+      "peak": 63
+    },
+    {
+      "pattern": 122734,
+      "static_initials": false,
+      "mode": "heart",
+      "position": 0,
+      "phase": "heart",
+      "peak": 109
+    },
+    {
+      "pattern": 592110,
+      "static_initials": false,
+      "mode": "busy",
+      "position": 0,
+      "phase": "answered",
+      "peak": 255
+    }
+  ],
+  "real_notification_native_frames": 108,
+  "call_brightness_restored": true,
+  "call_brightness": 1.0,
+  "restored_mode": "available",
+  "seconds": 35,
+  "live": true,
+  "real_notification_in_feed": true,
+  "focused": true,
+  "matrix_ready": true,
+  "keyboard": true,
+  "interrupted_by_live_activity": false,
+  "eeh_ready": true,
+  "errors": [],
+  "version": "0.14.1"
+}

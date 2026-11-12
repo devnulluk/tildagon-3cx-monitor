@@ -1,4 +1,31 @@
-# Validation: badge 0.14.0 / bridge 0.6.0
+# Validation: badge 0.14.1 / bridge 0.6.0
+
+## Version 0.14.1: static internal initials and urgent notifications
+
+All 711 automated checks passed in 72.644 seconds using the configured project
+virtual environment. Initial invocations with the system interpreter lacked
+aiohttp; the complete configured run passed. New cases cover centred two/three
+letter matrix initials, extension fallback, stable images and changed callers;
+urgent persistence beyond ten seconds, normal-call precedence, priority-call
+interruption/resumption, dismissal during a normal call and original expiry.
+
+On the physical Spaceagon the internal caller image stayed at position zero
+through the sixteen-second phase; a changed caller produced a different static
+image. PWM255 and temporary PWM63 committed, the partner retained its heart,
+and idle state/brightness were restored. The display phases used synthetic
+matrix input only and placed no real calls. See the bounded hardware report.
+
+The real protected HTTPS notification was received through the authenticated
+live feed and rendered in 108 native LCD frames. A separate actual Apprise2.2.0
+CLI send and the provided PowerShell sender both succeeded. Role checks verified
+that unauthenticated/read-token sends fail and the notification token cannot
+read call state. PBX connectivity, four BLFs, presence and controls were retained.
+
+The urgent-policy files were installed with matching read-back bytes. The clean
+final launch confirmed live, focused version0.14.1, fresh weather and ready
+keyboard, EEH and matrix, preserving existing brightness preferences. Urgent-call
+precedence is covered by automated fake-hardware checks, not a real call test.
+No camera footage or physical brightness measurement is claimed.
 
 ## Version 0.14 matrix caller names and full-screen clocks
 

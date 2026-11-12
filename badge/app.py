@@ -669,7 +669,11 @@ class ThreeCXMonitor(app.App):
     def _visible_notification(self, now):
         self._observe_notifications(now)
         current = self.notifications.current(now)
-        if (self._phone_attention(now) or self.settings_open or self.controls.is_busy
+        urgent = current is not None and current.get("priority") == 5
+        priority_call = self.controller._priority_ring_override(now)
+        alert = self.controller.alert(now)
+        priority_call = priority_call or bool(alert and alert.get("priority"))
+        if ((priority_call if urgent else self._phone_attention(now)) or self.settings_open or self.controls.is_busy
                 or now < self.controls.message_until or now < self._brightness_notice_until):
             return None
         if current and self._notification_pending == current["id"]:
@@ -678,7 +682,7 @@ class ThreeCXMonitor(app.App):
             self._notification_presented.append(current["id"])
             self._notification_presented = self._notification_presented[-64:]
             self._notification_pending = None
-        if self.notifications_open or now < self._notification_until:
+        if urgent or self.notifications_open or now < self._notification_until:
             return current
         return None
 
@@ -691,11 +695,15 @@ class ThreeCXMonitor(app.App):
 
     def _notification_key(self, key):
         """Modal display navigation: never invoke phone confirmation here."""
+        visible = self._visible_notification(self.clock_ms)
+        urgent = visible is not None and visible.get("priority") == 5
         if key in ("ESCAPE", "SPACE", "F", "CANCEL"):
             self.notifications_open = False
             self._notification_until = 0
             self._notification_pending = None
-        elif not self._phone_attention(self.clock_ms):
+        elif urgent or not self._phone_attention(self.clock_ms):
+            if urgent and key not in ("ENTER", "CONFIRM", "C"):
+                return
             if key in ("RIGHT", "DOWN", "B"):
                 self.notifications.next(1, self.clock_ms)
                 self._notification_entered = self.clock_ms
