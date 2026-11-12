@@ -153,8 +153,11 @@ class MatrixTests(unittest.TestCase):
         display = self.display()
         own = payload(calls=[{"state": "connected", "peer_name": "Partner"}])
         display.update(own, True, 150, partner=False)
-        self.assertEqual(display.last_mode, "busy")
+        self.assertEqual(display.last_mode, "call_name")
         display.update(own, True, 160, partner=True)
+        self.assertEqual(display.last_mode, "call_name")
+        own['own']['calls'][0]['state']='ringing'
+        display.update(own,True,165,partner=True)
         self.assertEqual(display.last_mode, "heart")
         display.update(payload(), True, 170, partner=True)
         self.assertEqual(display.last_mode, "available")
@@ -179,7 +182,7 @@ class MatrixTests(unittest.TestCase):
             display.update(payload(calls=[{"state": "ringing", "kind": kind}]), True, index * 200)
             self.assertEqual(display.last_mode, 'caller')
         display.update(payload(calls=[{"state": "held", "kind": "queue"}]), True, 900)
-        self.assertEqual(display.last_mode, "busy")
+        self.assertEqual(display.last_mode, "call_name")
 
     def test_stale_presence_never_shows_available(self):
         display = self.display()

@@ -1,0 +1,564 @@
+{
+  "connected_timer_samples": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    3,
+    3,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    5,
+    6,
+    6,
+    6,
+    6,
+    6,
+    7,
+    7,
+    7,
+    7,
+    7,
+    8,
+    8,
+    9,
+    9,
+    9,
+    9,
+    9,
+    10,
+    10,
+    10,
+    10,
+    11,
+    11,
+    11,
+    11,
+    11,
+    12,
+    12,
+    12,
+    12,
+    12,
+    13,
+    13,
+    14,
+    14,
+    14,
+    14,
+    15,
+    15,
+    15,
+    15,
+    15,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    17,
+    17
+  ],
+  "control_attempts": 0,
+  "errors": [],
+  "registers": {
+    "text": [
+      65,
+      76,
+      69,
+      88,
+      32,
+      69,
+      88,
+      65,
+      77,
+      80,
+      76,
+      69,
+      0
+    ],
+    "direct": 0,
+    "mode": [
+      3,
+      0,
+      18,
+      1
+    ],
+    "timer_mode": 2
+  },
+  "interrupted_by_live_activity": false,
+  "scope": "Synthetic display inputs only, including priority own-call fixtures to exercise urgent-notification precedence; no PBX actions. Register readback is not camera footage.",
+  "live": true,
+  "offsets": [
+    [
+      957,
+      18
+    ],
+    [
+      1743,
+      19
+    ],
+    [
+      2132,
+      21
+    ],
+    [
+      2346,
+      25
+    ],
+    [
+      2565,
+      28
+    ],
+    [
+      2791,
+      30
+    ],
+    [
+      3164,
+      33
+    ],
+    [
+      3419,
+      37
+    ],
+    [
+      3951,
+      40
+    ],
+    [
+      4201,
+      46
+    ],
+    [
+      4411,
+      48
+    ],
+    [
+      4622,
+      51
+    ],
+    [
+      4856,
+      53
+    ],
+    [
+      5069,
+      56
+    ],
+    [
+      5279,
+      58
+    ],
+    [
+      5637,
+      60
+    ],
+    [
+      6129,
+      65
+    ],
+    [
+      6491,
+      70
+    ],
+    [
+      6739,
+      74
+    ],
+    [
+      6961,
+      77
+    ],
+    [
+      7191,
+      79
+    ],
+    [
+      7398,
+      82
+    ],
+    [
+      7605,
+      84
+    ],
+    [
+      7816,
+      86
+    ],
+    [
+      8453,
+      89
+    ],
+    [
+      8785,
+      96
+    ],
+    [
+      9095,
+      100
+    ],
+    [
+      9331,
+      103
+    ],
+    [
+      9541,
+      105
+    ],
+    [
+      9750,
+      18
+    ],
+    [
+      9959,
+      20
+    ],
+    [
+      10351,
+      22
+    ],
+    [
+      10721,
+      27
+    ],
+    [
+      10989,
+      31
+    ],
+    [
+      11275,
+      34
+    ],
+    [
+      11485,
+      37
+    ],
+    [
+      11644,
+      39
+    ],
+    [
+      11799,
+      41
+    ],
+    [
+      11950,
+      43
+    ],
+    [
+      12299,
+      44
+    ],
+    [
+      12665,
+      49
+    ],
+    [
+      12957,
+      53
+    ],
+    [
+      13189,
+      56
+    ],
+    [
+      13365,
+      58
+    ],
+    [
+      13520,
+      60
+    ],
+    [
+      13669,
+      62
+    ],
+    [
+      13831,
+      64
+    ],
+    [
+      13982,
+      65
+    ]
+  ],
+  "connected_matrix": [
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": "0008",
+      "mode": "call_timer"
+    },
+    {
+      "full_brightness": true,
+      "timer": "0009",
+      "mode": "call_timer"
+    },
+    {
+      "full_brightness": true,
+      "timer": "0010",
+      "mode": "call_timer"
+    },
+    {
+      "full_brightness": true,
+      "timer": "0011",
+      "mode": "call_timer"
+    },
+    {
+      "full_brightness": true,
+      "timer": "0012",
+      "mode": "call_timer"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    },
+    {
+      "full_brightness": true,
+      "timer": null,
+      "mode": "call_name"
+    }
+  ],
+  "focused": true,
+  "native_call_frames": {
+    "caller": 15,
+    "changed": 24,
+    "connected": 52,
+    "outgoing": 12,
+    "held": 24,
+    "dim": 11,
+    "heart": 15
+  },
+  "matrix_ready": true,
+  "brightness_restored": true,
+  "version": "0.15.0"
+}

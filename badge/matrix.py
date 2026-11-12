@@ -10,7 +10,7 @@ https://github.com/kristianhentschel/tildagon-matrix-hexpansion-app
 """
 
 import asyncio
-from .matrix_text import caller_text, columns
+from .matrix_text import caller_text, columns, timer_bits
 from .controls import initials
 
 # Physical grid derived from the manufacturer's MIT-licensed companion app.
@@ -110,10 +110,12 @@ def _scene(payload, live, page, partner, weather_fresh):
     own = _dict(payload.get("own"))
     calls = _active_calls(own)
     if calls:
-        if partner:
-            return "heart"
         ringing = [call for call in calls if call.get("state") == "ringing"]
         call = ringing[0] if ringing else calls[0]
+        if not ringing and call.get('state') in ('connected','hold','held','busy'):
+            return 'call_details'
+        if partner:
+            return "heart"
         if call.get("state") == "ringing" and call.get("direction") != "outbound":
             return "caller"
         if call.get("state") in ("ringing", "dialing"):
@@ -167,12 +169,14 @@ class MatrixDisplay:
     is an explicit, upstream exact-number match, not a substring of a name.
 
     update() only queues a goal. A single background coroutine must await
-    flush() periodically; it sends at most24 one-byte PWM register writes,
+    flush() periodically; it sends at most24 one-byte register writes,
     yielding after each group of8 successful bytes. The pinned native I2C driver holds the GIL and has
     a length-dependent timeout: limiting each transaction bounds a fault to
     about500ms instead of16seconds for a bulk frame. No automatic retries
     happen within flush(). close() is immediate and performs no I/O; the
     co-processor retains its last frame until powered off or taken over.
+    Ringing names use native ASCII/offset mode at full brightness. Connected
+    calls alternate native names/numbers with a compact full-bright bit timer.
     """
 
     def __init__(self, config=None, backend=None):
@@ -214,9 +218,116 @@ class MatrixDisplay:
         self._scroll_columns = ()
         self._scroll_position = 0
         self._scroll_next = 0
+        self._call_anchor_id = None
+        self._call_anchor_ms = 0
+        self._reset_text()
         self.refresh(0)
 
+    def _reset_text(self):
+        self._text_writes = None
+        self._text_identity = None
+        self._text_started = 0
+        self._text_sent_offset = None
+        self._text_goal_offset = None
+        self._native_active = False
+        self._bit_shadow = None
+
+    def _native_text(self, call, now_ms, text=None, mode='caller'):
+        """Manufacturer text mode: load bounded ASCII once, then offset only.
+
+        Firmware873f484f hardcodes text PWM255, so this path is used only
+        at full call brightness. Dim/off retain direct-PWM control.
+        """
+        text = caller_text(call.get('peer_name')) if text is None else text
+        key = (str(call.get('id') or '')[:80], text, 'native' if mode=='caller' else mode)
+        changed = key != self._text_identity
+        if not changed and self._goal_pending:
+            return True
+        width = len(text) * 6 - 1  # firmware blit32 advance6
+        if changed:
+            self._text_started = now_ms
+        if width <= WIDTH:
+            offset = WIDTH - (WIDTH - width) // 2
+        else:
+            step = max(0, now_ms - self._text_started - 700) // 90
+            offset = WIDTH + step % (width + WIDTH + 1)
+        if not changed and offset == self._text_sent_offset:
+            return True
+        if changed:
+            # Keep first character NUL while loading: no partial name and no
+            # constant-mode flash as ASCII reuses the PWM/data0 registers.
+            encoded = text.encode('ascii')
+            writes = [(0x51, 0), (0x37, 3), (0x38, offset >> 8),
+                      (0x39, offset & 255), (0x3A, 1), (0x50, 0)]
+            writes += [(0x52 + index, value) for index, value in enumerate(encoded[1:] + b'\0')]
+            writes.append((0x51, encoded[0]))
+            self._text_identity = key
+            self._native_active = False
+            # ASCII shares PWM registers: invalidate bitmap shadow completely.
+            self._known[:] = self._zero
+            self._phase, self._cursor = 0, 1
+        else:
+            writes = []
+            if offset >> 8 != self._text_sent_offset >> 8:
+                writes.append((0x38, offset >> 8))
+            writes.append((0x39, offset & 255))
+        self._text_writes = writes
+        self._text_goal_offset = offset
+        self._scroll_key, self._scroll_position = key, offset
+        self.last_mode = mode
+        self._goal_peak = self._peak
+        self._goal_pending = True
+        self._last_frame = ('native', key, offset)
+        self._last_write_ms = now_ms
+        return True
+
+    def _connected_display(self, call, now_ms):
+        identity=str(call.get('id') or '')[:80]
+        if identity!=self._call_anchor_id:
+            self._call_anchor_id,self._call_anchor_ms=identity,now_ms
+        text=caller_text(call.get('peer_name'))
+        if text=='INCOMING CALL':
+            number=str(call.get('peer_number') or call.get('peer_extension') or '')[:40]
+            text=''.join(c for c in number if c in '+0123456789') or 'UNKNOWN'
+        width=len(text)*6-1
+        name_ms=5000 if width<=18 else max(5000,(width+18)*90+700)
+        if (now_ms-self._call_anchor_ms)%(name_ms+5000)<name_ms:
+            return self._native_text(call,now_ms,text=text,mode='call_name')
+        elapsed=call.get('elapsed_seconds')
+        if isinstance(elapsed,bool) or not isinstance(elapsed,(int,float)) or not 0<=elapsed<=35999999:
+            return self._native_text(call,now_ms,text='TIMER UNKNOWN',mode='call_name')
+        digits,packet=timer_bits(elapsed,GRID)
+        key=(identity,digits,'timer')
+        if self._goal_pending and self.last_mode=='call_timer':return True
+        if key==self._text_identity and self._native_active:return True
+        reuse=(self._native_active and self._text_identity is not None
+               and self._text_identity[0]==identity and self._text_identity[2]=='timer')
+        if reuse:
+            writes=[(0x51+i,value) for i,value in enumerate(packet) if value!=self._bit_shadow[i]]
+        else:
+            # Keep native text NUL while blanking the20 shared bit registers.
+            # Then select bit mode before loading digits; never feed bit bytes
+            # to the ASCII font lookup or ASCII bytes to constant brightness.
+            writes=[(0x51,0),(0x37,3),(0x50,0)]
+            writes += [(0x52+i,0) for i in range(19)]
+            writes += [(0x50,2)]
+            writes += [(0x51+i,value) for i,value in enumerate(packet) if value]
+            self._known[:]=self._zero
+            self._phase,self._cursor=0,1
+        self._bit_shadow=packet
+        self._text_identity=key
+        self._text_writes=writes
+        self._text_goal_offset=None
+        self._native_active=False
+        self._goal_pending=True
+        self._goal_peak=255
+        self.last_mode='call_timer'
+        self._scroll_key=key
+        self._last_frame=('timer',key)
+        return True
+
     def _drop(self, status):
+        self._reset_text()
         self.ready = False
         self.status = status
         self._bus = None
@@ -289,6 +400,7 @@ class MatrixDisplay:
         self._cursor = 1
         self._phase = 0
         self._scroll_key = None
+        self._reset_text()
         return True
 
     def update(self, payload, live, now_ms, page=None, partner=False, weather_fresh=False):
@@ -300,15 +412,32 @@ class MatrixDisplay:
         if live and _active_calls(_dict(_dict(payload).get('own'))):
             self._peak = int(self.call_brightness * 255)
         mode = _scene(payload, live, page, partner, weather_fresh)
+        if mode == 'call_details':
+            self._peak=255
+            call=next(call for call in _active_calls(_dict(_dict(payload).get('own')))
+                      if call.get('state') in ('connected','hold','held','busy'))
+            return self._connected_display(call,now_ms)
+        self._call_anchor_id=None
+        if mode == 'caller' and self._peak == 255:
+            call = next(call for call in _active_calls(_dict(_dict(payload).get('own')))
+                        if call.get('state') == 'ringing')
+            return self._native_text(call, now_ms)
+        if self._text_identity is not None:
+            self._reset_text()
+            self._goal_pending = False
+            self._last_frame = None
+            self._known[:] = self._zero
+            self._phase, self._cursor = 0, 1
         scroll_changed = False
         if mode == "caller":
             ringing = [call for call in _active_calls(_dict(_dict(payload).get("own")))
                        if call.get("state") == "ringing"]
             call = ringing[0]
-            static = call.get("kind") == "internal"
+            static = True  # native text cannot dim; use readable static fallback
             text = caller_text(call.get("peer_name"))
             if static:
-                short = initials(call.get("peer_name"), call.get("peer_extension") or call.get("peer_number"))
+                number = (call.get("peer_extension") or call.get("peer_number")) if call.get('kind') == 'internal' else ''
+                short = initials(call.get("peer_name"), number)
                 text = short[:3] if short.isdigit() else caller_text(short)[:3]
             key = (str(call.get("id") or '')[:80], text)
             if static:
@@ -408,7 +537,20 @@ class MatrixDisplay:
                 if not self.refresh(self._clock_ms):
                     break
                 try:
-                    if self._phase == 0:
+                    if self._text_writes is not None:
+                        register, value = self._text_writes[0]
+                        self._write_byte(register, value)
+                        self._text_writes.pop(0)
+                        if not self._text_writes:
+                            if not self._native_active:
+                                self._text_started = self._clock_ms
+                            self._text_writes = None
+                            self._text_sent_offset = self._text_goal_offset
+                            self._native_active = True
+                            self._goal_pending = False
+                            self.frames_written += 1
+                            self.displayed_mode = self.last_mode
+                    elif self._phase == 0:
                         self._write_byte(DIRECT_REGISTER + 1, 0)
                         self._actual[0], self._known[0] = 0, 1
                         self._phase = 1

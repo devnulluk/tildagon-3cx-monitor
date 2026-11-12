@@ -27,6 +27,8 @@ _AFTER = (
     ("call", None, "priority", "day", "High-priority call", None),
     ("call", None, "partner", "day", "Partner celebration", None),
     ("call", None, "connected", "day", "Connected own call", None),
+    ("call", None, "outgoing", "day", "Outgoing call / dialling", None),
+    ("call", None, "outgoing_connected", "day", "Outgoing call / connected timer", None),
     ("call", None, "partner_connected", "day", "Connected partner call", None),
     ("notification", None, "team", "day", "Information notification", "info"),
     ("notification", None, "team", "day", "Success notification", "success"),
@@ -265,8 +267,9 @@ def _weather(stage, now_ms):
 def _call(scene, key):
     internal = scene == "internal"
     partner = scene in ("partner", "partner_connected")
-    connected = scene in ("connected", "partner_connected")
-    return {"id": key, "state": "connected" if connected else "ringing", "direction": "inbound",
+    connected = scene in ("connected", "partner_connected", "outgoing_connected")
+    return {"id": key, "state": "connected" if connected else "dialing" if scene == 'outgoing' else "ringing",
+            "direction": "outbound" if scene.startswith('outgoing') else "inbound",
             "kind": "internal" if internal else "queue" if scene == "queue" else "ddi",
             "priority": scene == "priority" or partner,
             "peer_name": "Taylor Example" if internal else "Partner" if partner else "Example caller",

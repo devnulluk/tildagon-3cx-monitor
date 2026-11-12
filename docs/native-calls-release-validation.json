@@ -1,0 +1,31 @@
+{
+  "version": "0.15.0",
+  "automated_tests": 725,
+  "test_seconds": 72.387,
+  "native_offset_commits": 48,
+  "native_call_frames": {
+    "caller": 15,
+    "changed": 24,
+    "connected": 52,
+    "outgoing": 12,
+    "held": 24,
+    "dim": 11,
+    "heart": 15
+  },
+  "native_timer_values": [
+    "0008",
+    "0009",
+    "0010",
+    "0011",
+    "0012"
+  ],
+  "brightness_restored": true,
+  "live": true,
+  "simulator_source_hashes_match": 30,
+  "gif_frames": 180,
+  "gif_seconds": 18.0,
+  "mp4_seconds": 20.055713,
+  "mp4_captured_frames": 179,
+  "mp4_decodes": true,
+  "limits": "Display-only synthetic hardware fixtures, no real calls; simulator imagery is not camera footage. Timer begins with first observed connection."
+}

@@ -395,6 +395,12 @@ class ThreeCXMonitor(app.App):
                             and call.get('state') == 'ringing'), None)
             if ringing is not None:
                 matrix_partner = live and partner_call(ringing, self.config, self.demo_mode)
+        if live and isinstance(calls, list) and any(isinstance(call, dict) and call.get('state') in ('connected','hold','held','busy') for call in calls):
+            payload=dict(payload)
+            own=dict(own)
+            own['calls']=[dict(call,elapsed_seconds=self.controller.call_elapsed(call,self.clock_ms))
+                          if isinstance(call,dict) else call for call in calls]
+            payload['own']=own
         self.matrix.update(payload, live, self.clock_ms, page=self.idle_pages.page(self.clock_ms),
                            partner=matrix_partner, weather_fresh=fresh)
 
@@ -990,6 +996,7 @@ class ThreeCXMonitor(app.App):
         own_rgb = own_colour(self._status_payload(), live, now, 1.0)
         alert = self.controller.alert(now)
         notification = self._visible_notification(now)
+        own_call = self.controller.own_call(now)
         empty_inbox = (self.notifications_open and not self._phone_attention(now)
                        and not self.settings_open and not self.controls.is_busy
                        and now >= self.controls.message_until and now >= self._brightness_notice_until)
@@ -1011,7 +1018,7 @@ class ThreeCXMonitor(app.App):
             ctx.restore()
             return
         graphical_idle = (live and self.idle_pages.active(now) and not self.settings_open
-                          and not alert and now >= self._brightness_notice_until
+                          and not alert and not own_call and now >= self._brightness_notice_until
                           and now >= self.controls.message_until)
         if not graphical_idle:
             self._idle_draw_page = None
@@ -1032,6 +1039,8 @@ class ThreeCXMonitor(app.App):
                 self._text(ctx, "%d%%" % round(level * 100), 27, 52)
             elif now < self.controls.message_until:
                 self._draw_notice(ctx, self.controls.message)
+            elif own_call:
+                self._draw_call(ctx, own_call)
             elif self.idle_pages.active(now):
                 self._draw_idle(ctx, now)
             else:
@@ -1208,11 +1217,40 @@ class ThreeCXMonitor(app.App):
     def _draw_call(self, ctx, call, incoming=False):
         colour = tuple(value / 255 for value in call_colour(call))
         label = call_label(call)
+        state = call.get('state')
+        elapsed = self.controller.call_elapsed(call, self.clock_ms)
+        timer = ('%d:%02d:%02d' % (elapsed // 3600, elapsed // 60 % 60, elapsed % 60)
+                 if elapsed is not None and elapsed >= 3600 else
+                 '%02d:%02d' % (elapsed // 60, elapsed % 60) if elapsed is not None else '')
         beloved = partner_call(call, self.config, self.demo_mode)
         if beloved:
             self._text(ctx, str(self.config.get("partner_name") or "Partner"), -76, 38, 182)
             self._text(ctx, str(self.config.get("partner_surname") or ""), -40, 24, 194)
-            draw_bunny(ctx, self.clock_ms)
+            if timer:
+                ctx.save()
+                ctx.translate(0, -6)
+                ctx.scale(.84, .84)
+                draw_bunny(ctx, self.clock_ms)
+                ctx.restore()
+            else:
+                draw_bunny(ctx, self.clock_ms)
+            if timer:
+                self._text(ctx, timer, 106, 17, 140, colour)
+            return
+        if not incoming:
+            self._text(ctx, 'ON HOLD' if state in ('hold','held') else 'ON CALL' if state in ('connected','busy') else 'CALLING',
+                       -76, 22, 190, colour)
+            peer = self._named_peer(call)
+            if peer:
+                self._text(ctx, peer, -28, 44, 210, minimum_size=18)
+            else:
+                self._draw_number(ctx, call.get('peer_number') or call.get('peer_extension'), y=-22, size=32)
+            if timer:
+                self._text(ctx, timer, 40, 39, 194, minimum_size=27)
+            else:
+                self._text(ctx, 'DIALLING' if state == 'dialing' else 'RINGING', 38, 24, 190, colour)
+            direction = 'OUTGOING' if call.get('direction') == 'outbound' else 'INCOMING' if call.get('direction') == 'inbound' else 'CALL'
+            self._text(ctx, direction + ' / ' + label.replace('PRIORITY / ', ''), 84, 14, 194, colour, minimum_size=10)
             return
         self._text(ctx, str(self.config.get("partner_name") or "Partner").upper() if beloved else "PRIORITY" if call.get("priority") else label,
                    -63, 24, 155 if beloved else 190, colour)

@@ -1,4 +1,36 @@
-# Validation: badge 0.14.2 / bridge 0.6.0
+# Validation: badge 0.15.0 / bridge 0.6.0
+
+## Version0.15: native matrix text and connected calls
+
+All725 automated checks passed in72.387seconds. Tests cover the manufacturer's
+ASCII/NUL loading, native big-endian offset updates, bounded text, short-name
+centring, preemption and PWM/bit/text handoffs. They also cover unknown-number
+fallback, full-brightness connected name/timer alternation, compact colon digits,
+delta timer writes, outgoing-call takeover, connected/held durations, stale-data
+cleanup, new-call reset, hours and priority/urgent precedence. All573 theme-demo
+stages render, including both outgoing-call examples per theme.
+
+The physical Spaceagon accepted the ASCII name ALEX EXAMPLE, text pattern3,
+font1 and direct-mode0, confirmed by register readback. It then committed
+48 offset updates in the14-second initial phase. Connected-call sampling
+confirmed both call_name and call_timer at full brightness and direct bit-mode2
+for the timer, with multiple advancing values. Outgoing, connected and held LCD
+frames rendered. The final check used synthetic priority-call fixtures to test
+the existing urgent-notification precedence without dismissing the real urgent
+alert. No actual calls or phone actions were made. An earlier nonpriority probe
+was partly covered by that urgent alert, as intended.
+
+Changed files were installed with matching readback. A clean final launch
+confirmed live/focused0.15.0, fresh weather, ready matrix/EEH/keyboard and saved
+brightness levels. The timer is observed connected duration: starting/restarting
+mid-call cannot recover earlier elapsed time. Readback is software/protocol
+evidence, not camera footage or an optical-brightness measurement.
+
+The20-second own-calls film contains actual official-simulator frames with
+synthetic names and a labelled register-model matrix diagram. All recorded badge
+source hashes match the release; complete GIF and MP4 decoding passed. The guide
+links both the animation and screenshots. See native-calls-release-validation.json
+and hardware-native-text-calls-0.15.0.json for the detailed evidence.
 
 ## Version 0.14.2: urgent red indicators
 

@@ -11,22 +11,25 @@ class ScrollTests(unittest.TestCase):
     def call(self, name='Alex Example', identity='a'):
         return payload(calls=[{'id':identity,'peer_name':name,'state':'ringing','direction':'inbound'}])
 
-    def test_name_scrolls_after_initial_hold_within_brightness(self):
-        display=self.display(brightness=.03,call_brightness=.03)
+    def test_native_name_loads_ascii_then_only_updates_scroll_offset(self):
+        display=self.display()
         value=self.call()
         display.update(value,True,0)
         self.drain(display)
-        first=self.image()
-        display.update(value,True,999)
-        self.assertEqual(display._scroll_position,0)
-        display.update(value,True,1000)
+        registers=self.backend.bus.registers
+        self.assertEqual(registers[0x50],0)
+        self.assertEqual(registers[0x37:0x3B],bytes([3,0,18,1]))
+        self.assertEqual(registers[0x51:0x5E],b'ALEX EXAMPLE\0')
+        first=len(self.backend.bus.frames)
+        display.update(value,True,700)
+        self.assertEqual(display._scroll_position,18)
+        display.update(value,True,790)
         self.drain(display)
-        self.assertEqual(display._scroll_position,1)
-        self.assertNotEqual(first,self.image())
-        self.assertLessEqual(max(self.image()),7)
+        self.assertEqual(display._scroll_position,19)
+        self.assertEqual(self.backend.bus.frames[first:],[(0x20,0x39,b'\x13')])
 
     def test_internal_initials_are_centred_static_and_caller_changes_preempt(self):
-        display=self.display()
+        display=self.display(call_brightness=.25)
         value=self.call('Alex Example')
         value['own']['calls'][0]['kind']='internal'
         display.update(value,True,0)
@@ -47,11 +50,11 @@ class ScrollTests(unittest.TestCase):
         display.update(value,True,60001)
         self.drain(display)
         self.assertNotEqual(self.image(),first)
-        self.assertEqual(max(self.image()),255)
+        self.assertEqual(max(self.image()),63)
 
     def test_internal_three_letter_name_or_extension_fits_without_scrolling(self):
         for name,number,expected in (('Alex Example Smith','245','AES'),('', '245','245'),('TB','223','TB')):
-            display=self.display()
+            display=self.display(call_brightness=.25)
             value=self.call(name)
             value['own']['calls'][0].update(kind='internal',peer_extension=number)
             display.update(value,True,0)
@@ -59,22 +62,64 @@ class ScrollTests(unittest.TestCase):
             self.assertEqual(display._scroll_key[1],expected)
             self.assertEqual(len(display._scroll_columns),18)
 
-    def test_slow_transfer_retains_every_column_and_new_caller_preempts(self):
+    def test_slow_text_load_is_blank_until_complete_and_new_caller_preempts(self):
         display=self.display()
-        display.update(self.call(),True,0)
+        value=self.call('Alex Example '*4)
+        display.update(value,True,0)
         import asyncio
         asyncio.run(display.flush())
         for now in (1000,2000,3000):
-            display.update(self.call(),True,now)
-            self.assertEqual(display._scroll_position,0)
+            display.update(value,True,now)
+            self.assertEqual(display._scroll_position,18)
+            self.assertEqual(self.backend.bus.registers[0x51],0)
         display.update(self.call('Jo Example','b'),True,3001)
-        self.assertEqual(display._scroll_position,0)
-        self.assertEqual(display._scroll_key,('b','JO EXAMPLE'))
+        self.assertEqual(display._scroll_position,18)
+        self.assertEqual(display._scroll_key,('b','JO EXAMPLE','native'))
         self.drain(display)
-        display.update(self.call('Jo Example','b'),True,4000)
-        self.assertEqual(display._scroll_position,0)
-        display.update(self.call('Jo Example','b'),True,4001)
-        self.assertEqual(display._scroll_position,1)
+        self.assertEqual(self.backend.bus.registers[0x51:0x5C],b'JO EXAMPLE\0')
+        display.update(self.call('Jo Example','b'),True,3701)
+        self.assertEqual(display._scroll_position,18)
+        display.update(self.call('Jo Example','b'),True,3791)
+        self.assertEqual(display._scroll_position,19)
+
+    def test_native_text_handoff_to_dim_heart_and_offline_restores_pwm(self):
+        display=self.display()
+        value=self.call()
+        for scene in ('dim','heart','offline'):
+            display.call_brightness=1.0
+            display.update(value,True,0)
+            self.drain(display)
+            self.assertEqual(self.backend.bus.registers[0x50],0)
+            display.call_brightness=.25 if scene=='dim' else 1.0
+            display.update(value,scene!='offline',1000,partner=scene=='heart')
+            self.drain(display)
+            self.assertEqual(self.backend.bus.registers[0x50],3)
+            self.assertIsNone(display._text_identity)
+            if scene=='dim':self.assertLessEqual(max(self.image()),63)
+
+    def test_native_offset_is_big_endian_and_ascii_is_bounded(self):
+        display=self.display()
+        value=self.call('Long '*10000)
+        display.update(value,True,0)
+        self.drain(display)
+        self.assertLessEqual(len(display._text_identity[1]),48)
+        count=len(self.backend.bus.frames)
+        display.update(value,True,700+240*90)
+        self.drain(display)
+        self.assertEqual(self.backend.bus.registers[0x38:0x3A],b'\x01\x02')
+        self.assertEqual([f[1] for f in self.backend.bus.frames[count:]],[0x38,0x39])
+
+    def test_native_name_that_fits_stays_centred_without_offset_traffic(self):
+        display=self.display()
+        value=self.call('TB')
+        display.update(value,True,0)
+        self.drain(display)
+        self.assertEqual(self.backend.bus.registers[0x39],15)
+        count=len(self.backend.bus.frames)
+        for now in (1000,2000,10000):
+            display.update(value,True,now)
+            self.drain(display)
+        self.assertEqual(len(self.backend.bus.frames),count)
 
     def test_partner_heart_and_stale_answered_cancel_text(self):
         display=self.display()
@@ -86,8 +131,7 @@ class ScrollTests(unittest.TestCase):
         value['own']['calls'][0]['state']='connected'
         display.update(value,True,2000)
         self.drain(display)
-        self.assertEqual(display.displayed_mode,'busy')
-        self.assertIsNone(display._scroll_key)
+        self.assertEqual(display.displayed_mode,'call_name')
 
     def test_text_is_bounded_normalized_and_unknown_never_scrolls_numbers(self):
         self.assertEqual(matrix.caller_text('José O’Neill'),'JOSE O\'NEILL')
@@ -119,7 +163,9 @@ class ScrollTests(unittest.TestCase):
         display=self.display(brightness=.03)
         display.update(self.call(),True,0)
         self.drain(display)
-        self.assertEqual(max(self.image()),255)
+        self.assertEqual(display.call_brightness,1.0)
+        self.assertEqual(self.backend.bus.registers[0x50],0)
+        self.assertEqual(self.backend.bus.registers[0x37],3)
         display.update(payload(),True,2000)
         self.drain(display)
         self.assertLessEqual(max(self.image()),7)

@@ -123,7 +123,10 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
             self.assertIn(monitor.config["partner_name"] if stage["partner"] and call["state"] != "connected" else call["peer_name"], words)
             self.assertNotIn(call["peer_number"], words)
             if call["state"] == "connected":
-                self.assertIn("ME", words)
+                self.assertIn("00:00", words)
+                if not stage['partner']:self.assertIn('ON CALL',words)
+            elif call['state'] == 'dialing':
+                self.assertIn('CALLING',words)
             else:
                 label = "Partner" if stage["partner"] else "PRIORITY" if call["priority"] else call["kind"].upper()
                 self.assertIn(label, words)

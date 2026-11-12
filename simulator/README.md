@@ -104,3 +104,14 @@ the final eight demonstrate the configured partner heart. The diagram is not
 physical LED footage or a native brightness/FPS measurement. The Python launcher
 also accepts `--settings-row 4 --matrix-demo --screenshot` for a direct preview of
 the Matrix Call brightness row.
+
+## Outgoing-call and native matrix demonstration
+
+```powershell
+./Launch-Simulator.ps1 -Showcase own-calls -Record ./docs/gallery/own-calls.mp4 -Seconds 20 -RecordView window -GalleryStills
+```
+
+The diagram models the production adapter's ASCII/offset, direct-PWM and20-byte
+bit registers. Native text uses the manufacturer's ISC-licensed blit32 glyph
+table; it is not a physical LED recording. The fixture sequences outgoing,
+connected and held calls and keeps the LCD/matrix timers synchronized.

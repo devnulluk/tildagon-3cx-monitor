@@ -1,0 +1,108 @@
+{
+  "source": "Official Tildagon SDL/ctx simulator",
+  "synthetic": true,
+  "physical_camera_footage": false,
+  "timebase": "actual monotonic elapsed time",
+  "source_view": "window",
+  "showcase": "own-calls",
+  "duration_seconds": 20.055713,
+  "requested_sample_fps": 15,
+  "captured_frames": 179,
+  "renderer_callbacks": 179,
+  "observed_capture_fps": 8.875,
+  "motion_interpolation": false,
+  "output": "own-calls.mp4",
+  "native_source_resolution": [
+    1040,
+    733
+  ],
+  "synthetic_inputs_sequenced": true,
+  "idle_waits_skipped": true,
+  "events": [
+    {
+      "scene": "team",
+      "own_phase": "outgoing",
+      "label": "Outgoing call / dialling",
+      "at": 0.063884
+    },
+    {
+      "scene": "team",
+      "own_phase": "connected",
+      "label": "Connected / name and timer",
+      "at": 5.052604
+    },
+    {
+      "scene": "team",
+      "own_phase": "held",
+      "label": "Held / elapsed time continues",
+      "at": 10.051462
+    },
+    {
+      "scene": "team",
+      "own_phase": "connected",
+      "label": "Connected / compact matrix timer",
+      "at": 15.076671
+    }
+  ],
+  "badge_source_sha256": {
+    "app.py": "f9af7bb71c89b357b46daa2c903b3e52b73d240dfcfec197edbe699c7b08c623",
+    "astronomy.py": "729b558082a2059c53eb5981460c76825f840feb6881d5bd32989fdfc8e48ad3",
+    "astro_faces.py": "3191ebe98471b1bfb4ed3aaa30549ce72e0bca8babe9a10d0cc80645158a06d3",
+    "clocks.py": "8723efd681c9afa1cece7182957d53b553a2feddec790ec3bfe83fa4e233e7a3",
+    "clock_assets.py": "d48b3387214b5c8f7be0d8492fcd5296d997f6b56dc319c9d70aace095f4b99c",
+    "clock_cyber.py": "930e32c9632af026599b3c6f897a05b6081d323f2460c8b8a7412e0d2486bc37",
+    "clock_haute.py": "193da041be5cc24393d98472de337ae316210f1ce77ece3f73099541ef922f6f",
+    "clock_rail.py": "f4459d7fead8c48e11b2e6783cbef0d54c189f9d2e7e61f70db2406d90e3a3eb",
+    "clock_sync.py": "175a45c149aed5db56f7c3e3f0ff10d2ab7c7c73677539a9d69ec8921e955291",
+    "controller.py": "7de7bbf2e6df731a15868b73d98a866e30de14f633c18a6069a279f4b32ecbfa",
+    "controls.py": "de303d435f0886e407eceaf459a5452964c7af58bcd8c76d3fd1770207f2a24e",
+    "demo.py": "1eb427b0bfd3a52d6bb46e35207b9fef27ff36fa9033f4a2a174f5638bc3204d",
+    "expansions.py": "60ee934eb5388f6b020215ea99ffc069f747781008462eae400f7eea40fd79c0",
+    "http_client.py": "69f4860a32d16622e13abf63fa67068bbbcc971e10bf18d7fa29ed37fc58e0ae",
+    "idle.py": "cc66ece1ad6dc55cd53ec2ee6322bd9bf2ce9788001cb9602a4d3d5a460e82df",
+    "idle_art.py": "0d24a7eb785279e29afcdd6e8f19652d1ff0bdccb7d8eb853e84130a37bb5c7b",
+    "idle_faces.py": "27fc8e0a957d80397e17bad32a37bb58cd14a13fc96981a75170965242cb72b2",
+    "love.py": "df16fa5fa041e2ec030bfb044dd5ec77b4827fd66a71e9940805cedc35fe1a16",
+    "matrix.py": "cab521656a5dc5a843bb222dd3a2624c8889b0c3d82f0d33f9a2d2e4bcf5c423",
+    "matrix_text.py": "ec94a1a7e7d658ddbc4375d58107412460403c354696daaa6cce820f9ff2ffb8",
+    "notifications.py": "ce1aa8004aab0a2cb04aef9ea5c41e03dd5c83bed6c9cf3e9a4496cdf34816d2",
+    "showcase.py": "13119b6b1c38d9a791abb15c2cddf328eed98f1fa52b72dda8bc5d66b6edf5c7",
+    "space_inputs.py": "874bb3192eb5fcc9d5fd269caf23eae381803917b4a95815ba8921d926033c7b",
+    "themes.py": "a5a32cb19742e5a798025add75d2358e2e3e3c8e73aee3b266c84b1b2a728455",
+    "theme_art.py": "f7a323c60f46d16a963b8586db1ad0a1473dc7088cd0527e7b85e4ba573699fd",
+    "theme_assets.py": "bb879e5f80b20e0f3fa32a78ac979a0bb62e6ee1e5701f4e30cdf8a6fa80e51a",
+    "visuals.py": "e0939ce71b450e05ecf06c8a1e572836fca2826da9b232b3fecde38adaa89798",
+    "__init__.py": "1f29131ef1cffeecf92b275f87e0e957c52953fd87ed496fe0fb8d7db2dda00f",
+    "assets/photo/alpine-dawn.png": "6f7d1469b91642eada3504e048076c5fb7585369924447600e0a3bb01ef7df19",
+    "assets/clocks/atelier-dial.png": "87a8c335dc60b0fd7eea5ee375168fac5535707e9760711ff1f90ddae22b54ae"
+  },
+  "stills": [
+    {
+      "file": "own-call-outgoing.png",
+      "native_file": "own-call-outgoing-lcd.png",
+      "at": 2.580247,
+      "label": "Outgoing call / dialling"
+    },
+    {
+      "file": "own-call-connected.png",
+      "native_file": "own-call-connected-lcd.png",
+      "at": 7.520425,
+      "label": "Connected / name and timer"
+    },
+    {
+      "file": "own-call-held.png",
+      "native_file": "own-call-held-lcd.png",
+      "at": 12.606137,
+      "label": "Held / elapsed time continues"
+    }
+  ],
+  "mp4": "own-calls.mp4",
+  "gif": "own-calls.gif",
+  "poster": "own-calls-poster.png",
+  "contact_sheet": "own-calls-contact-sheet.png",
+  "codec": "H.264 baseline / yuv420p / faststart",
+  "output_fps": 15,
+  "gif_preview_seconds": 18,
+  "ffmpeg_version": "9.0.2-essentials_build-www.gyan.dev",
+  "verified_decode": true
+}

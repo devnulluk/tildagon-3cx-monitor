@@ -36,21 +36,21 @@ class ShowcaseSequenceTests(unittest.TestCase):
         show = engine()
         self.assertEqual(len(show.themes), 13)
         self.assertEqual(len(show.clocks), 11)
-        self.assertEqual(show.count, 547)
-        self.assertEqual(show.count * show.step_ms, 2735000)
+        self.assertEqual(show.count, 573)
+        self.assertEqual(show.count * show.step_ms, 2865000)
         expected_features = {"intro", "weather", "rain", "clock", "moon", "meteors", "team",
                              "team_detail", "call", "notification", "presence", "settings"}
         seen_order, last = [], None
         for key, name, available in show.themes:
             stages = [show.stage(index) for index in range(show.count) if show.stage(index)["theme"] == key]
-            self.assertEqual(len(stages), 43 if key == "christmas" else 42)
+            self.assertEqual(len(stages), 45 if key == "christmas" else 44)
             self.assertEqual(stages[0]["feature"], "intro")
             self.assertEqual({stage["clock"] for stage in stages if stage["feature"] == "clock"}, set(clocks.CLOCKS))
             self.assertEqual({stage["weather_kind"] for stage in stages if stage["feature"] == "weather"},
                              {"day", "night", "rain", "storm", "snow", "fog"})
             self.assertTrue(expected_features <= {stage["feature"] for stage in stages})
             self.assertEqual({stage["scene"] for stage in stages if stage["feature"] == "call"},
-                             {"ddi", "internal", "queue", "priority", "partner", "connected", "partner_connected"})
+                             {"ddi", "internal", "queue", "priority", "partner", "connected", "partner_connected", "outgoing", "outgoing_connected"})
             self.assertEqual({stage["presence"] for stage in stages if stage["feature"] == "presence"},
                              {"available", "away", "dnd"})
             self.assertEqual({stage["notification"] for stage in stages if stage["feature"] == "notification"},
@@ -124,7 +124,7 @@ class ShowcaseSequenceTests(unittest.TestCase):
         many = [{"id": "theme_%d" % index, "name": "Theme"} for index in range(100)]
         show = showcase.Showcase(many, ["clock_%d" % i for i in range(100)])
         self.assertEqual((len(show.themes), len(show.clocks)), (29, 16))
-        self.assertLess(show.count, 1400)
+        self.assertLess(show.count, 1500)
         for value in (0, 249, 60001, True, None, math.inf, math.nan):
             with self.assertRaises(ValueError): engine(step_ms=value)
         before = show.current(0)

@@ -52,3 +52,27 @@ def columns(text):
             result.append(sum(1 << row for row in range(7) if rows[row] & (1 << (4-column))))
         result.append(0)
     return tuple(result) + (0,) * 18
+
+
+_DIGITS = ('111101101101111','010110010010111','111001111100111',
+           '111001111001111','101101111001001','111100111001111',
+           '111100111101111','111001001001001','111101111101111','111101111001111')
+
+def timer_bits(seconds, grid):
+    """Four3x5 digits plus narrow colon fit17 columns; bit mode is PWM255."""
+    seconds=max(0,int(seconds))
+    minutes=seconds//60
+    # MM:SS up to99:59, then HH:MM; LCD retains full H:MM:SS.
+    digits=('%02d%02d' % (minutes,seconds%60) if minutes<100 else
+            '%02d%02d' % (min(99,seconds//3600),minutes%60))
+    packet=bytearray(20)
+    for digit,x in zip(digits,(0,4,10,14)):
+        glyph=_DIGITS[int(digit)]
+        for y in range(5):
+            for col in range(3):
+                index=grid[(y+2)*18+x+col]
+                if index>=0 and glyph[y*3+col]=='1':packet[index//8]|=128>>(index%8)
+    for y in (3,5):
+        index=grid[y*18+8]
+        packet[index//8]|=128>>(index%8)
+    return digits,bytes(packet)

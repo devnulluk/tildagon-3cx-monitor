@@ -31,7 +31,7 @@ parser.add_argument("--record", "--video", type=Path, help="Record actual DEMO r
 parser.add_argument("--seconds", type=float, default=24, help="Bounded recording duration (1..60 real seconds)")
 parser.add_argument("--video-fps", type=int, default=15, help="Maximum capture sampling rate (5..30), not device FPS")
 parser.add_argument("--record-view", choices=["lcd", "window"], default="lcd")
-parser.add_argument("--showcase", choices=["idle", "tour", "calls", "matrix", "themes", "clocks", "atelier", "rail", "sky", "notifications", "feature-demo"], default="tour")
+parser.add_argument("--showcase", choices=["idle", "tour", "calls", "own-calls", "matrix", "themes", "clocks", "atelier", "rail", "sky", "notifications", "feature-demo"], default="tour")
 parser.add_argument("--feature-demo", action="store_true",
                     help="Start the app's production showcase; recordings explicitly abbreviate it with manual feature jumps")
 parser.add_argument("--feature-stage", type=int,
@@ -180,6 +180,12 @@ if options.record:
     elif options.showcase == 'matrix':
         scenes = [dict(scene='ddi', label='Caller name / scrolling matrix'),
                   dict(scene='priority', label='Partner call / heart retained')]
+    elif options.showcase == 'own-calls':
+        options.matrix_demo=True
+        scenes=[dict(scene='team',own_phase='outgoing',label='Outgoing call / dialling'),
+                dict(scene='team',own_phase='connected',label='Connected / name and timer'),
+                dict(scene='team',own_phase='held',label='Held / elapsed time continues'),
+                dict(scene='team',own_phase='connected',label='Connected / compact matrix timer')]
     elif options.showcase == "calls":
         scenes = [dict(page="clock", kind="night", label="Clock / quiet period"),
                   dict(scene="ddi", label="Incoming / direct line"),
@@ -197,6 +203,7 @@ if options.record:
     options.theme = film_plan[0].get("theme", options.theme)
     options.clock_style = film_plan[0].get("clock", options.clock_style)
     options.notification = film_plan[0].get("notification", options.notification)
+    options.scene = film_plan[0].get('own_phase', options.scene)
 if options.settings:
     options.keyboard = True
 if options.idle_page and not options.feature_demo:
@@ -299,7 +306,7 @@ pygame.display.set_caption("3CX Monitor - Official Tildagon Simulator (DEMO)")
 
 # These fixtures change supplied data only. Production drawing and call
 # processing remain the exact badge source used by the official renderer.
-fixture_scenes = ("idle", "long-number", "named-e164", "numeric-caller", "team-long-number", "team-internal", "team-external")
+fixture_scenes = ("idle", "long-number", "named-e164", "numeric-caller", "team-long-number", "team-internal", "team-external", "outgoing", "connected", "held")
 
 def demo_weather():
     """Synthetic values for labelled DEMO captures; no weather API request."""
@@ -370,6 +377,12 @@ if options.scene in fixture_scenes and not options.feature_demo:
                 # Reserved example number for the incoming override fixture;
                 # canonical production DEMO remains unchanged.
                 value["alert"]["peer_number"] = "+441632960123"
+        elif options.scene in ('outgoing','connected','held'):
+            state='dialing' if options.scene=='outgoing' else options.scene
+            call={'id':'demo-own-call-timer','state':state,'direction':'outbound',
+                  'peer_name':'Alex','peer_number':'+441632960123','kind':'external','priority':False}
+            value['own'].update(state='busy',calls=[call])
+            value['alert']=None
         elif options.scene == "idle":
             for member in value["team"]:
                 member["state"] = "idle"
@@ -428,10 +441,7 @@ original_pixels = expansions.FirmwareBackend.pixels
 original_headers = expansions.FirmwareBackend.headers
 original_matrix_i2c = expansions.FirmwareBackend.matrix_i2c
 matrix_header = types.SimpleNamespace(vid=0xCAFE, pid=0x54E1, friendly_name="Liteloop")
-class MatrixSink:
-    """In-memory simulation only; never opens a physical adapter or serial port."""
-    def writeto_mem(self, address, register, payload):
-        return len(payload)
+from liteloop import MatrixSink
 matrix_sink = MatrixSink()
 def demo_snapshot(backend):
     drivers, attached, running = original_snapshot(backend)
@@ -575,7 +585,7 @@ def apply_film_event(event):
         options.notification = event["notification"]
         app.config["demo_notifications"] = [demo_notification(options.notification, event.get("notification_id"),
                                                                event.get("progress"))]
-    options.scene = "team-internal" if event.get("view") in ("team", "settings") else "idle"
+    options.scene = event.get('own_phase') or ("team-internal" if event.get("view") in ("team", "settings") else "idle")
     from threecx_monitor.demo import SCENARIOS
     app.demo_scene = SCENARIOS.index(event.get("scene", "team"))
     app._accept_demo()
@@ -732,10 +742,11 @@ def report_render():
         matrix = preview_app.matrix
         side_text("LITELOOP / TEXT + GLYPHS", 224, 21)
         side_text("Simulated156-LED monochrome output", 252, 16, (140,160,180))
+        matrix_image = matrix_sink.image(GRID)
         for cell, address in enumerate(GRID):
             if address < 0:
                 continue
-            level = matrix._actual[address] if matrix._known[address] else 0
+            level = matrix_image[address]
             shade = 27 if not level else min(255, 55 + level * 200 // 90)
             pygame.draw.circle(_sim.screen, (shade, shade, shade),
                                (777 + cell % 18 * 13, 282 + cell // 18 * 14), 4)
@@ -895,6 +906,8 @@ def report_render():
                         stem = "notification-" + event["notification"]
                 elif options.showcase == 'matrix':
                     stem = 'matrix-partner-heart' if event['scene'] == 'priority' else 'matrix-scrolling'
+                elif options.showcase == 'own-calls':
+                    stem = 'own-call-' + event['own_phase']
                 elif options.showcase == "calls" and options.partner_demo and event.get("scene") == "priority":
                     stem = "partner-call"
                 elif options.showcase == "idle" and options.clock_style == "corpus":

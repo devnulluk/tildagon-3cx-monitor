@@ -13,7 +13,7 @@ param(
     [ValidateRange(1, 60)][double]$Seconds = 24,
     [ValidateRange(5, 30)][int]$VideoFps = 15,
     [ValidateSet('lcd', 'window')][string]$RecordView = 'lcd',
-    [ValidateSet('idle', 'tour', 'calls', 'matrix', 'themes', 'clocks', 'atelier', 'rail', 'sky', 'notifications', 'feature-demo')][string]$Showcase = 'tour',
+    [ValidateSet('idle', 'tour', 'calls', 'own-calls', 'matrix', 'themes', 'clocks', 'atelier', 'rail', 'sky', 'notifications', 'feature-demo')][string]$Showcase = 'tour',
     [switch]$FeatureDemo,
     [string]$OutputPath,
     [ValidateRange(0, 600)][int]$CaptureFrames = 0,

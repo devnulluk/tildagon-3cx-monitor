@@ -41,6 +41,7 @@ class Controller:
         self.selected = 0
         self.own_view = False
         self.detail_view = False
+        self._connected_since = {}
         self.eeh_brightness = brightness if eeh_brightness is None else eeh_brightness
         self.ring_brightness = ring_brightness
 
@@ -99,6 +100,31 @@ class Controller:
         self.source_age_ms = age * 1000
         self.last_error = None
         self.selected = min(self.selected, max(0, len(payload["team"]) - 1))
+        calls = payload['own'].get('calls')
+        calls = [call for call in calls[:16] if isinstance(call, dict)] if isinstance(calls, list) else []
+        active = {str(call.get('id'))[:80] for call in calls
+                  if call.get('id') and call.get('state') in ('connected','hold','held','busy')}
+        self._connected_since = {key: value for key, value in self._connected_since.items() if key in active}
+        if payload.get('connected') and self.source_age_ms < STALE_MS:
+            for key in active:
+                self._connected_since.setdefault(key, now_ms)
+
+    def own_call(self, now_ms):
+        if not self.live(now_ms):
+            return None
+        calls = self.payload.get('own', {}).get('calls')
+        if not isinstance(calls, list):
+            return None
+        rank = {'connected':0,'hold':1,'held':1,'busy':1,'dialing':2,'ringing':3}
+        active = [call for call in calls[:16] if isinstance(call, dict) and call.get('state') in rank]
+        return min(active, key=lambda call: rank[call['state']]) if active else None
+
+    def call_elapsed(self, call, now_ms):
+        """Connected time observed by this badge; wall-clock/NTP independent."""
+        if not self.live(now_ms) or call.get('state') not in ('connected','hold','held','busy'):
+            return None
+        since = self._connected_since.get(str(call.get('id'))[:80])
+        return max(0, int(now_ms - since) // 1000) if since is not None else None
 
     def failed(self, message="BRIDGE UNREACHABLE"):
         # An unsuccessful fetch must never refresh the last successful timestamp.

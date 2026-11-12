@@ -44,9 +44,9 @@ all six rows without changing or saving their values. The photographic theme and
 use the same verified local assets and fallback behavior as normal operation.
 Optional EEH and Liteloop displays use their existing drivers when present.
 
-The thirteen built-in themes have **547 stages**: 42 per theme, plus Christmas
-Advent. At five seconds per stage, an uninterrupted full loop takes **45 minutes
-35 seconds**. It loops continuously; pause, skip a scene or jump to another theme
+The thirteen built-in themes have **573 stages**: 44 per theme, plus Christmas
+Advent. At five seconds per stage, an uninterrupted full loop takes **47 minutes
+45 seconds**. It loops continuously; pause, skip a scene or jump to another theme
 at any point.
 
 The preview above was recorded with version 0.11's nine-clock, 521-stage tour.
