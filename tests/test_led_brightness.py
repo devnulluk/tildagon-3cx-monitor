@@ -69,7 +69,7 @@ class BrightnessTests(unittest.TestCase):
         self.assertEqual(controller.Controller(eeh_brightness=float("nan")).eeh_brightness, 0.03)
 
     def test_eeh_level_does_not_affect_ring_when_ring_is_set_to_full(self):
-        expected = [(0, 145, 25)] * 3 + [(230, 10, 10)] * 3 + [(255, 155, 0)] * 3 + [(12, 12, 14)] * 3
+        expected = [(230, 10, 10)] * 3 + [(12, 12, 14)] * 3 + [(255, 155, 0)] * 3 + [(0, 145, 25)] * 3
         for level in (0, 0.03, 0.5, 1):
             with self.subTest(level=level):
                 value = controller.Controller(eeh_brightness=level, ring_brightness=1)

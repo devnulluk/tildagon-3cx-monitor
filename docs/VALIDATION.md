@@ -402,3 +402,8 @@ real partner-call timing remain deployment-specific checks.
 739 automated tests pass. Official SDL/ctx simulator previews use synthetic data; all 30 recorded badge source hashes match this build. The 180-frame GIF and complete MP4 decode successfully. Five equal tiles, exact F/B/E/C/D mapping, A menu, Space toggle, modal input guards and notification/call precedence are covered. No real calls or DND changes were made.
 
 **Physical installation and real matrix verification are pending:** the user unplugged the badge while away. The last verified installed version remains 0.15.1. These previews are simulator output, not camera footage.
+
+
+## Version 0.16.1 - spatial BLF LEDs
+
+Corrects four-member sectors to match the screen: upper-left TB 10-12, upper-right PD 1-3, lower-left JH 7-9, lower-right SM 4-6. Mapping agrees with the firmware LED coordinates and the user photo. All 93 tests in the four affected controller, brightness and app suites pass. Physical installation remains pending because the badge is unplugged.

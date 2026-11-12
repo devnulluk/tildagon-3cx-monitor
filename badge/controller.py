@@ -163,10 +163,14 @@ class Controller:
         return self.team()[start:start + PAGE_SIZE]
 
     def led_range(self, page_index):
-        """Inclusive one-based sector for a member of the current page."""
+        """Inclusive one-based sector, matching the four-tile screen layout."""
         count = len(self.page_team())
         if not count or page_index < 0 or page_index >= count:
             return (0, 0)
+        # Hardware starts at the top-right and runs clockwise. Screen order is
+        # top-left, top-right, bottom-left, bottom-right.
+        if count == 4:
+            return ((10, 12), (1, 3), (7, 9), (4, 6))[page_index]
         return (page_index * PAGE_SIZE // count + 1, (page_index + 1) * PAGE_SIZE // count)
 
     def select(self, direction):

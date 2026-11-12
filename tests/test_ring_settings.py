@@ -22,8 +22,8 @@ class RingSettingsTests(unittest.TestCase):
         self.assertEqual(value.ring_brightness, 0.15)
         self.assertEqual(value.eeh_brightness, 0.03)
         value.accept(snapshot(), 0)
-        self.assertEqual(value.led_frame(0), [(0, 21, 3)] * 3 + [(34, 1, 1)] * 3
-                         + [(38, 23, 0)] * 3 + [(1, 1, 2)] * 3)
+        self.assertEqual(value.led_frame(0), [(34, 1, 1)] * 3 + [(1, 1, 2)] * 3
+                         + [(38, 23, 0)] * 3 + [(0, 21, 3)] * 3)
 
     def test_old_brightness_alias_still_only_changes_eeh(self):
         value = controller.Controller(brightness=0.25, ring_brightness=0.4)
@@ -87,11 +87,11 @@ class RingSettingsTests(unittest.TestCase):
         normal = value.led_frame(0)
         for status in ("dialing", "connected", "hold", "held", "busy"):
             payload["own"]["calls"] = [{"state": status, "priority": True}]
-            self.assertEqual(value.led_frame(0)[0], (0, 145, 25))
+            self.assertEqual(value.led_frame(0)[9], (0, 145, 25))
             self.assertEqual(value.ring_brightness, 0.15)
         value.ring_brightness = 0.25
         payload["own"]["calls"] = []
-        self.assertEqual(value.led_frame(0)[0], (0, 36, 6))
+        self.assertEqual(value.led_frame(0)[9], (0, 36, 6))
         self.assertNotEqual(value.led_frame(0), normal)
         self.assertEqual(value.ring_brightness, 0.25)
 
@@ -111,7 +111,7 @@ class RingSettingsTests(unittest.TestCase):
         value.accept(payload, 0)
         for own_calls in ([], [{"state": "ended", "priority": True}], [{"state": "connected", "priority": False}]):
             payload["own"]["calls"] = own_calls
-            self.assertEqual(value.led_frame(0)[0], (0, 21, 3))
+            self.assertEqual(value.led_frame(0)[9], (0, 21, 3))
 
     def test_ring_preference_can_be_reloaded_without_mutating_snapshot(self):
         payload = snapshot()

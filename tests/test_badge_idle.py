@@ -314,7 +314,7 @@ class BadgeIdleTests(unittest.TestCase):
                                               "peer_extension": "245", "peer_first_name": "Alice"}])
         monitor.update(0)
         self.enter_idle(module, monitor)
-        self.assertEqual(hardware.leds[1:4], [(34, 1, 1)] * 3)
+        self.assertEqual(hardware.leds[10:13], [(34, 1, 1)] * 3)
         teammate = monitor.controller.payload["team"][0]
         teammate["calls"][0].update(peer_extension="271", peer_first_name="Bob")
         self.advance(module, monitor, 100)

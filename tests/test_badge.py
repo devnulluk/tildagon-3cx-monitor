@@ -64,9 +64,9 @@ class BadgeTests(unittest.TestCase):
 
     def test_team_idle_busy_and_ringing_leds(self):
         frame = self.controller.led_frame(1200)
-        self.assertEqual(frame[0], (0, 145, 25))
-        self.assertEqual(frame[:3], [(0, 145, 25)] * 3)
-        self.assertEqual(frame[3:6], [(230, 10, 10)] * 3)
+        self.assertEqual(frame[9], (0, 145, 25))
+        self.assertEqual(frame[9:12], [(0, 145, 25)] * 3)
+        self.assertEqual(frame[:3], [(230, 10, 10)] * 3)
         self.assertEqual(frame[6:9], [(255, 155, 0)] * 3)
         self.assertEqual(self.controller.led_frame(1500)[6:9], [(0, 0, 0)] * 3)
 
@@ -146,7 +146,7 @@ class BadgeTests(unittest.TestCase):
         self.assertEqual(self.controller.selected, 0)
 
     def test_four_members_each_own_three_adjacent_leds(self):
-        self.assertEqual([self.controller.led_range(index) for index in range(4)], [(1, 3), (4, 6), (7, 9), (10, 12)])
+        self.assertEqual([self.controller.led_range(index) for index in range(4)], [(10, 12), (1, 3), (7, 9), (4, 6)])
         self.assertEqual([member["extension"] for member in self.controller.team()], ["223", "268", "214", "277"])
 
     def test_selecting_member_opens_detail_and_exits_own_view(self):

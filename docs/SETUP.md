@@ -144,3 +144,8 @@ python -m compileall -q badge bridge
 ```
 
 The tests use synthetic data and local fake servers. They do not place PBX calls or change a live user's DND state.
+
+
+### Spatial BLF lights (0.16.1)
+
+With four team members, the twelve outer LEDs match the screen quadrants: TB upper-left (10-12), PD upper-right (1-3), JH lower-left (7-9), SM lower-right (4-6). Indices are the one-based hardware LEDs, clockwise from the upper-right. Incoming-call and urgent-notification effects still use the full ring.
