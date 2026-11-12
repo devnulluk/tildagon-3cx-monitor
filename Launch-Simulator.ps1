@@ -6,15 +6,16 @@ param(
     [string]$DemoDate,
     [ValidateSet('original', 'celestial', 'tokyoflash', 'radar', 'flip', 'analogue', 'corpus')][string]$ClockStyle = 'original',
     [ValidateSet('clear', 'day', 'night', 'rain', 'rain-night', 'heavy', 'snow', 'storm', 'fog', 'stale')][string]$WeatherKind = 'clear',
+    [ValidateSet('info', 'success', 'warning', 'failure', 'progress')][string]$Notification,
     [switch]$Screenshot,
     [Alias('Video')][string]$Record,
     [ValidateRange(1, 60)][double]$Seconds = 24,
     [ValidateRange(5, 30)][int]$VideoFps = 15,
     [ValidateSet('lcd', 'window')][string]$RecordView = 'lcd',
-    [ValidateSet('idle', 'tour', 'calls', 'themes', 'clocks', 'sky')][string]$Showcase = 'tour',
+    [ValidateSet('idle', 'tour', 'calls', 'themes', 'clocks', 'sky', 'notifications')][string]$Showcase = 'tour',
     [string]$OutputPath,
     [ValidateRange(0, 600)][int]$CaptureFrames = 0,
-    [ValidateSet('A', 'B', 'C', 'D', 'E', 'F', 'S', 'ENTER', 'SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT')][string]$Action,
+    [ValidateSet('A', 'B', 'C', 'D', 'E', 'F', 'S', 'N', 'ENTER', 'SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT')][string]$Action,
     [switch]$PartnerDemo,
     [switch]$MatrixDemo,
     [switch]$GalleryStills,
@@ -59,6 +60,7 @@ $verification = & $simPython $setup --sim-root $SimRoot --check
 if ($LASTEXITCODE -ne 0) { throw 'Simulator verification failed. See simulator/README.md.' }
 $simArguments = @($simLaunch, '--keyboard', '--idle-page', $Page, '--weather-kind', $WeatherKind, '--theme', $Theme, '--clock-style', $ClockStyle)
 if ($DemoDate) { $simArguments += @('--demo-date', $DemoDate) }
+if ($Notification) { $simArguments += @('--notification', $Notification) }
 if ($PartnerDemo) { $simArguments += '--partner-demo' }
 if ($MatrixDemo) { $simArguments += '--matrix-demo' }
 if ($GalleryStills) { $simArguments += '--gallery-stills' }
@@ -97,5 +99,5 @@ try {
     else { $env:TILDAGON_SIM_ROOT = $previousRoot }
 }
 if (-not $offlineCapture) {
-    Write-Host 'Official simulator opened with synthetic DEMO data. Left/Right: idle pages; Enter: demo incoming call; Space: team; S: settings; T: theme; K: clock; A-F: badge buttons; Esc: exit.'
+    Write-Host 'Official simulator opened with synthetic DEMO data. Left/Right: browse; N: notification inbox; Enter: dismiss notification or next demo call; Space: back; S: settings; T: theme; K: clock; A-F: badge buttons; Esc: exit.'
 }

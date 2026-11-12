@@ -47,6 +47,7 @@ The launcher enables the simulated keyboard:
 - **Enter:** show the next synthetic incoming-call scene.
 - **Space:** return to the team/own view.
 - **S:** settings; **T:** theme settings; **K:** clock settings.
+- **N:** notification inbox; arrows browse, Enter dismisses, Space/Escape returns.
 - In settings, **Up/Down** select a row, **Left/Right** change it, **Enter/Space** finish.
 - **A–F:** badge buttons. Any simulated calling/DND action remains local to DEMO.
 - **Escape:** exit.
@@ -62,6 +63,8 @@ The side panel is a labelled hexpansion diagram. `-MatrixDemo` adds a simulated 
 .\Launch-Simulator.ps1 -Record .\clocks.mp4 -Showcase clocks -Seconds 28
 .\Launch-Simulator.ps1 -Page clock -ClockStyle corpus -Record .\corpus.mp4 -Showcase idle -Seconds 8
 .\Launch-Simulator.ps1 -Record .\calls.mp4 -Showcase calls -Seconds 16 -PartnerDemo -MatrixDemo -GalleryStills
+.\Launch-Simulator.ps1 -Notification warning -Screenshot -OutputPath .\warning.png
+.\Launch-Simulator.ps1 -Record .\notifications.mp4 -Showcase notifications -Seconds 32 -GalleryStills
 ```
 
 The Python entry point supports the same options; replace the PowerShell spellings with `--idle-page`, `--clock-style`, `--demo-date`, `--theme`, `--weather-kind`, `--screenshot`, `--output`, `--record`, `--showcase`, `--seconds`, `--action`, `--partner-demo` and `--matrix-demo`. Headless captures require `SDL_VIDEODRIVER=dummy`, which the PowerShell wrapper sets automatically. An interactive window requires a normal desktop display.
@@ -71,3 +74,10 @@ Video output includes H.264 MP4, GIF, poster, contact sheet and JSON metadata. `
 The calls showcase reaches the synthetic priority partner scene and exports its heartbeat/matrix-heart still. A single `-Action ENTER` from an idle page reaches the first DDI scene; continue pressing Enter to cycle the remaining call types.
 
 Private `config.json`, control/read tokens and CA files are never copied into the simulator app. Only Python source, public manifests and verified public theme assets are staged. The wrapper generates a fresh DEMO configuration with empty credentials.
+
+`-Notification` / `--notification` accepts info, success, warning, failure and
+progress. It opens the real badge inbox after the upstream boot overlay. The
+notifications showcase includes a same-ID progress update, a synthetic priority
+call preempting the card and the waiting alert returning afterward. No webhook,
+ntfy subscription or real call is involved. See [notification controls and
+examples](../docs/NOTIFICATIONS.md).

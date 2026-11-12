@@ -1,7 +1,7 @@
 services:
   tildagon-3cx:
     build: .
-    image: tildagon-3cx-monitor:0.5.0
+    image: tildagon-3cx-monitor:0.6.0
     restart: unless-stopped
     stop_grace_period: 30s
     ports:
@@ -13,6 +13,10 @@ services:
       PBX_TOKEN_FORMAT: ${PBX_TOKEN_FORMAT:-multipart}
       BRIDGE_TOKEN: ${BRIDGE_TOKEN:?Set BRIDGE_TOKEN in .env}
       BRIDGE_CONTROL_TOKEN: ${BRIDGE_CONTROL_TOKEN:-}
+      NOTIFY_TOKEN: ${NOTIFY_TOKEN:-}
+      NTFY_URL: ${NTFY_URL:-}
+      NTFY_TOPIC: ${NTFY_TOPIC:-}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
       PBX_USER_USERNAME: ${PBX_USER_USERNAME:-}
       PBX_USER_PASSWORD: ${PBX_USER_PASSWORD:-}
       PBX_USER_SECURITY_CODE: ${PBX_USER_SECURITY_CODE:-}

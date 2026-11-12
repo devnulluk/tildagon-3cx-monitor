@@ -23,7 +23,9 @@ parser.add_argument("--record", "--video", type=Path, help="Record actual DEMO r
 parser.add_argument("--seconds", type=float, default=24, help="Bounded recording duration (1..60 real seconds)")
 parser.add_argument("--video-fps", type=int, default=15, help="Maximum capture sampling rate (5..30), not device FPS")
 parser.add_argument("--record-view", choices=["lcd", "window"], default="lcd")
-parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "sky"], default="tour")
+parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "sky", "notifications"], default="tour")
+parser.add_argument("--notification", choices=["info", "success", "warning", "failure", "progress"],
+                    help="Show a synthetic rich notification through the production badge UI")
 parser.add_argument("--scene", default="team")
 parser.add_argument("--keyboard", action="store_true", default=os.environ.get("TILDAGON_DEMO_KEYBOARD", "0") == "1")
 parser.add_argument("--settings", action="store_true", help="Open settings through a synthetic S key on a demo keyboard")
@@ -39,12 +41,16 @@ parser.add_argument("--gallery-stills", action="store_true", help="Export actual
 parser.add_argument("--weather-kind", choices=["clear", "day", "night", "rain", "rain-night", "heavy", "snow", "storm", "fog", "stale"], default="clear",
                     help="Synthetic weather condition; never requests live weather")
 parser.add_argument("--output", type=Path, help="Copy a completed DEMO screenshot and its status JSON to this path")
-parser.add_argument("--action", choices=list("ABCDEFS") + ["ENTER", "SPACE", "UP", "DOWN", "LEFT", "RIGHT"], help="Inject one synthetic badge/keyboard press in DEMO")
+parser.add_argument("--action", choices=list("ABCDEFSN") + ["ENTER", "SPACE", "UP", "DOWN", "LEFT", "RIGHT"], help="Inject one synthetic badge/keyboard press in DEMO")
 parser.add_argument("--capture-frames", type=int, default=None)
 parser.add_argument("--action-frame", type=int, default=12)
 parser.add_argument("--action-hold-frames", type=int, default=3, help="Duration of a synthetic held key in DEMO")
 parser.add_argument("--diagnose", action="store_true")
 options = parser.parse_args()
+from notification_fixture import notification as demo_notification
+if options.notification:
+    options.keyboard = True
+    options.idle_page = options.idle_page or "weather"
 if options.idle_page == "advent":
     options.theme = "christmas"
     options.demo_date = options.demo_date or "2026-12-12"
@@ -82,7 +88,18 @@ if options.record:
                                   options.record_view, options.showcase)
     options.keyboard = True
     options.idle_page = options.idle_page or ("clock" if options.showcase == "calls" else "weather")
-    if options.showcase == "sky":
+    if options.showcase == "notifications":
+        scenes = [dict(notification="info", label="Notification / information"),
+                  dict(notification="success", label="Notification / success"),
+                  dict(notification="warning", label="Notification / warning"),
+                  dict(notification="failure", label="Notification / failure"),
+                  dict(notification="progress", progress=25, label="Progress /25 percent"),
+                  dict(notification="progress", progress=75, label="Progress / same job updated"),
+                  dict(notification="warning", notification_id="demo-call-preemption", scene="priority",
+                       label="Incoming call / notification held"),
+                  dict(notification="warning", notification_id="demo-call-preemption",
+                       label="Notification / resumes after call")]
+    elif options.showcase == "sky":
         scenes = [dict(page="moon", kind="night", date="2026-12-12", label="Moon / calendar demonstration"),
                   dict(page="meteors", kind="night", date="2026-12-12", label="Meteors / Geminids season"),
                   dict(page="moon", kind="night", date="2026-12-20", label="Moon / later calendar date")]
@@ -123,6 +140,7 @@ if options.record:
     options.weather_kind = film_plan[0].get("kind", options.weather_kind)
     options.theme = film_plan[0].get("theme", options.theme)
     options.clock_style = film_plan[0].get("clock", options.clock_style)
+    options.notification = film_plan[0].get("notification", options.notification)
 if options.settings:
     options.keyboard = True
 if options.idle_page:
@@ -183,6 +201,7 @@ if film_recorder:
     "theme": options.theme, "theme_auto": False, "personal_dates": {}, "clock_style": options.clock_style,
     "bridge_url": "", "token": "", "control_token": "",
     "partner_name": "Partner",
+    "demo_notifications": [],
     "eeh": {"slot": 6, "type": "EEH Logo"},
     "matrix": {"slot": 2, "type": "Liteloop", "brightness": 0.35} if options.matrix_demo else False,
 }), encoding="utf-8")
@@ -408,6 +427,10 @@ def apply_film_event(event):
         app.clock_style = options.clock_style
     if "date" in event:
         options.demo_date = event["date"]
+    if "notification" in event:
+        options.notification = event["notification"]
+        app.config["demo_notifications"] = [demo_notification(options.notification, event.get("notification_id"),
+                                                               event.get("progress"))]
     options.scene = "team-internal" if event.get("view") in ("team", "settings") else "idle"
     from threecx_monitor.demo import SCENARIOS
     app.demo_scene = SCENARIOS.index(event.get("scene", "team"))
@@ -458,6 +481,11 @@ class PreviewMonitor(ThreeCXMonitor):
             idle._quiet_since = now - idle.idle_after_ms - 1
             idle._rotation_at = now
             idle._rotation_index = idle.pages.index(requested_page)
+        if options.notification:
+            # Deliver the synthetic event after the fixture skips its quiet
+            # wait, so the production10-second toast does not elapse offscreen.
+            self.config["demo_notifications"] = [demo_notification(options.notification)]
+            self._accept_demo()
 
     def _draw_idle(self, ctx, now):
         if options.component_theme:
@@ -481,17 +509,30 @@ frames = 0
 native_screenshot = None
 latest_render_status = None
 gallery_stills_saved = set()
+notification_fixture_opened = False
 def side_text(text, y, size=20, colour=(220,230,240)):
     font = pygame.font.Font(None, size)
     _sim.screen.blit(font.render(text, True, colour), (755,y))
 def report_render():
-    global frames, film_event_index, native_screenshot, latest_render_status
+    global frames, film_event_index, native_screenshot, latest_render_status, notification_fixture_opened
     if options.screenshot:
         native_screenshot = pygame.Surface((240, 240))
         native_screenshot.fill((0, 0, 0))
         native_screenshot.blit(_sim._sim._oled_surface, (0, 0))
     original_render()
     frames += 1
+    scheduler = system.scheduler.scheduler
+    boot_overlay = any(item.__class__.__name__ == "BoopSpinner" for item in scheduler.on_top_stack)
+    app_ready = preview_app is not None and scheduler.app_is_foregrounded(preview_app) and not boot_overlay
+    if options.screenshot and not app_ready:
+        _sim.SCREENSHOT_DELAY = max(2, _sim.SCREENSHOT_DELAY)
+    if options.notification and app_ready and not notification_fixture_opened:
+        # Equivalent to opening the production inbox with N. Do this after
+        # the upstream boot overlay, which may outlast an automatic toast.
+        preview_app._open_notifications()
+        notification_fixture_opened = True
+        if options.screenshot:
+            _sim.SCREENSHOT_DELAY = max(2, _sim.SCREENSHOT_DELAY)
     pygame.draw.rect(_sim.screen, (16,22,31), (733,0,307,733))
     side_text("EEH LOGO", 38, 32)
     side_text("SIMULATED HEXPANSIONS" if options.matrix_demo else "SIMULATED HEXPANSION", 76, 17, (140,160,180))
@@ -568,6 +609,7 @@ def report_render():
             action_key = getattr(pygame,"K_"+options.action.lower())
         pygame.event.post(pygame.event.Event(kind, key=action_key))
     alerting = preview_app is not None and preview_app.controller.alert(preview_app._now()) is not None
+    visible_notification = preview_app._visible_notification(preview_app._now()) if preview_app else None
     if options.screenshot and alerting and not any(any(c>0 for c in led) for led in _sim._sim.led_state[1:13]):
         _sim.SCREENSHOT_DELAY = max(2,_sim.SCREENSHOT_DELAY)
     if options.screenshot and alerting and options.partner_demo and max(eeh_values[0]) < 128:
@@ -584,6 +626,8 @@ def report_render():
         "theme": options.theme, "clock_style": options.clock_style, "demo_date": options.demo_date,
         "component_preview": options.component_theme, "partner_demo": options.partner_demo,
         "matrix_diagram": options.matrix_demo, "alerting": alerting, "heartbeat": host_time.time(),
+        "notification_fixture": options.notification,
+        "notification_visible": bool(visible_notification),
         "demo_scene": getattr(preview_app, "demo_scene", None), "enter_events": enter_events,
     }
     if options.matrix_demo and preview_app is not None:
@@ -592,7 +636,7 @@ def report_render():
         name = "status-record.json" if options.record else "status-capture.json" if options.screenshot else "status.json"
         with open(str(RUN / name),"w") as handle:
             json.dump(latest_render_status, handle)
-    if film_recorder is not None and preview_app is not None and frames >= 8:
+    if film_recorder is not None and app_ready and frames >= 8:
         if options.record_view == "lcd":
             recorded = pygame.Surface((240, 240))
             recorded.fill((0, 0, 0))
@@ -604,6 +648,8 @@ def report_render():
                     "alerting": bool(alert), "priority": bool(alert and alert.get("priority")),
                     "ring_rgb": list(_sim._sim.led_state[1:13]), "eeh_rgb": list(eeh_values[0]),
                     "settings": settings_open, "theme": options.theme, "clock_style": options.clock_style}
+        metadata.update(notification_fixture=options.notification, notification_visible=bool(visible_notification),
+                        notification_progress=visible_notification.get("progress") if visible_notification else None)
         if options.matrix_demo:
             metadata.update(matrix_diagram=True, matrix_mode=preview_app.matrix.displayed_mode,
                             matrix_simulated_frames=preview_app.matrix.frames_written)
@@ -622,6 +668,15 @@ def report_render():
                     stem = "clock-" + event["clock"]
                 elif options.showcase == "sky":
                     stem = "sky-" + event["page"]
+                elif options.showcase == "notifications":
+                    if event.get("scene"):
+                        stem = "notification-call-preemption"
+                    elif event.get("notification_id") == "demo-call-preemption":
+                        stem = "notification-resumed"
+                    elif event.get("progress") == 75:
+                        stem = "notification-progress-update"
+                    else:
+                        stem = "notification-" + event["notification"]
                 elif options.showcase == "calls" and options.partner_demo and event.get("scene") == "priority":
                     stem = "partner-call"
                 elif options.showcase == "idle" and options.clock_style == "corpus":

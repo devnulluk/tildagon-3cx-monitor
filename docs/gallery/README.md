@@ -25,6 +25,12 @@ are supplied. The isolated simulator config contains no PBX address or token.
 
 [Call video](partner-call.mp4) · [Call still](partner-call.png)
 
+![Rich notification tour](notifications.gif)
+
+[Notification video](notifications.mp4) · [Notification contact sheet](notifications-contact-sheet.png) ·
+[Configuration and controls](../NOTIFICATIONS.md). This synthetic tour includes
+information/success/warning/failure, job progress and call preemption.
+
 The videos retain real monotonic capture timing. They contain no motion
 interpolation; encoding may repeat captured frames to produce a compatible
 H.264 stream. Capture speed varies with the computer and is **not a physical

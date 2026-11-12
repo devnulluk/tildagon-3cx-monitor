@@ -89,7 +89,7 @@ def encode(directory):
                           "-level:v", "3.1", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
                           "-movflags", "+faststart", "-an", str(output)])
     gif = output.with_suffix(".gif")
-    gif_duration = min(duration, 42 if capture.get("showcase") == "themes" else 18)
+    gif_duration = min(duration, 42 if capture.get("showcase") in ("themes", "notifications") else 18)
     gif_width = 480 if view == "lcd" else 780
     filters = ("fps=10,scale=%d:-1:flags=lanczos,split[s0][s1];" % gif_width
                + "[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4")
@@ -118,7 +118,7 @@ def encode(directory):
     sheet = Image.new("RGB", (columns * cell_width, 70 + rows * cell_height), "#080d18")
     draw = ImageDraw.Draw(sheet)
     centered(draw, (sheet.width / 2, 25), "OFFICIAL TILDAGON SIMULATOR / DEMO", 19, "#ffd06c")
-    centered(draw, (sheet.width / 2, 49), "Actual rendered frames - synthetic calls and weather", 13, "#a0aec0")
+    centered(draw, (sheet.width / 2, 49), "Actual rendered frames - synthetic demonstration data", 13, "#a0aec0")
     for index, (label, frame) in enumerate(cells):
         x, y = index % columns * cell_width, 70 + index // columns * cell_height
         with Image.open(directory / frame["file"]) as source:

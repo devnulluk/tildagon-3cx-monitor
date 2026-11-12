@@ -28,6 +28,8 @@ from .astronomy import sky_snapshot
 from .astro_faces import draw_astro_face
 from .matrix import MatrixDisplay
 from .love import partner_call, partner_active, draw_love
+from .notifications import NotificationInbox, draw_notification, led_frame as notification_leds
+from .space_inputs import SpaceInputs
 
 
 DEFAULT_CONFIG = {
@@ -36,6 +38,7 @@ DEFAULT_CONFIG = {
     "control_token": "", "demo_keyboard": False,
     "idle_seconds": 60, "rotate_seconds": 12,
     "theme": "original", "theme_auto": False, "clock_style": "original",
+    "space_joystick": True, "space_touch": True, "space_proximity": False, "space_tilt": False,
 }
 
 
@@ -121,6 +124,16 @@ class ThreeCXMonitor(app.App):
         self.control_buttons = ControlButtons()
         self.expansions = ExpansionManager(self, self.config)
         self.matrix = MatrixDisplay(self.config, backend=getattr(self.expansions, "backend", None))
+        self.space_inputs = SpaceInputs(self, self.config, clock=lambda: self.clock_ms)
+        self.notifications = NotificationInbox()
+        self.notifications_open = False
+        self._notification_snapshot = None
+        self._notification_received = None
+        self._notification_pending = None
+        self._notification_until = 0
+        self._notification_entered = 0
+        self._notification_presented = []
+        self._notification_input_mode = False
         self._demo_dnd = False
         self._demo_call = None
         self._demo_call_until = 0
@@ -144,6 +157,8 @@ class ThreeCXMonitor(app.App):
                              "targets": [{"id": key, "label": label} for key, label in
                                          (("tb", "TB"), ("pd", "PD"), ("jh", "JH"),
                                           ("sm", "SM"), ("kz", "KZ"))]}
+        if isinstance(self.config.get("demo_notifications"), list):
+            value["notifications"] = self.config["demo_notifications"]
         self.controller.accept(value, self.clock_ms)
 
     def _keyboard_present(self):
@@ -174,6 +189,9 @@ class ThreeCXMonitor(app.App):
 
     def _write_leds(self):
         frame = self.controller.led_frame(self._now())
+        notification = self._visible_notification(self.clock_ms)
+        if notification and self.clock_ms - self._notification_entered < 2500:
+            frame = notification_leds(notification, self.clock_ms, self.controller.ring_brightness)
         if frame != self._last_leds:
             for index, colour in enumerate(frame):
                 tildagonos.leds[index + 1] = colour
@@ -279,6 +297,7 @@ class ThreeCXMonitor(app.App):
             # StateClient defers native TLS disposal if its worker is active.
             self.state_client.close()
             self.matrix.close()
+            self.space_inputs.close()
             matrix_task.cancel()
             try:
                 await matrix_task
@@ -347,6 +366,7 @@ class ThreeCXMonitor(app.App):
         self._save_eeh_brightness()
         self._save_appearance()
         self.matrix.close()
+        self.space_inputs.close()
         self.expansions.close()
         for index in range(1, 13):
             tildagonos.leds[index] = (0, 0, 0)
@@ -375,6 +395,136 @@ class ThreeCXMonitor(app.App):
             if target:
                 self.controls.queue_call(payload, live, target, self.clock_ms)
 
+    def _phone_attention(self, now):
+        """Notifications and new sensors never obscure uncertain/active calls."""
+        if not self.controller.live(now) or self.controller.alert(now):
+            return True
+        payload = self.controller.payload or {}
+        own = payload.get("own") or {}
+        if own.get("state") != "idle":
+            return True
+        calls = own.get("calls")
+        if calls and (not isinstance(calls, list) or any(not isinstance(call, dict)
+                or call.get("state") not in ("ended", "completed", "disconnected", "failed", "rejected",
+                                             "cancelled", "canceled", "terminated") for call in calls)):
+            return True
+        for member in payload.get("team") or []:
+            if member.get("state") in ("ringing", "dialing"):
+                return True
+            calls = member.get("calls")
+            if calls and (not isinstance(calls, list) or any(not isinstance(call, dict)
+                    or call.get("state") in (None, "unknown", "ringing", "dialing") for call in calls)):
+                return True
+        return False
+
+    def _observe_notifications(self, now):
+        payload = self.controller.payload
+        if (payload is not self._notification_snapshot
+                or self.controller.received_ms != self._notification_received):
+            self._notification_snapshot = payload
+            self._notification_received = self.controller.received_ms
+            if isinstance(payload, dict) and "notifications" in payload:
+                entries = payload["notifications"]
+                if isinstance(entries, list):
+                    elapsed = max(0, now - (self.controller.received_ms or 0)) / 1000
+                    entries = [dict(item, age_seconds=item["age_seconds"] + elapsed)
+                               if isinstance(item, dict) and isinstance(item.get("age_seconds"), (int, float))
+                               and not isinstance(item["age_seconds"], bool) else item for item in entries[:16]]
+                self.notifications.observe(entries, now)
+            current = self.notifications.current(now)
+            if current and current["id"] not in self._notification_presented:
+                self._notification_pending = current["id"]
+        self.notifications.current(now)
+
+    def _visible_notification(self, now):
+        self._observe_notifications(now)
+        current = self.notifications.current(now)
+        if (self._phone_attention(now) or self.settings_open or self.controls.is_busy
+                or now < self.controls.message_until or now < self._brightness_notice_until):
+            return None
+        if current and self._notification_pending == current["id"]:
+            self._notification_until = now + 10000
+            self._notification_entered = now
+            self._notification_presented.append(current["id"])
+            self._notification_presented = self._notification_presented[-64:]
+            self._notification_pending = None
+        if self.notifications_open or now < self._notification_until:
+            return current
+        return None
+
+    def _open_notifications(self):
+        self._observe_notifications(self.clock_ms)
+        self.notifications_open = True
+        self._notification_entered = self.clock_ms
+        self._settings_hold_started = None
+        self.idle_pages.touch(self.clock_ms)
+
+    def _notification_key(self, key):
+        """Modal display navigation: never invoke phone confirmation here."""
+        if key in ("ESCAPE", "SPACE", "F", "CANCEL"):
+            self.notifications_open = False
+            self._notification_until = 0
+            self._notification_pending = None
+        elif not self._phone_attention(self.clock_ms):
+            if key in ("RIGHT", "DOWN", "B"):
+                self.notifications.next(1, self.clock_ms)
+                self._notification_entered = self.clock_ms
+            elif key in ("LEFT", "UP", "E"):
+                self.notifications.next(-1, self.clock_ms)
+                self._notification_entered = self.clock_ms
+            elif key in ("ENTER", "CONFIRM", "C"):
+                self.notifications.dismiss(self.clock_ms)
+                self._notification_entered = self.clock_ms
+                self._notification_until = self.clock_ms + 10000 if self.notifications.count else 0
+        self.idle_pages.touch(self.clock_ms)
+
+    def _space_navigation(self, events, was_idle):
+        """Canonical Spaceagon sensors only navigate; they are never consent."""
+        for event in events:
+            kind, action = event.get("kind"), event.get("action")
+            if self.settings_open:
+                if kind == "joystick":
+                    key = {"up": "UP", "down": "DOWN", "left": "LEFT", "right": "RIGHT",
+                           "confirm": "ENTER"}.get(action)
+                    if key:
+                        self._settings_key(key)
+                self.idle_pages.touch(self.clock_ms)
+                continue
+            visible = self._visible_notification(self.clock_ms)
+            if self.notifications_open or visible:
+                key = {"left": "LEFT", "up": "UP", "right": "RIGHT", "down": "DOWN",
+                       "confirm": "CONFIRM", "cancel": "CANCEL"}.get(action)
+                if kind == "touch" and action == "rotate":
+                    key = "RIGHT" if event.get("delta", 0) > 0 else "LEFT"
+                if key:
+                    self._notification_key(key)
+                continue
+            if self._phone_attention(self.clock_ms):
+                self.idle_pages.touch(self.clock_ms)
+                continue
+            direction = 0
+            if kind == "joystick":
+                direction = 1 if action in ("right", "down") else -1 if action in ("left", "up") else 0
+                if action == "confirm":
+                    self.controller.own_view = False
+                    self.controller.detail_view = False if was_idle else not self.controller.detail_view
+            elif kind == "touch" and action == "rotate":
+                direction = 1 if event.get("delta", 0) > 0 else -1
+            elif kind == "touch" and action == "select":
+                pad = event.get("pad")
+                team = self.controller.page_team()
+                if type(pad) is int and 1 <= pad <= 12 and team:
+                    target = self.controller.page() * 12 + min(len(team) - 1, (pad - 1) * len(team) // 12)
+                    self.controller.select(target - self.controller.selected)
+            elif kind == "proximity" and action == "focus":
+                direction = 1 if event.get("side") == "right" else -1
+            if direction and was_idle:
+                self.idle_pages.next(direction, self.clock_ms)
+            else:
+                if direction:
+                    self.controller.select(direction)
+                self.idle_pages.touch(self.clock_ms)
+
     def _run_demo_control(self):
         intent = self.controls.take()
         if not intent:
@@ -400,7 +550,15 @@ class ThreeCXMonitor(app.App):
         if self._appearance_save_at is not None and self.clock_ms >= self._appearance_save_at:
             self._save_appearance()
         self.expansions.refresh(self.clock_ms)
+        self.space_inputs.update()
+        space_events = self.space_inputs.pop()
         keyboard = self._keyboard_present()
+        notification_mode = bool(self.notifications_open or self._visible_notification(self.clock_ms))
+        if notification_mode != self._notification_input_mode:
+            # A button held across a popup boundary must be released before
+            # its meaning can change back to a telephone control.
+            self.control_buttons = ControlButtons()
+            self._notification_input_mode = notification_mode
         if keyboard != self._last_keyboard_mode:
             self._settings_hold_started = None
             self._last_keyboard_mode = keyboard
@@ -412,6 +570,7 @@ class ThreeCXMonitor(app.App):
         if edges or any(key not in ("LEFT", "RIGHT") or not was_idle for key in keys):
             self.idle_pages.touch(self.clock_ms)
         if self.settings_open:
+            self._space_navigation(space_events, was_idle)
             for key in edges + keys:
                 self._settings_key(key)
             self._settings_hold_started = None
@@ -422,9 +581,28 @@ class ThreeCXMonitor(app.App):
             # Physical speed-dials are suppressed for this whole frame.
             if any(key in keys for key in ("S", "T", "K")):
                 self._open_settings()
+                self.notifications_open = False
+                self._notification_until = 0
                 self.settings_selected = 2 if "T" in keys else 3 if "K" in keys else 0
                 self._write_leds()
                 return True
+            if "N" in keys:
+                self._open_notifications()
+                self._write_leds()
+                return True
+        notification = self._visible_notification(self.clock_ms)
+        if self.notifications_open or notification:
+            self._settings_hold_started = None
+            self._space_navigation(space_events, was_idle)
+            for key in keys + edges:
+                self._notification_key(key)
+            self._write_leds()
+            return True
+        if space_events:
+            self._space_navigation(space_events, was_idle)
+            self._write_leds()
+            return True
+        if keyboard:
             for key in keys:
                 if key == "ESCAPE":
                     self._stop()
@@ -550,6 +728,26 @@ class ThreeCXMonitor(app.App):
         live = self.controller.live(now)
         own_rgb = own_colour(self._status_payload(), live, now, 1.0)
         alert = self.controller.alert(now)
+        notification = self._visible_notification(now)
+        empty_inbox = (self.notifications_open and not self._phone_attention(now)
+                       and not self.settings_open and not self.controls.is_busy
+                       and now >= self.controls.message_until and now >= self._brightness_notice_until)
+        if notification or empty_inbox:
+            self._idle_draw_page = None
+            if notification:
+                weather, fresh, elapsed = self._weather(now)
+                local = self._local_weather_time(weather, elapsed)
+                theme = self.themes.resolve(local, photo_available=self.assets.photo_available())
+                draw_notification(ctx, notification, now, self._notification_entered, theme["id"])
+            else:
+                backdrop(ctx, now, own_rgb)
+                self._text(ctx, "INBOX", -20, 32)
+                self._text(ctx, "No notifications", 20, 24)
+                self._text(ctx, "F: BACK", 68, 18)
+            if demo:
+                self._text(ctx, "DEMO", -111, 9, 40, (.55, .70, .75))
+            ctx.restore()
+            return
         graphical_idle = (live and self.idle_pages.active(now) and not self.settings_open
                           and not alert and now >= self._brightness_notice_until
                           and now >= self.controls.message_until)
@@ -582,6 +780,7 @@ class ThreeCXMonitor(app.App):
         ctx.restore()
 
     def _observe_idle(self, now):
+        self._observe_notifications(now)
         self.idle_pages.observe(self._status_payload(), self.controller.live(now), now)
         weather, fresh, elapsed = self._weather(now)
         local = self._local_weather_time(weather, elapsed)
@@ -596,7 +795,8 @@ class ThreeCXMonitor(app.App):
         self.idle_pages.set_pages(pages, now)
         if (self.settings_open or self._settings_hold_started is not None
                 or now < self._brightness_notice_until or now < self.controls.message_until
-                or self.controls.is_busy):
+                or self.controls.is_busy or self.notifications_open
+                or self._visible_notification(now)):
             self.idle_pages.touch(now)
 
     def _weather(self, now):
@@ -663,8 +863,19 @@ class ThreeCXMonitor(app.App):
         if not draw_astro_face(ctx, page, weather, fresh, local, elapsed, now, own_rgb, demo=demo, sky=sky):
             if not draw_theme_face(ctx, page, render_theme, weather, fresh, local, elapsed, now,
                                    own_rgb, demo=demo, context=theme):
-                draw_idle_face(ctx, page, weather, fresh, local, elapsed, now, own_rgb,
-                               demo=demo, clock_draw=clock_draw)
+                parallax = (self.config.get("space_tilt") is True and self.space_inputs.motion_valid
+                            and render_theme == "original" and page in ("weather", "rain", "clock"))
+                if parallax:
+                    ctx.rgb(.015, .025, .05).rectangle(-120, -120, 240, 240).fill()
+                    ctx.save()
+                    ctx.translate(max(-1, min(1, self.space_inputs.tilt[0])) * 4,
+                                  max(-1, min(1, self.space_inputs.tilt[1])) * 4)
+                try:
+                    draw_idle_face(ctx, page, weather, fresh, local, elapsed, now, own_rgb,
+                                   demo=demo, clock_draw=clock_draw)
+                finally:
+                    if parallax:
+                        ctx.restore()
         ctx.restore()
 
     def _draw_settings(self, ctx):

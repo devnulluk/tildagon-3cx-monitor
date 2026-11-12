@@ -20,6 +20,10 @@
   "personal_dates": {},
   "partner_name": "Partner",
   "partner_numbers": [],
+  "space_joystick": true,
+  "space_touch": true,
+  "space_proximity": false,
+  "space_tilt": false,
   "matrix": {
     "type": "Liteloop",
     "brightness": 0.15

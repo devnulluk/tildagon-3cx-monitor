@@ -24,7 +24,8 @@ def _stale(config, source):
             or age > float(config.get("stale_after_seconds", 5)))
 
 
-def create_app(config, source, token=None, demo=False, control_token=None, actions=None, presence_provider=None, phonebook=None, weather=None):
+def create_app(config, source, token=None, demo=False, control_token=None, actions=None, presence_provider=None, phonebook=None, weather=None,
+               notify_token=None, notifications=None, ntfy_subscriber=None):
     if not demo and (not isinstance(token, str) or len(token) < 24):
         raise ValueError("BRIDGE_TOKEN must contain at least 24 characters")
     if token is not None and (not isinstance(token, str) or not token.isascii()
@@ -36,6 +37,22 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
             raise ValueError("BRIDGE_CONTROL_TOKEN must be at least 24 ASCII characters without whitespace")
         if token and hmac.compare_digest(control_token, token):
             raise ValueError("Read and control tokens must be different")
+    if notify_token is not None:
+        if (not isinstance(notify_token, str) or len(notify_token) < 24 or not notify_token.isascii()
+                or any(c.isspace() or ord(c) < 33 or ord(c) > 126 for c in notify_token)):
+            raise ValueError("NOTIFY_TOKEN must be at least24 ASCII characters without whitespace")
+        if any(value and hmac.compare_digest(notify_token, value) for value in (token, control_token)):
+            raise ValueError("Notification, read and control tokens must be different")
+    from .notifications import NotificationBroker, ntfy_from_env
+    if notifications is None:
+        notifications = NotificationBroker()
+    if demo:
+        ntfy_subscriber = None
+    elif ntfy_subscriber is None:
+        try:
+            ntfy_subscriber = ntfy_from_env(notifications)
+        except ValueError:
+            logging.getLogger(__name__).warning("NTFY configuration is invalid; call monitoring remains enabled")
     if actions is None and control_token:
         from .actions import ActionController
         actions = ActionController(source, config, demo=demo, presence_provider=presence_provider)
@@ -118,7 +135,37 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
                 body["weather"] = {"enabled": True, "available": False, "status": "unavailable",
                                    "error": "Weather update unavailable",
                                    "rain_next_hour": {"status": "unknown", "precipitation_mm": None}}
-        return web.json_response(body)
+        try:
+            body["notifications"] = list(notifications.snapshot())[:16]
+        except Exception:
+            body["notifications"] = []
+        # Keep Unicode notification payloads small enough for the badge's
+        # bounded snapshot reader; escaping every character can triple size.
+        return web.json_response(body, dumps=lambda value: json.dumps(value, ensure_ascii=False, separators=(",", ":")))
+
+    async def notify(request):
+        if not notify_token:
+            return web.json_response({"error": "notifications_disabled"}, status=503)
+        if not authorized(request, notify_token):
+            return web.json_response({"error": "unauthorized"}, status=401,
+                                     headers={"WWW-Authenticate": "Bearer"})
+        if "Origin" in request.headers:
+            return web.json_response({"error": "browser_request_denied"}, status=403)
+        try:
+            if request.content_type != "application/json":
+                raise ValueError()
+            # Only this route permits the larger notification request. Existing
+            # call/DND control bodies retain the application's1024-byte limit.
+            data = await request.clone(client_max_size=4096).json()
+            result = notifications.submit(data)
+        except web.HTTPRequestEntityTooLarge:
+            raise
+        except (ValueError, TypeError, KeyError, UnicodeError):
+            return web.json_response({"error": "invalid_request", "message": "Invalid notification request"}, status=400)
+        except Exception:
+            logging.getLogger(__name__).error("Notification backend failed")
+            return web.json_response({"error": "notification_failure"}, status=500)
+        return web.json_response(result, status=202 if result.get("status") in ("accepted", "updated") else 200)
 
     async def control(request):
         if not control_token or actions is None:
@@ -175,6 +222,7 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
     app.router.add_get("/v1/state", state)
     app.router.add_get("/healthz", health)
     app.router.add_post("/v1/control/{action:call|dnd}", control)
+    app.router.add_post("/v1/notify", notify)
 
     if hasattr(source, "run"):
         async def transport_lifetime(app):
@@ -211,6 +259,18 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
             except Exception:
                 logging.getLogger(__name__).warning("Weather background service could not close")
         app.cleanup_ctx.append(weather_lifetime)
+    if ntfy_subscriber is not None:
+        async def notifications_lifetime(app):
+            try:
+                await ntfy_subscriber.start()
+            except Exception:
+                logging.getLogger(__name__).warning("Notification subscription could not start")
+            yield
+            try:
+                await ntfy_subscriber.close()
+            except Exception:
+                logging.getLogger(__name__).warning("Notification subscription could not close")
+        app.cleanup_ctx.append(notifications_lifetime)
     return app
 
 
@@ -324,7 +384,8 @@ def main(argv=None):
             except PresenceError:
                 logging.getLogger(__name__).warning("Own presence needs a new login grant; call monitoring remains enabled")
         app = create_app(config, source, token=token, demo=args.demo,
-                         control_token=control_token, presence_provider=presence_provider)
+                         control_token=control_token, presence_provider=presence_provider,
+                         notify_token=os.environ.get("NOTIFY_TOKEN") or None)
     except (ValueError, OSError) as exc:
         # Validation exceptions are designed to describe fields, never their values.
         parser.error(str(exc))
