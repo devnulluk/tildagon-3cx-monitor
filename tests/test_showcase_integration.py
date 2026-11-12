@@ -219,7 +219,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
             self.assertTrue(plate[1] + plate[3] <= top or plate[1] >= bottom, (text, percent, plate))
             self.assertIn("DEMO", canvas.records[-1]["text"])
 
-    def test_settings_scene_automatically_shows_all_five_rows_without_saving(self):
+    def test_settings_scene_automatically_shows_all_six_rows_without_saving(self):
         module, monitor, hardware, settings = self.monitor()
         with patch.dict(sys.modules, {"settings": settings}):
             self.assertTrue(monitor._start_showcase())
@@ -227,15 +227,15 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                          if monitor.showcase.stage(index)["feature"] == "settings")
             monitor._showcase_seek(index)
             visible = set()
-            for selected in range(5):
+            for selected in range(6):
                 if selected:
-                    module.time.now += monitor.showcase.step_ms // 5
+                    module.time.now += (monitor.showcase.step_ms + 5) // 6
                 monitor.update(0)
                 visible.update(item["text"] for item in self.draw(monitor))
                 self.assertEqual(monitor.settings_selected, selected)
                 self.assertIsNone(monitor._appearance_save_at)
                 self.assertIsNone(monitor._brightness_save_at)
-        self.assertTrue({"SETTINGS", "RING", "EEH", "THEME", "CLOCK", "DEMO", "Play all themes"} <= visible)
+        self.assertTrue({"SETTINGS", "RING", "EEH", "THEME", "CLOCK", "DEMO", "Play all themes", "MATRIX CALL"} <= visible)
         self.assertEqual(settings.writes, [])
         self.assertEqual(settings.saves, 0)
 
@@ -363,7 +363,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                 if keyboard:
                     self.key(module, monitor, "S")
                     self.key(module, monitor, "UP")
-                    self.assertEqual(monitor.settings_selected, 4)
+                    self.assertEqual(monitor.settings_selected, 5)
                     self.key(module, monitor, "ENTER")
                 else:
                     monitor.buttons.values.add("C")
@@ -374,7 +374,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                     monitor.buttons.values.clear()
                     monitor.update(0)
                     self.physical(module, monitor, "A")
-                    self.assertEqual(monitor.settings_selected, 4)
+                    self.assertEqual(monitor.settings_selected, 5)
                     self.physical(module, monitor, "C")
                 self.assertIsNotNone(monitor.showcase)
                 self.assertFalse(monitor.settings_open)

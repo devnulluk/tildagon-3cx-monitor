@@ -2,6 +2,15 @@
 
 Eleven clock styles can be combined with any theme. Press **K**, choose with Left/Right, then Enter. The local clock uses the bridge's time-zone offset; astronomy uses UTC. Invalid time shows an unavailable readout rather than invented positions.
 
+Version 0.14 expands Neon Orrery, Mondaine and GBR to fill the LCD, reclaiming
+the old owner-status margin. Dial geometry is 19% larger; Neon's lower
+complications have been rearranged to avoid clipping.
+
+![Full-screen Neon Orrery, synthetic simulator preview](docs/gallery/fullscreen-neon-lcd.png)
+
+[Expanded Mondaine](docs/gallery/fullscreen-mondaine.png) · [Expanded GBR](docs/gallery/fullscreen-gbr.png)
+Older films and screenshots below retain their recorded version layouts.
+
 ![Animated clock collection](docs/gallery/clocks.gif)
 
 [Play the clock video](docs/gallery/clocks.mp4)

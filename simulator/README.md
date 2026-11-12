@@ -91,3 +91,16 @@ notifications showcase includes a same-ID progress update, a synthetic priority
 call preempting the card and the waiting alert returning afterward. No webhook,
 ntfy subscription or real call is involved. See [notification controls and
 examples](../docs/NOTIFICATIONS.md).
+
+## Matrix caller preview
+
+```powershell
+./Launch-Simulator.ps1 -Showcase matrix -Record ./docs/gallery/matrix-caller.mp4 -Seconds 24 -RecordView window -GalleryStills
+```
+
+This uses synthetic caller names through the production matrix adapter and a
+labelled in-memory I2C diagram. The first sixteen seconds demonstrate scrolling;
+the final eight demonstrate the configured partner heart. The diagram is not
+physical LED footage or a native brightness/FPS measurement. The Python launcher
+also accepts `--settings-row 4 --matrix-demo --screenshot` for a direct preview of
+the Matrix Call brightness row.

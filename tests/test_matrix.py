@@ -3,10 +3,14 @@ import importlib.util
 import asyncio
 from pathlib import Path
 import types
+import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("monitor_matrix", ROOT / "badge/matrix.py")
+package = types.ModuleType('matrix_fixture')
+package.__path__ = [str(ROOT / 'badge')]
+sys.modules[package.__name__] = package
+spec = importlib.util.spec_from_file_location("matrix_fixture.matrix", ROOT / "badge/matrix.py")
 matrix = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(matrix)
 
@@ -158,7 +162,7 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(display.last_mode, "unknown")
 
     def test_heart_animates_without_raising_configured_brightness(self):
-        display = self.display(brightness=0.03)
+        display = self.display(brightness=0.03, call_brightness=0.03)
         own = payload(calls=[{"state": "ringing"}])
         frames = []
         for tick in range(0, 2400, 125):
@@ -173,7 +177,7 @@ class MatrixTests(unittest.TestCase):
         display = self.display()
         for index, kind in enumerate(("internal", "queue", "ddi", "external")):
             display.update(payload(calls=[{"state": "ringing", "kind": kind}]), True, index * 200)
-            self.assertEqual(display.last_mode, kind)
+            self.assertEqual(display.last_mode, 'caller')
         display.update(payload(calls=[{"state": "held", "kind": "queue"}]), True, 900)
         self.assertEqual(display.last_mode, "busy")
 
@@ -213,7 +217,7 @@ class MatrixTests(unittest.TestCase):
         own = payload(calls=[{"state": "ringing", "kind": "queue"}],
                       weather={"live": True, "current": {"weather_code": 0, "is_day": True}})
         display.update(own, True, 0, page="weather", weather_fresh=True)
-        self.assertEqual(display.last_mode, "queue")
+        self.assertEqual(display.last_mode, "caller")
         display.update(own, False, 1, page="weather", partner=True, weather_fresh=True)
         self.assertEqual(display.last_mode, "unknown")
 
@@ -339,7 +343,7 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(display.displayed_mode, "unknown")
         display.update(own, True, 300, partner=True)
         previous = bytes(display._packet)
-        display.setting["brightness"] = .03
+        display.call_brightness = .03
         display.update(own, True, 301, partner=True)
         self.assertNotEqual(bytes(display._packet), previous)
         self.assertLessEqual(max(display._packet[1:]), 7)

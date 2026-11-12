@@ -26,6 +26,7 @@
   "space_tilt": false,
   "matrix": {
     "type": "Liteloop",
-    "brightness": 0.15
+    "brightness": 0.15,
+    "call_brightness": 1.0
   }
 }

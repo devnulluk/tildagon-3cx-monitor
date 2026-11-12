@@ -645,7 +645,8 @@ class BadgeAppTests(unittest.TestCase):
             settings.save.assert_called_once()
             self.assertEqual(settings.set.call_args_list,
                              [unittest.mock.call("threecx_monitor.eeh_brightness", 0.05),
-                              unittest.mock.call("threecx_monitor.ring_brightness", 0.15)])
+                              unittest.mock.call("threecx_monitor.ring_brightness", 0.15),
+                      unittest.mock.call("threecx_monitor.matrix_call_brightness", 1.0)])
             _, restarted, _ = self.live_monitor()
             self.assertEqual(restarted.controller.eeh_brightness, 0.05)
 
@@ -661,7 +662,8 @@ class BadgeAppTests(unittest.TestCase):
             monitor._stop()
         self.assertEqual(settings.set.call_args_list,
                          [unittest.mock.call("threecx_monitor.eeh_brightness", 0.04),
-                          unittest.mock.call("threecx_monitor.ring_brightness", 0.15)])
+                          unittest.mock.call("threecx_monitor.ring_brightness", 0.15),
+                      unittest.mock.call("threecx_monitor.matrix_call_brightness", 1.0)])
         settings.save.assert_called_once()
 
     def test_settings_keyboard_adjusts_ring_and_eeh_independently_without_phone_intents(self):
@@ -780,7 +782,8 @@ class BadgeAppTests(unittest.TestCase):
             monitor._settings_key("RIGHT")
             monitor._settings_key("ENTER")
             self.assertEqual(stored, {"threecx_monitor.ring_brightness": 0.16,
-                                      "threecx_monitor.eeh_brightness": 0.03})
+                                      "threecx_monitor.eeh_brightness": 0.03,
+                                  "threecx_monitor.matrix_call_brightness": 1.0})
             _, restarted, _ = self.live_monitor()
             self.assertEqual(restarted.controller.ring_brightness, 0.16)
             self.assertEqual(restarted.controller.eeh_brightness, 0.03)

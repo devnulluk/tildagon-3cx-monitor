@@ -31,7 +31,7 @@ parser.add_argument("--record", "--video", type=Path, help="Record actual DEMO r
 parser.add_argument("--seconds", type=float, default=24, help="Bounded recording duration (1..60 real seconds)")
 parser.add_argument("--video-fps", type=int, default=15, help="Maximum capture sampling rate (5..30), not device FPS")
 parser.add_argument("--record-view", choices=["lcd", "window"], default="lcd")
-parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "atelier", "rail", "sky", "notifications", "feature-demo"], default="tour")
+parser.add_argument("--showcase", choices=["idle", "tour", "calls", "matrix", "themes", "clocks", "atelier", "rail", "sky", "notifications", "feature-demo"], default="tour")
 parser.add_argument("--feature-demo", action="store_true",
                     help="Start the app's production showcase; recordings explicitly abbreviate it with manual feature jumps")
 parser.add_argument("--feature-stage", type=int,
@@ -41,6 +41,7 @@ parser.add_argument("--notification", choices=["info", "success", "warning", "fa
 parser.add_argument("--scene", default="team")
 parser.add_argument("--keyboard", action="store_true", default=os.environ.get("TILDAGON_DEMO_KEYBOARD", "0") == "1")
 parser.add_argument("--settings", action="store_true", help="Open settings through a synthetic S key on a demo keyboard")
+parser.add_argument("--settings-row", type=int, choices=range(6), help="Synthetic settings-row preview, 0..5")
 parser.add_argument("--detail", action="store_true", help="Start a synthetic team fixture in its selected-member detail view")
 parser.add_argument("--idle-page", choices=["weather", "rain", "clock", "moon", "meteors", "advent"], help="Fast-forward to a clearly labelled synthetic idle page")
 parser.add_argument("--theme", choices=["original", "christmas", "easter", "anniversary", "birthday_self", "birthday_partner", "cyberpunk", "lcars", "kitty", "photo", "noir", "ocean", "retro"], default="original")
@@ -60,6 +61,10 @@ parser.add_argument("--action-frame", type=int, default=12)
 parser.add_argument("--action-hold-frames", type=int, default=3, help="Duration of a synthetic held key in DEMO")
 parser.add_argument("--diagnose", action="store_true")
 options = parser.parse_args()
+if options.settings_row is not None:
+    options.settings = True
+if options.showcase == 'matrix':
+    options.matrix_demo = options.partner_demo = True
 from notification_fixture import notification as demo_notification
 if options.showcase == "feature-demo" or options.feature_stage is not None:
     options.feature_demo = True
@@ -172,6 +177,9 @@ if options.record:
                   dict(scene="ddi", label="Incoming / direct line"),
                   dict(scene="priority", label="Priority / full brightness"),
                   dict(page="weather", kind="snow", label="Weather / snow")]
+    elif options.showcase == 'matrix':
+        scenes = [dict(scene='ddi', label='Caller name / scrolling matrix'),
+                  dict(scene='priority', label='Partner call / heart retained')]
     elif options.showcase == "calls":
         scenes = [dict(page="clock", kind="night", label="Clock / quiet period"),
                   dict(scene="ddi", label="Incoming / direct line"),
@@ -180,6 +188,8 @@ if options.record:
     else:
         scenes = [dict(page=options.idle_page, kind=options.weather_kind, label="DEMO / " + options.idle_page)]
     film_plan = [dict(scene, at=index * options.seconds / len(scenes)) for index, scene in enumerate(scenes)]
+    if options.showcase == 'matrix':
+        film_plan[1]['at'] = options.seconds * 2 / 3
     film_label = film_plan[0]["label"]
     options.idle_page = film_plan[0].get("page", options.idle_page)
     options.demo_date = film_plan[0].get("date", options.demo_date)
@@ -720,7 +730,7 @@ def report_render():
     if options.matrix_demo and preview_app is not None:
         from threecx_monitor.matrix import GRID
         matrix = preview_app.matrix
-        side_text("LITELOOP / GLYPH DIAGRAM", 224, 21)
+        side_text("LITELOOP / TEXT + GLYPHS", 224, 21)
         side_text("Simulated156-LED monochrome output", 252, 16, (140,160,180))
         for cell, address in enumerate(GRID):
             if address < 0:
@@ -749,7 +759,7 @@ def report_render():
     elif settings_open:
         side_text("Up / Down = select setting", 570, 20)
         side_text("Left / Right = adjust 1%", 594, 20)
-        side_text("Enter / C = start demo" if preview_app.settings_selected == 4 else "Enter / Space = done", 618, 20)
+        side_text("Enter / C = start demo" if preview_app.settings_selected == 5 else "Enter / Space = done", 618, 20)
         side_text("A / D = select", 642, 20)
         side_text("B / E = adjust", 666, 20)
         side_text("C / F = done", 690, 20)
@@ -775,6 +785,8 @@ def report_render():
     if options.settings and frames in (6, 9):
         kind = pygame.KEYDOWN if frames == 6 else pygame.KEYUP
         pygame.event.post(pygame.event.Event(kind, key=pygame.K_s))
+    if options.settings_row is not None and preview_app is not None and preview_app.settings_open:
+        preview_app.settings_selected = options.settings_row
     if options.action and frames in (options.action_frame,options.action_frame + max(1, options.action_hold_frames)):
         kind = pygame.KEYDOWN if frames == options.action_frame else pygame.KEYUP
         if options.action == "SHIFT+D":
@@ -881,6 +893,8 @@ def report_render():
                         stem = "notification-progress-update"
                     else:
                         stem = "notification-" + event["notification"]
+                elif options.showcase == 'matrix':
+                    stem = 'matrix-partner-heart' if event['scene'] == 'priority' else 'matrix-scrolling'
                 elif options.showcase == "calls" and options.partner_demo and event.get("scene") == "priority":
                     stem = "partner-call"
                 elif options.showcase == "idle" and options.clock_style == "corpus":

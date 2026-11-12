@@ -40,7 +40,7 @@ confirm a telephone action.
 
 The sequence groups the demonstrations by theme. Manual scene/theme changes do
 not save a new appearance preference. The settings demonstration scrolls through
-all five rows without changing or saving their values. The photographic theme and Atelier dial
+all six rows without changing or saving their values. The photographic theme and Atelier dial
 use the same verified local assets and fallback behavior as normal operation.
 Optional EEH and Liteloop displays use their existing drivers when present.
 

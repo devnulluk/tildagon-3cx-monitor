@@ -12,6 +12,9 @@ from .clock_rail import draw_mondaine as _mondaine, draw_gbr as _great_british_r
 CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus", "haute_celestial", "neon_orrery", "mondaine", "great_british_railways")
 _NAMES = ("Original", "Celestial", "Tokyo Code", "Orbital Radar", "Flip Station", "Clean Analogue", "Corpus / Time Eater", "Celestial Atelier", "Neon Orrery", "Mondaine", "Great British Railways")
 TAU = math.pi * 2
+_FULL_BLEED = {"neon_orrery": (.005, .012, .032),
+               "mondaine": (.985, .98, .965),
+               "great_british_railways": (.008, .009, .012)}
 _DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 _MONTHS = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
 _UNIT = tuple((math.sin(index * TAU / 360), -math.cos(index * TAU / 360)) for index in range(360))
@@ -375,6 +378,11 @@ def draw_clock_content(ctx, style, weather, local, elapsed_ms, now_ms, palette=N
     try:
         ctx.text_align = ctx.CENTER
         ctx.text_baseline = ctx.MIDDLE
+        # These circular dials used the old 200px content area reserved for
+        # owner status. Paint to the LCD edge and use the recovered space.
+        if style in _FULL_BLEED:
+            _circle(ctx, 0, 0, 121, _FULL_BLEED[style])
+            ctx.scale(1.19, 1.19)
         if style == "haute_celestial":
             drawer(ctx, value, elapsed, now, _palette(palette), sky, artwork=artwork)
         else:

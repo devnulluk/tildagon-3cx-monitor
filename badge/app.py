@@ -135,6 +135,14 @@ class ThreeCXMonitor(app.App):
         self.control_buttons = ControlButtons()
         self.expansions = ExpansionManager(self, self.config)
         self.matrix = MatrixDisplay(self.config, backend=getattr(self.expansions, "backend", None))
+        if not self.demo_mode:
+            try:
+                import settings
+                matrix_level = settings.get('threecx_monitor.matrix_call_brightness', self.matrix.call_brightness)
+                if isinstance(matrix_level, (int, float)) and not isinstance(matrix_level, bool) and 0 <= matrix_level <= 1:
+                    self.matrix.call_brightness = matrix_level
+            except (ImportError, OSError, ValueError):
+                pass
         self.space_inputs = SpaceInputs(self, self.config, clock=lambda: self.clock_ms)
         self.notifications = NotificationInbox()
         self.notifications_open = False
@@ -295,7 +303,7 @@ class ThreeCXMonitor(app.App):
             self.controller.own_view = bool(stage.get("own_view"))
         self._showcase_stage = stage
         if stage.get("feature") == "settings":
-            self.settings_selected = min(4, stage["elapsed_ms"] * 5 // self.showcase.step_ms)
+            self.settings_selected = min(5, stage["elapsed_ms"] * 6 // self.showcase.step_ms)
         if force or self._showcase_received is None or self.clock_ms - self._showcase_received >= 400:
             self.controller.accept(showcase_snapshot(stage, self.clock_ms), self.clock_ms)
             self._showcase_received = self.clock_ms
@@ -373,8 +381,16 @@ class ThreeCXMonitor(app.App):
             own_rgb = tuple(min(channel, ceiling) for channel in own_rgb)
         self.expansions.write_own_status(own_rgb, now_ms=self.clock_ms, heartbeat=partner)
         weather, fresh, elapsed = self._weather(self.clock_ms)
+        matrix_partner = partner
+        own = payload.get('own') if isinstance(payload, dict) else None
+        calls = own.get('calls') if isinstance(own, dict) else None
+        if isinstance(calls, (list, tuple)):
+            ringing = next((call for call in calls if isinstance(call, dict)
+                            and call.get('state') == 'ringing'), None)
+            if ringing is not None:
+                matrix_partner = live and partner_call(ringing, self.config, self.demo_mode)
         self.matrix.update(payload, live, self.clock_ms, page=self.idle_pages.page(self.clock_ms),
-                           partner=partner, weather_fresh=fresh)
+                           partner=matrix_partner, weather_fresh=fresh)
 
     def _adjust_eeh_brightness(self, direction):
         self.config["eeh_brightness"] = self.controller.adjust_brightness(direction)
@@ -399,6 +415,7 @@ class ThreeCXMonitor(app.App):
             import settings
             settings.set("threecx_monitor.eeh_brightness", self.controller.eeh_brightness)
             settings.set("threecx_monitor.ring_brightness", self.controller.ring_brightness)
+            settings.set('threecx_monitor.matrix_call_brightness', self.matrix.call_brightness)
             settings.save()
         except (ImportError, OSError, ValueError):
             pass
@@ -438,7 +455,7 @@ class ThreeCXMonitor(app.App):
             self._appearance_save_at = self.clock_ms + 1000
 
     def _settings_key(self, key):
-        if self.settings_selected == 4 and key in ("ENTER", "C"):
+        if self.settings_selected == 5 and key in ("ENTER", "C"):
             self._start_showcase()
         elif key in ("S", "ESCAPE", "ENTER", "SPACE", "C", "F"):
             self.settings_open = False
@@ -449,9 +466,9 @@ class ThreeCXMonitor(app.App):
                 self.idle_pages.preview(self.clock_ms)
                 self._appearance_preview = False
         elif key in ("UP", "A"):
-            self.settings_selected = (self.settings_selected - 1) % 5
+            self.settings_selected = (self.settings_selected - 1) % 6
         elif key in ("DOWN", "D"):
-            self.settings_selected = (self.settings_selected + 1) % 5
+            self.settings_selected = (self.settings_selected + 1) % 6
         elif key in ("LEFT", "E", "RIGHT", "B"):
             direction = 1 if key in ("RIGHT", "B") else -1
             if self.settings_selected == 0:
@@ -460,6 +477,10 @@ class ThreeCXMonitor(app.App):
                 self._adjust_eeh_brightness(direction)
             elif self.settings_selected < 4:
                 self._adjust_appearance(direction)
+            elif self.settings_selected == 4 and self.showcase is None:
+                self.matrix.call_brightness = max(0, min(1, round(self.matrix.call_brightness + direction * .05, 2)))
+                if not self.demo_mode:
+                    self._brightness_save_at = self.clock_ms + 1000
 
     async def _network_yield(self):
         # The separate foreground loop keeps rendering and animating the LEDs.
@@ -1080,9 +1101,9 @@ class ThreeCXMonitor(app.App):
             return self.assets.draw_photo(canvas, tick, theme_id=asset_id)
         theme["photo_draw"] = photo_draw
         render_theme = "photo" if self.assets.photo_available(asset_id) else theme["id"]
-        # The full-bleed enamel plate has a dark outer field. Use the dark
-        # status chrome there so light themes cannot dim its presence label.
-        if page == "clock" and self.clock_style == "haute_celestial":
+        # Independent dials own their full-screen background; skip outer
+        # theme navigation chrome which would overlap the expanded face.
+        if page == "clock" and self.clock_style in ("haute_celestial", "neon_orrery", "mondaine", "great_british_railways"):
             render_theme = "original"
         clock_draw = None
         if self.clock_style != "original":
@@ -1124,9 +1145,10 @@ class ThreeCXMonitor(app.App):
         rows = (("RING", self.controller.ring_brightness), ("EEH", self.controller.eeh_brightness),
                 ("THEME", "Auto" if self.themes.selection == "auto" else next(item["name"] for item in self.themes.catalog() if item["id"] == self.themes.selection)),
                 ("CLOCK", next(item["name"] for item in get_clock_catalog() if item["id"] == self.clock_style)),
+                ("MATRIX CALL", "%d%%" % round(self.matrix.call_brightness * 100)),
                 ("DEMO", "Play all themes"))
         start = max(0, self.settings_selected - 1)
-        for index in range(start, min(5, start + 2)):
+        for index in range(start, min(6, start + 2)):
             label, level = rows[index]
             row = index - start
             settings_row(ctx, row, level if index < 2 else 0, self.settings_selected == index)
@@ -1138,7 +1160,7 @@ class ThreeCXMonitor(app.App):
             else:
                 self._text(ctx, label, y - 16, 12, 120, colour)
                 self._text(ctx, level, y + 5, 25, 192, colour, minimum_size=16)
-        finish = "PLAY" if self.settings_selected == 4 else "DONE"
+        finish = "PLAY" if self.settings_selected == 5 else "DONE"
         self._text(ctx, ("ENTER: " if self._keyboard_present() else "C: ") + finish, 88, 18, 152, (0.6, 0.7, 0.7))
 
     def _draw_showcase_intro(self, ctx, now):

@@ -24,7 +24,7 @@ class Canvas:
     CENTER, MIDDLE = 1, 2
     ARITIES = {"save": 0, "restore": 0, "rgb": 3, "move_to": 2, "line_to": 2,
                "text": 1, "arc": 6, "fill": 0, "stroke": 0, "round_rectangle": 5, "close_path": 0,
-               "translate": 2, "rotate": 1, "curve_to": 6, "image": 5}
+               "translate": 2, "scale": 2, "rotate": 1, "curve_to": 6, "image": 5}
     def __init__(self):
         self.operations = []
         self.words = []
@@ -60,6 +60,14 @@ def render(style, local=LOCAL, sky=SKY, palette=None, elapsed=250, now=12345, ar
 
 
 class ClockTests(unittest.TestCase):
+    def test_round_dials_use_full_lcd_without_the_old_status_margin(self):
+        for style in ('neon_orrery','mondaine','great_british_railways'):
+            handled, canvas = render(style)
+            self.assertTrue(handled)
+            self.assertIn(('scale',(1.19,1.19)),canvas.operations)
+            self.assertTrue(any(name=='arc' and values[2]>=120 for name,values in canvas.operations))
+            self.assertEqual(canvas.saved,0)
+
     def test_catalog_is_fixed_public_metadata_and_returns_copies(self):
         catalog = clocks.get_clock_catalog()
         self.assertEqual(clocks.CLOCKS, EXPECTED_CLOCKS)

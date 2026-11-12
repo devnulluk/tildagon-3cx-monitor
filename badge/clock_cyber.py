@@ -149,7 +149,7 @@ def _moon_values(sky):
 
 
 def _moon(ctx, phase):
-    x, y, radius = 0, 59, 13
+    x, y, radius = 0, 55, 13
     _circle(ctx, x, y, radius, (.016, .055, .09))
     if phase is None:
         _text(ctx, "?", x, y, 20, 26, _WHITE)
@@ -172,7 +172,7 @@ def _moon(ctx, phase):
 
 
 def draw(ctx, value, elapsed, now, palette, sky):
-    """Draw Neon Orrery inside radius101; the caller owns outer status chrome.
+    """Logical dial geometry; the clock compositor expands it to the LCD edge.
 
     Palette deliberately does not invert this dark instrument. The large time
     is supplied local HH:MM, not uptime; only labelled decorative orbits use now.
@@ -203,27 +203,26 @@ def draw(ctx, value, elapsed, now, palette, sky):
                         (86, -23, 86, 10), (86, -23, 81, -23), (86, 10, 81, 10)), (.10, .49, .61), .9)
         _text(ctx, clock, 0, -8, 48, 177, _WHITE, 45)
         date = value.get("date") if isinstance(value.get("date"), str) else "Clock unavailable"
-        _text(ctx, date, 0, 27, 14, 166, _MUTED, 13)
+        _text(ctx, date, 0, 25, 14, 166, _MUTED, 13)
         for x in (-55, 0, 55):
-            _circle(ctx, x, 57, 19.5, _PANEL)
-            _ring(ctx, x, 57, 19.5, (.07, .30, .39) if x != 55 else (.34, .23, .11), .8)
+            _circle(ctx, x, 53, 19.5, _PANEL)
+            _ring(ctx, x, 53, 19.5, (.07, .30, .39) if x != 55 else (.34, .23, .11), .8)
         weekday = value.get("weekday")
         weekday = weekday if weekday in ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN") else "--"
         day = value.get("day")
         day = day if isinstance(day, str) and len(day) == 2 else "--"
-        _text(ctx, weekday, -55, 49, 10, 32, _CYAN)
-        _text(ctx, day, -55, 64, 16, 30, _WHITE)
+        _text(ctx, weekday, -55, 45, 10, 32, _CYAN)
+        _text(ctx, day, -55, 60, 16, 30, _WHITE)
         phase, illumination = _moon_values(sky)
         _moon(ctx, phase)
-        _text(ctx, "%02d" % second if second is not None else "--", 55, 55, 21, 32, _WHITE)
-        _text(ctx, "SECONDS", 55, 70, 6.5, 31, _AMBER)
+        _text(ctx, "%02d" % second if second is not None else "--", 55, 51, 21, 32, _WHITE)
+        _text(ctx, "SECONDS", 55, 66, 6.5, 31, _AMBER)
         if second is not None:
             angle = int((second + elapsed % 1000 / 1000) * 256 / 60) & 255
             c, s = _UNIT[angle]
-            _circle(ctx, 55 + s * 18, 57 - c * 18, 1.4, _AMBER)
+            _circle(ctx, 55 + s * 18, 53 - c * 18, 1.4, _AMBER)
         detail = "MOON ~%d%%" % round(illumination) if phase is not None and illumination is not None else "MOON UNKNOWN"
-        _text(ctx, detail, 0, 82, 8.5, 112, _MUTED)
-        _text(ctx, "DECORATIVE ORBITS", 0, 93, 6.5, 78, (.28, .45, .57))
+        _text(ctx, detail, 0, 78, 8.5, 112, _MUTED)
     finally:
         ctx.restore()
     return True

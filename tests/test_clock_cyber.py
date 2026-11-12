@@ -94,7 +94,7 @@ class NeonOrreryTests(unittest.TestCase):
         self.assertIn("12 NOV 2026", [word[0] for word in ctx.words])
         self.assertIn("THU", [word[0] for word in ctx.words])
         self.assertIn("12", [word[0] for word in ctx.words])
-        self.assertIn("DECORATIVE ORBITS", [word[0] for word in ctx.words])
+        self.assertIn("MOON ~50%", [word[0] for word in ctx.words])
 
     def test_geometry_and_state_stay_within_native_and_dial_limits(self):
         for now in (0, 300, 12345, 1000000, 1000000000000):
@@ -116,7 +116,7 @@ class NeonOrreryTests(unittest.TestCase):
         marker = lambda ctx: [args for name, args in ctx.operations if name == "arc" and args[2] == 1.4]
         self.assertEqual(len(marker(known)), 1)
         self.assertEqual(marker(unknown), [])
-        self.assertEqual(marker(known)[0][:3], (55, 39, 1.4))
+        self.assertEqual(marker(known)[0][:3], (55, 35, 1.4))
 
     def test_seconds_fraction_uses_local_second_and_elapsed_fraction_not_uptime(self):
         _, first = render(elapsed=0, now=0)

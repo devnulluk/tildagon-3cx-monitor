@@ -92,7 +92,7 @@ def encode(directory):
                           "-level:v", "3.1", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
                           "-movflags", "+faststart", "-an", str(output)])
     gif = output.with_suffix(".gif")
-    gif_limit = 60 if abbreviated else 32 if capture.get("showcase") in ("atelier", "rail") else 42 if capture.get("showcase") in ("themes", "notifications") else 18
+    gif_limit = 60 if abbreviated else 32 if capture.get("showcase") in ("atelier", "rail", "matrix") else 42 if capture.get("showcase") in ("themes", "notifications") else 18
     gif_duration = min(duration, gif_limit)
     gif_width = 480 if view == "lcd" else 780
     filters = ("fps=10,scale=%d:-1:flags=lanczos,split[s0][s1];" % gif_width

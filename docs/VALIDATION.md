@@ -1,4 +1,37 @@
-# Validation: badge 0.13.0 / bridge 0.6.0
+# Validation: badge 0.14.0 / bridge 0.6.0
+
+## Version 0.14 matrix caller names and full-screen clocks
+
+All 707 tests passed in 71.100 seconds. New checks verify text movement,
+initial hold after a completed transfer, slow-transfer column preservation,
+caller changes, bounded normalization, partner-heart priority, stale/answered
+cleanup, full call brightness, idle-level restoration, off and saved settings.
+A second ringing caller supersedes the heart for a connected partner. Every
+showcase settings stage now exercises all six rows without saving preferences.
+The driver retains its existing bounded register writes and ownership checks.
+
+The physical matrix check completed 34 seconds of synthetic display phases
+while the LCD and live monitoring continued normally. It committed caller-text
+positions 0 through 5, restarted at position zero for a changed name, and recorded
+PWM peaks of 255 for calls and 63 for the temporary 25% setting. The partner
+phase retained its pulsing heart; answered and offline phases stopped the text.
+The configured call brightness and available-state glyph were restored, with
+matrix, keyboard, EEH and live state ready. No real call was generated. The
+bytewise driver limits the speed: only six text positions committed during the
+sixteen-second initial phase; this is not a guarantee of a complete name during
+a short ring or a physical readability/camera test.
+
+Neon Orrery, Mondaine and GBR now paint to the 240px LCD edge and expand their
+logical dial geometry by 19%, reclaiming the removed owner-header margin.
+Neon's lower complications were repositioned and its tiny decorative footer was
+removed. All six native dark/light-theme checks passed: 128 clock frames, no
+render errors or control attempts, with live monitoring and all inputs/displays
+ready afterward. This was a short render check, not a sustained FPS benchmark.
+
+The matrix film uses 213 actual simulator captures over 24.018734 seconds. Its
+MP4 fully decodes; the complete GIF has 240 frames over 24 seconds. All 30
+recorded runtime/asset hashes match the final source. The hexpansion panel is a
+labelled virtual I2C diagram, not physical footage or a brightness measurement.
 
 ## Version 0.13 caller presentation
 

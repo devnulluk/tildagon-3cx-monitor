@@ -10,6 +10,7 @@ https://github.com/kristianhentschel/tildagon-matrix-hexpansion-app
 """
 
 import asyncio
+from .matrix_text import caller_text, columns
 
 # Physical grid derived from the manufacturer's MIT-licensed companion app.
 # Copyright (c)2026 Kristian Hentschel.
@@ -112,6 +113,8 @@ def _scene(payload, live, page, partner, weather_fresh):
             return "heart"
         ringing = [call for call in calls if call.get("state") == "ringing"]
         call = ringing[0] if ringing else calls[0]
+        if call.get("state") == "ringing" and call.get("direction") != "outbound":
+            return "caller"
         if call.get("state") in ("ringing", "dialing"):
             kind = call.get("kind")
             return kind if kind in ("internal", "queue", "ddi", "external") else "ringing"
@@ -178,6 +181,9 @@ class MatrixDisplay:
         self.backend = backend
         config = _dict(config)
         self.setting = config.get("matrix", {})
+        call_level = _dict(self.setting).get('call_brightness', 1.0)
+        self.call_brightness = (call_level if isinstance(call_level, (int, float))
+                                and not isinstance(call_level, bool) and 0 <= call_level <= 1 else 1.0)
         self.ready = False
         self.status = "MATRIX NOT CONNECTED"
         self.slot = None
@@ -203,6 +209,10 @@ class MatrixDisplay:
         self._packet[0] = 3
         self._zero = bytes(LED_COUNT)
         self._peak = 38
+        self._scroll_key = None
+        self._scroll_columns = ()
+        self._scroll_position = 0
+        self._scroll_next = 0
         self.refresh(0)
 
     def _drop(self, status):
@@ -215,6 +225,8 @@ class MatrixDisplay:
         self.last_mode = None
         self.displayed_mode = None
         self._goal_pending = False
+
+        self._scroll_key = None
 
     def refresh(self, now_ms):
         if self._closed:
@@ -275,6 +287,7 @@ class MatrixDisplay:
         self._known[:] = self._zero
         self._cursor = 1
         self._phase = 0
+        self._scroll_key = None
         return True
 
     def update(self, payload, live, now_ms, page=None, partner=False, weather_fresh=False):
@@ -283,16 +296,38 @@ class MatrixDisplay:
         if not self.refresh(now_ms):
             return False
         self._clock_ms = now_ms
+        if live and _active_calls(_dict(_dict(payload).get('own'))):
+            self._peak = int(self.call_brightness * 255)
         mode = _scene(payload, live, page, partner, weather_fresh)
+        scroll_changed = False
+        if mode == "caller":
+            ringing = [call for call in _active_calls(_dict(_dict(payload).get("own")))
+                       if call.get("state") == "ringing"]
+            call = ringing[0]
+            text = caller_text(call.get("peer_name"))
+            key = (str(call.get("id") or '')[:80], text)
+            if key != self._scroll_key:
+                self._scroll_key = key
+                self._scroll_columns = columns(text)
+                self._scroll_position = 0
+                self._scroll_next = now_ms + 1000
+                scroll_changed = True
+        else:
+            self._scroll_key = None
         # A native LCD frame can run at every async yield. Keep one animation
         # goal stable until it commits, otherwise a breathing frame can change
         # faster than the bytewise transfer ever finishes. Source/scene and
         # configured-brightness changes still supersede the old goal at once.
-        if self._goal_pending and mode == self.last_mode and self._peak == self._goal_peak:
+        if self._goal_pending and mode == self.last_mode and self._peak == self._goal_peak and not scroll_changed:
             return True
         frame = None
         peak = self._peak
-        if mode == "heart":
+        if mode == "caller":
+            if now_ms >= self._scroll_next and not scroll_changed:
+                self._scroll_position = (self._scroll_position + 1) % len(self._scroll_columns)
+                self._scroll_next = now_ms + (1000 if self._scroll_position == 0 else 180)
+            frame = ('text', peak, self._scroll_key, self._scroll_position)
+        elif mode == "heart":
             phase = int(now_ms) % 1200
             large = 120 <= phase < 320 or 440 <= phase < 610
             glyph = "heart" if large else "heart_small"
@@ -308,13 +343,21 @@ class MatrixDisplay:
             return True
         # Semantic changes (including stale/live) are immediate. Animation
         # frames are capped to protect the shared firmware event loop.
-        if (self.last_mode == mode and self._peak == self._goal_peak and self._last_write_ms is not None
+        if (not scroll_changed and self.last_mode == mode and self._peak == self._goal_peak and self._last_write_ms is not None
                 and 0 <= now_ms - self._last_write_ms < 125):
             return True
         self._packet[1:] = self._zero
         glyph, level = frame[:2]
-        for index in _PIXELS[glyph]:
-            self._packet[index + 1] = level
+        if mode == 'caller':
+            for x in range(WIDTH):
+                bits = self._scroll_columns[(x + self._scroll_position) % len(self._scroll_columns)]
+                for y in range(7):
+                    index = GRID[(y + 1) * WIDTH + x]
+                    if bits & (1 << y) and index >= 0:
+                        self._packet[index + 1] = level
+        else:
+            for index in _PIXELS[glyph]:
+                self._packet[index + 1] = level
         if mode == "rain" and frame[2]:
             # Alternate only the bottom rain strokes, preserving the cloud.
             for x in (3, 6, 9, 12, 15):
@@ -381,6 +424,8 @@ class MatrixDisplay:
                                 self._goal_pending = False
                                 self.frames_written += 1
                                 self.displayed_mode = self.last_mode
+                                if self.last_mode == 'caller':
+                                    self._scroll_next = self._clock_ms + (1000 if self._scroll_position == 0 else 180)
                                 break
                         else:
                             value = self._packet[index + 1]
