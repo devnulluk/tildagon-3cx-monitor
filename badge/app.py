@@ -16,6 +16,7 @@ from tildagonos import tildagonos
 from .controller import Controller, call_colour, call_label
 from .demo import SCENARIOS, snapshot
 from .http_client import get_json, post_json, StateClient, ClockError, TLSError, HTTPError
+from .clock_sync import ClockSync, clock_valid, sync_clock
 from .controls import ControlButtons, ControlQueue, initials, own_colour
 from .expansions import ExpansionManager
 from .idle import IdlePages, data_fresh
@@ -506,6 +507,7 @@ class ThreeCXMonitor(app.App):
             return
         import wifi
         import async_helpers
+        clock_sync = ClockSync()
         ca_file = str(base_config.get("ca_file") or "ca.der")
         if not ca_file.startswith("/"):
             ca_file = __file__.replace("\\", "/").rsplit("/", 1)[0] + "/" + ca_file
@@ -517,6 +519,7 @@ class ThreeCXMonitor(app.App):
             generation, target, queue = self._network_generation, self.controller, self.controls
             try:
                 if not wifi.status():
+                    clock_sync.disconnected()
                     target.failed("CONNECTING WI-FI")
                     wifi.connect()
                     if not await wifi.async_wait(10):
@@ -525,6 +528,17 @@ class ThreeCXMonitor(app.App):
                         await asyncio.sleep(3)
                         continue
                 if not self._network_current(generation, target):
+                    continue
+                if clock_sync.due(self._now()):
+                    if not clock_valid():
+                        target.failed("SYNCING CLOCK")
+                    synced = await async_helpers.unblock(sync_clock, self._network_yield)
+                    clock_sync.attempted(self._now(), synced)
+                    if not self._network_current(generation, target):
+                        continue
+                if not clock_valid():
+                    target.failed("CLOCK SYNC FAILED")
+                    await asyncio.sleep(3)
                     continue
                 intent = queue.take()
                 if intent:

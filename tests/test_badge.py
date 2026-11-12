@@ -260,6 +260,10 @@ def app_runtime():
     app_module = importlib.util.module_from_spec(spec)
     with patch.dict(sys.modules, modules):
         spec.loader.exec_module(app_module)
+    # The generic UI fixture has no RTC or NTP hardware. Clock policy has its
+    # own tests; networking tests start from a synchronized clock.
+    app_module.clock_valid = lambda: True
+    app_module.sync_clock = lambda: True
     return app_module, hw
 
 

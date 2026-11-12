@@ -1,4 +1,8 @@
-# Validation: badge 0.12.0 / bridge 0.6.0
+# Validation: badge 0.12.1 / bridge 0.6.0
+
+## Version 0.12.1 automatic clock recovery
+
+All 696 tests passed in 70.545 seconds. Clock-policy tests cover reconnects, retry cooldown, NTP failure, invalid results and loss of a previously valid clock. The native test reset the RTC to 2000 immediately before app launch, without a host time-setting command afterward. Version 0.12.1 restored the year to 2026 through NTP and resumed authenticated live state and fresh weather. Demo was off, the app focused, keyboard/EEH ready and brightness preserved. USB was detached cleanly afterward. This tests clock recovery on one physical badge; it does not guarantee access to NTP on every network.
 
 ## Version 0.12 railway clocks
 

@@ -22,7 +22,7 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 - A personal caller celebration, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.12.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.12.1** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
 
 ## On-device demo tour
 
@@ -105,3 +105,7 @@ python -m compileall -q badge bridge
 ```
 
 The [media notes](docs/gallery/README.md) explain how screenshots and animations were captured. [Artwork provenance](artwork/README.md) includes the photographic background's generation prompt. MIT licence; independent visual homages and original art, with no affiliation to the referenced watch or character brands.
+
+## Automatic clock recovery
+
+After Wi-Fi connects, the app synchronizes the UTC clock using the firmware NTP client. Failed attempts retry once a minute; an already valid clock lets monitoring continue. An unset clock keeps verified HTTPS paused until time sync succeeds. The network must permit NTP (UDP port 123). TLS certificate and hostname verification remain enabled.
