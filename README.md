@@ -22,7 +22,7 @@ Neon Orrery, Mondaine and Great British Railways now fill the round display,
 with 19% larger dial geometry and no outer theme/status margin. Neon's lower
 complications have been rearranged to keep the enlarged readout clear.
 
-## Matrix caller initials, version 0.14.1
+## Matrix caller initials, version 0.14.2
 
 ![External caller scrolling and partner heart, simulator diagram](docs/gallery/matrix-caller.gif)
 
@@ -75,7 +75,7 @@ name line. Public previews use invented names; personal details stay local.
 - A waving bunny for your configured partner, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.14.1** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.14.2** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
 
 ## On-device demo tour
 

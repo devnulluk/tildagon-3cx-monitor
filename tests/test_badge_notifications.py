@@ -84,6 +84,7 @@ class BadgeNotificationTests(unittest.TestCase):
         value['own'].update(state='ringing',calls=[incoming])
         monitor.update(0)
         self.assertIn('Backup completed',self.texts(monitor))
+
         incoming['priority']=True
         value=self.source(monitor,alert=incoming)
         value['own'].update(state='ringing',calls=[incoming])
@@ -94,6 +95,30 @@ class BadgeNotificationTests(unittest.TestCase):
         value['own'].update(state='idle',calls=[])
         monitor.update(0)
         self.assertIn('Backup completed',self.texts(monitor))
+
+    def test_urgent_ring_full_red_and_eeh_slow_breathe_restore_after_dismiss(self):
+        module,monitor,hardware=self.monitor()
+        monitor.controller.ring_brightness=.15
+        monitor.controller.eeh_brightness=.03
+        self.source(monitor,[fixtures.item(priority=5)])
+        with patch.object(monitor.expansions,'write_own_status') as write:
+            monitor._write_leds()
+            self.assertEqual(hardware.leds[1:13],[(255,0,0)]*12)
+            self.assertEqual(write.call_args.args[0],(64,0,0))
+            self.assertFalse(write.call_args.kwargs['heartbeat'])
+            self.advance(module,monitor,2000)
+            monitor._write_leds()
+            self.assertEqual(write.call_args.args[0],(255,0,0))
+            self.advance(module,monitor,2000)
+            monitor._write_leds()
+            self.assertEqual(hardware.leds[1:13],[(255,0,0)]*12)
+            self.assertEqual(write.call_args.args[0],(64,0,0))
+            monitor._notification_key('C')
+            monitor._write_leds()
+            self.assertNotEqual(hardware.leds[1:13],[(255,0,0)]*12)
+            self.assertLessEqual(max(write.call_args.args[0]),8)
+        self.assertEqual(monitor.controller.ring_brightness,.15)
+        self.assertEqual(monitor.controller.eeh_brightness,.03)
 
     def test_urgent_can_be_dismissed_during_normal_call_and_still_honours_expiry(self):
         module, monitor, unused=self.monitor()

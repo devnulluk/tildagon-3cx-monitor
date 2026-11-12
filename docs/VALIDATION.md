@@ -1,4 +1,20 @@
-# Validation: badge 0.14.1 / bridge 0.6.0
+# Validation: badge 0.14.2 / bridge 0.6.0
+
+## Version 0.14.2: urgent red indicators
+
+All713 automated checks passed in72.403seconds. New checks verify a steady
+full-red ring beyond the initial popup, full/minimum EEH pulse levels, absence
+of green/blue channels, four-second periodicity and bounded small envelope
+steps, plus dismissal restoring saved brightness. Priority calls still preempt.
+
+Changed badge files were installed and read-back bytes matched. Physical
+sampling confirmed steady full-red ring targets and varying red-only EEH
+targets, with live/focused app, fresh weather and all expansions ready. These
+are software-programmed values, not optical brightness or hardware PWM
+measurements. The first120-second test expired during the observation; the
+longer repeat collected a full sampling window. No real telephone calls were
+placed. The deliberately slow0.25Hz continuous envelope is not a guarantee of
+safety for photosensitive viewers. See the notification guide for limits.
 
 ## Version 0.14.1: static internal initials and urgent notifications
 

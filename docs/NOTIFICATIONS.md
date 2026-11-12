@@ -58,6 +58,17 @@ when that call finishes. Normal calls and team ringing do not replace the card.
 Call LEDs and the matrix retain their call indications. Manual settings and
 telephone action confirmations remain accessible. Press C or joystick centre to
 dismiss; lower-priority notifications retain the normal timeout and call rules.
+While an urgent card is visible, all twelve badge LEDs hold solid red at255,
+overriding the saved ring level. The EEH logo breathes in red from64 to255 and
+back over four seconds (0.25Hz), without switching off or using the partner
+heartbeat pattern. Saved brightness levels return on dismissal/expiry; priority
+calls retain precedence. Showcase mode retains its existing brightness caps.
+
+The slow continuous envelope reduces abrupt modulation but is not a guarantee
+of safety for photosensitive people. Red modulation, viewing conditions and
+individual sensitivity matter. The underlying hardware PWM was not measured.
+See [Epilepsy Action guidance](https://www.epilepsy.org.uk/info/seizure-triggers/photosensitive-epilepsy).
+
 Use `ttl_seconds: 86400` for up to 24 hours. Expiry and dismissal are never reset
 by updates with the same ID.
 

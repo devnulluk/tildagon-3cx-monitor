@@ -20,6 +20,15 @@ def item(key="fixture-1", **values):
 
 
 class InboxTests(unittest.TestCase):
+    def test_urgent_red_breathing_is_slow_continuous_bounded_and_periodic(self):
+        colours=[notifications.urgent_eeh_colour(t) for t in range(0,8001,20)]
+        self.assertEqual(min(c[0] for c in colours),64)
+        self.assertEqual(max(c[0] for c in colours),255)
+        self.assertTrue(all(c[1:]==(0,0) for c in colours))
+        self.assertTrue(all(abs(a[0]-b[0])<=4 for a,b in zip(colours,colours[1:])))
+        self.assertEqual(colours[0],colours[200])
+        self.assertEqual(colours[100],(255,0,0))
+
     def test_source_and_local_elapsed_age_expire_at_the_original_deadline(self):
         inbox = notifications.NotificationInbox()
         self.assertTrue(inbox.observe([item(ttl_seconds=10, age_seconds=2)], 1000))

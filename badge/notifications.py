@@ -380,6 +380,16 @@ def draw_notification(ctx, item, now_ms, entered_ms, theme_id="original"):
     return True
 
 
+def urgent_eeh_colour(elapsed_ms):
+    """Slow 4s red breathing cycle, 25%-100%; never an on/off strobe.
+
+    This limits the programmed modulation, not a medical safety certification
+    or a measurement of the LEDs' underlying PWM frequency.
+    """
+    phase = (_time(elapsed_ms) % 4000) * (2 * math.pi / 4000)
+    return (round(159.5 - 95.5 * math.cos(phase)), 0, 0)
+
+
 def led_frame(item, now_ms, brightness):
     """Twelve RGB indicators, capped at25% and never above user brightness."""
     item = _notification(item)

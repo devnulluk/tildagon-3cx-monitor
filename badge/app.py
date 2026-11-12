@@ -31,7 +31,7 @@ from .astronomy import sky_snapshot
 from .astro_faces import draw_astro_face
 from .matrix import MatrixDisplay
 from .love import partner_call, partner_active, draw_love, draw_bunny
-from .notifications import NotificationInbox, draw_notification, led_frame as notification_leds
+from .notifications import NotificationInbox, draw_notification, led_frame as notification_leds, urgent_eeh_colour
 from .space_inputs import SpaceInputs
 from .showcase import Showcase, snapshot as showcase_snapshot, demo_config as showcase_config
 
@@ -363,7 +363,10 @@ class ThreeCXMonitor(app.App):
     def _write_leds(self):
         frame = self.controller.led_frame(self._now())
         notification = self._visible_notification(self.clock_ms)
-        if notification and self.clock_ms - self._notification_entered < 2500:
+        urgent = notification is not None and notification.get("priority") == 5
+        if urgent:
+            frame = [(255, 0, 0)] * 12
+        elif notification and self.clock_ms - self._notification_entered < 2500:
             frame = notification_leds(notification, self.clock_ms, self.controller.ring_brightness)
         if self.showcase is not None:
             ceiling = int(255 * self.controller.ring_brightness)
@@ -376,6 +379,9 @@ class ThreeCXMonitor(app.App):
         payload, live = self._status_payload(), self.controller.live(self.clock_ms)
         partner = partner_active(payload, live, self.config, self.demo_mode)
         own_rgb = own_colour(payload, live, self.clock_ms, self.controller.eeh_brightness)
+        if urgent:
+            own_rgb = urgent_eeh_colour(self.clock_ms - self._notification_entered)
+            partner = False
         if self.showcase is not None:
             ceiling = int(255 * self.controller.eeh_brightness)
             own_rgb = tuple(min(channel, ceiling) for channel in own_rgb)

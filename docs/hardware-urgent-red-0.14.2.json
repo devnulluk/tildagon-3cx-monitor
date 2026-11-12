@@ -1,0 +1,15 @@
+{
+  "version": "0.14.2",
+  "live": true,
+  "focused": true,
+  "eeh_ready": true,
+  "samples": 50,
+  "ring_full_red_all_samples": true,
+  "eeh_red_min": 65,
+  "eeh_red_max": 255,
+  "green_blue_zero_all_samples": true,
+  "programmed_cycle_ms": 4000,
+  "saved_ring_brightness": 0.2,
+  "saved_eeh_brightness": 0.03,
+  "limits": "Programmed values on physical badge, not optical brightness or PWM measurements; not a medical safety certification."
+}
