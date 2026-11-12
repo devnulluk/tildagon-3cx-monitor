@@ -9,14 +9,15 @@ import test_theme_integration as theme_fixture
 
 
 LUXURY = ("haute_celestial", "neon_orrery")
-ALL_CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus") + LUXURY
+ALL_CLOCKS = (("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus") + LUXURY
+              + ("mondaine", "great_british_railways"))
 
 
 class LuxuryClockIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.fixture = theme_fixture.ThemeIntegrationTests()
 
-    def test_all_nine_styles_are_reachable_in_existing_clock_settings_and_wrap(self):
+    def test_all_eleven_styles_are_reachable_in_existing_clock_settings_and_wrap(self):
         module, monitor, hardware, settings = self.fixture.monitor()
         self.fixture.key(module, monitor, "K")
         self.assertTrue(monitor.settings_open)
@@ -28,7 +29,7 @@ class LuxuryClockIntegrationTests(unittest.TestCase):
         self.fixture.key(module, monitor, "RIGHT")
         self.assertEqual(monitor.clock_style, "original")
         self.fixture.key(module, monitor, "LEFT")
-        self.assertEqual(monitor.clock_style, "neon_orrery")
+        self.assertEqual(monitor.clock_style, "great_british_railways")
         self.assertIsNone(monitor.controls.pending)
         self.assertEqual(settings.saves, 0)
 

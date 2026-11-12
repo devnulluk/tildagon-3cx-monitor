@@ -1,6 +1,6 @@
 # Clocks and sky
 
-Nine clock styles can be combined with any theme. Press **K**, choose with Left/Right, then Enter. The local clock uses the bridge's time-zone offset; astronomy uses UTC. Invalid time shows an unavailable readout rather than invented positions.
+Eleven clock styles can be combined with any theme. Press **K**, choose with Left/Right, then Enter. The local clock uses the bridge's time-zone offset; astronomy uses UTC. Invalid time shows an unavailable readout rather than invented positions.
 
 ![Animated clock collection](docs/gallery/clocks.gif)
 
@@ -19,6 +19,36 @@ Nine clock styles can be combined with any theme. Press **K**, choose with Left/
 | Corpus / Time Eater | Brass ripples, three blue light rings and an animated escapement creature |
 | Celestial Atelier | A photographic celestial dial with large native time and a computed moon complication |
 | Neon Orrery | Luminous orbital instrumentation, a large digital readout and a computed lunar complication |
+| Mondaine | White railway dial, black batons and red lollipop seconds with a two-second pause at twelve |
+| Great British Railways | Bold 24-hour digits, twin red perimeter rails and counter-running arrows |
+
+## Mondaine and Great British Railways
+
+![Mondaine](docs/gallery/clock-mondaine.png)
+![Great British Railways](docs/gallery/clock-great_british_railways.png)
+
+![Animated railway clock pair](docs/gallery/clocks-rail.gif)
+
+[Play the railway clocks video](docs/gallery/clocks-rail.mp4)
+
+The Mondaine-inspired face follows the distinctive
+[stop2go movement](https://mondaine.com/pages/stop2go): the red hand completes its
+sweep in 58 seconds, rests at twelve for two seconds, and the minute hand then
+advances. Its clean analogue dial uses large black hour/minute hands and a red
+lollipop tip rather than squeezing in a second digital clock.
+
+The Great British Railways-inspired face follows Network Rail's new
+[Rail Clock design](https://www.networkrail.co.uk/wp-content/uploads/2021/06/NRGNCIV30008_Rail_Clock_v1.pdf):
+white 24-hour HH:MM on black, surrounded by two red rails. The arrows travel in
+opposite directions and meet at the top and bottom every thirty seconds. The
+badge uses its built-in font rather than distributing Rail Alphabet Two.
+
+Both are independent native-vector interpretations, with no claim of official
+affiliation. They use the supplied local time, including fractional-second motion;
+invalid time shows an unavailable readout and does not invent hand positions.
+They work with every theme and are included in the continuous demonstration.
+Calls and source failures interrupt them through the normal monitor rules.
+No additional bitmap, microSD card or network request is needed.
 
 ## Celestial Atelier and Neon Orrery
 
@@ -48,7 +78,7 @@ is drawn.
 ## Original clock collection
 
 The collection animation above shows the original seven styles. The separate
-celestial-pair animation shows the two additions.
+celestial-pair and railway-pair animations show the four later additions.
 
 ![Corpus-inspired clock](docs/gallery/clock-corpus.png)
 

@@ -14,7 +14,7 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 - Large own caller ID with wrapping; exact company/personal 3CX contact lookup when enabled.
 - Allowlisted speed dials and DND with a keyboard expansion and a separate control token.
 - Independent ring and East Essex logo brightness, saved locally; priority calls override those two levels temporarily.
-- Thirteen themes, automatic seasonal/personal occasions, December Advent, and nine interchangeable clocks.
+- Thirteen themes, automatic seasonal/personal occasions, December Advent, and eleven interchangeable clocks.
 - An on-device **DEMO** showcase covering themes, clocks and features, with isolated synthetic data and no phone commands.
 - Weather, next-hour rain, moon phase and animated meteor calendar pages during quiet periods. Call activity interrupts them immediately.
 - Rich Apprise/ntfy notification cards with local icons, severity colours and progress updates. Calls take precedence over notification cards.
@@ -22,24 +22,37 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 - A personal caller celebration, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.11.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.12.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
 
 ## On-device demo tour
 
 Press **D** on the keyboard, or choose **DEMO** in settings. The badge shows every
-feature in each theme before moving to the next: **521 scenes**, all nine clocks
-per theme, and a **43m25s** loop. **C** pauses; **F** exits and resumes monitoring.
+feature in each theme before moving to the next: **547 scenes**, all eleven clocks
+per theme, and a **45m35s** loop. **C** pauses; **F** exits and resumes monitoring.
 Your normal appearance and private configuration return when the tour ends.
 
 ![Abbreviated production showcase, official simulator with manual scene cuts](docs/gallery/showcase.gif)
 
 [Watch the short preview](docs/gallery/showcase.mp4) · [Controls and full tour](docs/SHOWCASE.md)
 
+## Railway clocks
+
+![Mondaine and Great British Railways, official simulator with synthetic data](docs/gallery/clocks-rail.gif)
+
+[Mondaine screenshot](docs/gallery/clock-mondaine.png) · [Great British Railways screenshot](docs/gallery/clock-great_british_railways.png) · [Watch the railway clocks](docs/gallery/clocks-rail.mp4) · [All eleven clocks](CLOCKS.md)
+
+Mondaine has a crisp white dial, black batons and the red lollipop seconds hand,
+including its 58-second sweep and two-second stop at twelve. Great British
+Railways follows the new Rail Clock: bold 24-hour time on black, with two red
+perimeter rails and opposing arrows meeting every thirty seconds. Both are
+drawn with native vector geometry and need no SD card or downloaded assets.
+Press **K** to choose a clock; both also appear in every theme's demo tour.
+
 ## Celestial clocks
 
 ![Celestial Atelier and Neon Orrery, official simulator with synthetic data](docs/gallery/clocks-atelier.gif)
 
-[Celestial Atelier screenshot](docs/gallery/clock-haute_celestial.png) · [Neon Orrery screenshot](docs/gallery/clock-neon_orrery.png) · [Watch the MP4](docs/gallery/clocks-atelier.mp4) · [All nine clocks](CLOCKS.md)
+[Celestial Atelier screenshot](docs/gallery/clock-haute_celestial.png) · [Neon Orrery screenshot](docs/gallery/clock-neon_orrery.png) · [Watch the MP4](docs/gallery/clocks-atelier.mp4) · [All eleven clocks](CLOCKS.md)
 
 Celestial Atelier combines verified local dial artwork with native time and moon
 complications; Neon Orrery uses luminous vector orbital instrumentation. Both are

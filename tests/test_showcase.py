@@ -35,15 +35,15 @@ class ShowcaseSequenceTests(unittest.TestCase):
     def test_every_theme_has_every_clock_and_the_complete_feature_set_before_next_theme(self):
         show = engine()
         self.assertEqual(len(show.themes), 13)
-        self.assertEqual(len(show.clocks), 9)
-        self.assertEqual(show.count, 521)
-        self.assertEqual(show.count * show.step_ms, 2605000)
+        self.assertEqual(len(show.clocks), 11)
+        self.assertEqual(show.count, 547)
+        self.assertEqual(show.count * show.step_ms, 2735000)
         expected_features = {"intro", "weather", "rain", "clock", "moon", "meteors", "team",
                              "team_detail", "call", "notification", "presence", "settings"}
         seen_order, last = [], None
         for key, name, available in show.themes:
             stages = [show.stage(index) for index in range(show.count) if show.stage(index)["theme"] == key]
-            self.assertEqual(len(stages), 41 if key == "christmas" else 40)
+            self.assertEqual(len(stages), 43 if key == "christmas" else 42)
             self.assertEqual(stages[0]["feature"], "intro")
             self.assertEqual({stage["clock"] for stage in stages if stage["feature"] == "clock"}, set(clocks.CLOCKS))
             self.assertEqual({stage["weather_kind"] for stage in stages if stage["feature"] == "weather"},

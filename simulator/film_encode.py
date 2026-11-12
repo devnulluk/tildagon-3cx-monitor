@@ -92,7 +92,7 @@ def encode(directory):
                           "-level:v", "3.1", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
                           "-movflags", "+faststart", "-an", str(output)])
     gif = output.with_suffix(".gif")
-    gif_limit = 60 if abbreviated else 32 if capture.get("showcase") == "atelier" else 42 if capture.get("showcase") in ("themes", "notifications") else 18
+    gif_limit = 60 if abbreviated else 32 if capture.get("showcase") in ("atelier", "rail") else 42 if capture.get("showcase") in ("themes", "notifications") else 18
     gif_duration = min(duration, gif_limit)
     gif_width = 480 if view == "lcd" else 780
     filters = ("fps=10,scale=%d:-1:flags=lanczos,split[s0][s1];" % gif_width
@@ -150,6 +150,24 @@ def encode(directory):
         result.update(production_showcase=True, abbreviated_showcase=True, manual_feature_jumps=True,
                       complete_device_showcase=False, idle_waits_skipped=False,
                       stage_selection_api="app._showcase_seek", startup_api="app._start_showcase")
+    if capture.get("showcase") == "rail":
+        observed = {}
+        for frame in frames:
+            clock = frame.get("clock_style")
+            local_time = frame.get("synthetic_local_time")
+            if clock and local_time:
+                values = observed.setdefault(clock, [])
+                if local_time not in values:
+                    values.append(local_time)
+        result.update(explicit_face_cuts=True, synthetic_time_at_scene_start=frames[0].get("synthetic_local_time"),
+                      explicit_synthetic_time_cuts=[{'at': event['at'], 'time': event['synthetic_time']}
+                                                    for event in capture.get('events', [])
+                                                    if event.get('synthetic_time')],
+                      observed_synthetic_times=observed,
+                      stop2go_boundary_observed=all(value in observed.get("mondaine", [])
+                                                   for value in ("10:08:58", "10:08:59", "10:09:00")),
+                      rail_30_second_boundary_observed=all(value in observed.get("great_british_railways", [])
+                                                          for value in ("10:09:29", "10:09:30", "10:09:31")))
     output.with_suffix(".json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
 

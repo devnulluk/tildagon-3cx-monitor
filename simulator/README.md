@@ -60,6 +60,8 @@ The side panel is a labelled hexpansion diagram. `-MatrixDemo` adds a simulated 
 .\Launch-Simulator.ps1 -Page clock -ClockStyle corpus -DemoDate 2026-12-12
 .\Launch-Simulator.ps1 -Page weather -Theme christmas -WeatherKind snow -Screenshot -OutputPath .\preview.png
 .\Launch-Simulator.ps1 -Page clock -ClockStyle celestial -Screenshot -OutputPath .\celestial.png
+.\Launch-Simulator.ps1 -Page clock -ClockStyle mondaine -Screenshot -OutputPath .\mondaine.png
+.\Launch-Simulator.ps1 -Page clock -Showcase rail -Record .\clocks-rail.mp4 -Seconds 28 -GalleryStills -MatrixDemo
 .\Launch-Simulator.ps1 -Record .\clocks.mp4 -Showcase clocks -Seconds 28
 .\Launch-Simulator.ps1 -Page clock -ClockStyle corpus -Record .\corpus.mp4 -Showcase idle -Seconds 8
 .\Launch-Simulator.ps1 -Record .\calls.mp4 -Showcase calls -Seconds 16 -PartnerDemo -MatrixDemo -GalleryStills
@@ -70,6 +72,14 @@ The side panel is a labelled hexpansion diagram. `-MatrixDemo` adds a simulated 
 The Python entry point supports the same options; replace the PowerShell spellings with `--idle-page`, `--clock-style`, `--demo-date`, `--theme`, `--weather-kind`, `--screenshot`, `--output`, `--record`, `--showcase`, `--seconds`, `--action`, `--partner-demo` and `--matrix-demo`. Headless captures require `SDL_VIDEODRIVER=dummy`, which the PowerShell wrapper sets automatically. An interactive window requires a normal desktop display.
 
 Video output includes H.264 MP4, GIF, poster, contact sheet and JSON metadata. `-GalleryStills` with `-Record` also exports each scene's real midpoint frame. Frames come from the actual official renderer; capture timing is preserved, with no motion interpolation or generated UI frames. Recording performance does not establish physical badge FPS.
+
+The `rail` showcase spends fourteen seconds on Mondaine and fourteen on Great
+British Railways. Its synthetic local clock starts at 10:08:52 after boot so the
+first face shows its two-second pause at twelve and the minute-hand advance.
+The second face makes a labelled synthetic time cut to 10:09:22 so its arrows
+meet at thirty seconds within the same short film.
+The GIF retains the full pair. `-ClockStyle great_british_railways` selects the
+British face for a standalone preview. This fixture never sets the badge's RTC.
 
 The calls showcase reaches the synthetic priority partner scene and exports its heartbeat/matrix-heart still. A single `-Action ENTER` from an idle page reaches the first DDI scene; continue pressing Enter to cycle the remaining call types.
 

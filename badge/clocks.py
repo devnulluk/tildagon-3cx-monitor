@@ -7,9 +7,10 @@ renderer exactly. Moon phase is supplied astronomy, never a decorative guess.
 import math
 from .clock_haute import draw as _haute_celestial
 from .clock_cyber import draw as _neon_orrery
+from .clock_rail import draw_mondaine as _mondaine, draw_gbr as _great_british_railways
 
-CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus", "haute_celestial", "neon_orrery")
-_NAMES = ("Original", "Celestial", "Tokyo Code", "Orbital Radar", "Flip Station", "Clean Analogue", "Corpus / Time Eater", "Celestial Atelier", "Neon Orrery")
+CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus", "haute_celestial", "neon_orrery", "mondaine", "great_british_railways")
+_NAMES = ("Original", "Celestial", "Tokyo Code", "Orbital Radar", "Flip Station", "Clean Analogue", "Corpus / Time Eater", "Celestial Atelier", "Neon Orrery", "Mondaine", "Great British Railways")
 TAU = math.pi * 2
 _DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 _MONTHS = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
@@ -358,7 +359,8 @@ def _corpus(ctx, value, elapsed, now, palette, sky):
 
 _DRAWERS = {"celestial": _celestial, "tokyoflash": _tokyo, "radar": _radar,
             "flip": _flip, "analogue": _analogue, "corpus": _corpus,
-            "haute_celestial": _haute_celestial, "neon_orrery": _neon_orrery}
+            "haute_celestial": _haute_celestial, "neon_orrery": _neon_orrery,
+            "mondaine": _mondaine, "great_british_railways": _great_british_railways}
 
 
 def draw_clock_content(ctx, style, weather, local, elapsed_ms, now_ms, palette=None, sky=None, artwork=None):

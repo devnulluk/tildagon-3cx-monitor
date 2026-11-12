@@ -70,7 +70,10 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
         elif feature == "clock":
             local = monitor._local_weather_time(payload["weather"], 0)
             clock = "%02d:%02d" % (local[3], local[4])
-            if stage["clock"] == "original" and stage["theme"] == "retro":
+            if stage["clock"] == "mondaine":
+                self.assertIn("MONDAINE", words)
+                self.assertGreaterEqual(sum(name == "line_to" for name, args in canvas.operations), 60)
+            elif stage["clock"] == "original" and stage["theme"] == "retro":
                 months = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
                 self.assertIn("%02d %s %04d" % (local[2], months[local[1] - 1], local[0]), words)
                 self.assertGreaterEqual(sum(name == "rectangle" for name, args in canvas.operations), 8)

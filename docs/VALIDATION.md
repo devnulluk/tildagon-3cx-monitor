@@ -1,6 +1,52 @@
-# Validation: badge 0.11.0 / bridge 0.6.0
+# Validation: badge 0.12.0 / bridge 0.6.0
 
-## Automated and simulator checks
+## Version 0.12 railway clocks
+
+All **691 automated tests passed in 68.584 seconds**. The new checks verify
+Mondaine's 58-second sweep, two-second dwell and stepped minute; GBR's opposed
+arrows and half-minute meetings; native path/primitive bounds; invalid and
+fractional time; saved display preferences; and interruption by calls or an
+unavailable source. Both faces appear in every theme's isolated demo without
+saving synthetic preferences or submitting telephone commands.
+
+The expanded showcase has **547 stages** across thirteen themes and eleven
+clocks: 42 stages per theme plus Christmas Advent, including **143 theme/clock
+pairs**. Its default uninterrupted loop is **45 minutes 35 seconds**. Automated
+checks traverse every stage; this is not a claim of a new full-duration native
+tour.
+
+The official SDL/ctx [railway film](../CLOCKS.md) contains **421 actual captured
+frames over 28.004306 seconds**. The MP4 fully decodes; the complete GIF contains
+280 frames over 28 seconds. All 28 recorded runtime/asset hashes match the frozen
+capture source. Native-LCD crops and full-window stills were visually reviewed.
+Actual Mondaine dial pixels at 10:08:58 and 10:08:59 are identical, then change
+at 10:09:00 when the minute hand advances. The GBR segment explicitly cuts its
+synthetic clock to 10:09:22 and shows the arrows meeting at 10:09:30; frames on
+either side were checked. These are synthetic simulator time
+fixtures, not camera footage or a physical hardware frame-rate measurement.
+
+The **28-file runtime update was read back and byte-verified** on the physical
+Spaceagon, preserving its private configuration and TLS trust root. A native
+display-only probe then rendered **66 tour stages and 18 injected time-boundary
+cases**, covering both railway faces in all thirteen themes and the original
+theme's full feature block. It completed **168 native frames over 40 seconds**,
+with zero render errors or missing cases. The boundaries include 58/59/00,
+29/30, midnight and unavailable time.
+
+During that synthetic probe there were zero telephone write attempts and zero
+new bridge reads. Exit restored the original configuration, controller and
+appearance, and live monitoring resumed. Keyboard, Spaceagon inputs, EEH Logo
+and matrix were ready throughout the final report. These are accelerated
+coverage checks, not a 45-minute endurance run or proof of a real incoming call.
+Heap snapshots were 1,329,888 bytes before and 1,145,072 afterward, with a sampled
+uncollected minimum of 370,960; they do not establish long-term memory stability.
+
+A separate clean startup left **Mondaine selected and saved**, with live
+monitoring active and demo mode off. The clock preview was visible, the app was
+focused, all attached inputs/displays were ready, and the saved ring/EEH levels
+remained 15% and 3%. The USB session was released cleanly after this report.
+
+## Previous automated and simulator checks: version 0.11
 
 All **680 automated tests pass**. The full suite completed in 70.407 seconds.
 It covers bridge transport/authentication, allowlisted phone controls, one-shot

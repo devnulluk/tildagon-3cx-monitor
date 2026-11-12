@@ -8,7 +8,7 @@ This preview makes explicit manual jumps between representative scenes. The
 badge's normal tour follows every stage in order and loops without those cuts.
 
 The showcase runs the badge's real renderers with invented data. It walks through
-the built-in themes, all nine clocks, weather and rain conditions, lunar/meteor
+the built-in themes, all eleven clocks, weather and rain conditions, lunar/meteor
 pages, Advent, team status, caller-ID variants, notifications, presence and
 settings. Every page is labelled **DEMO**. Partner names, example numbers,
 locations and occasion dates come from isolated fixtures, not your configuration.
@@ -44,10 +44,14 @@ all five rows without changing or saving their values. The photographic theme an
 use the same verified local assets and fallback behavior as normal operation.
 Optional EEH and Liteloop displays use their existing drivers when present.
 
-The thirteen built-in themes have **521 stages**: 40 per theme, plus Christmas
-Advent. At five seconds per stage, an uninterrupted full loop takes **43 minutes
-25 seconds**. It loops continuously; pause, skip a scene or jump to another theme
+The thirteen built-in themes have **547 stages**: 42 per theme, plus Christmas
+Advent. At five seconds per stage, an uninterrupted full loop takes **45 minutes
+35 seconds**. It loops continuously; pause, skip a scene or jump to another theme
 at any point.
+
+The preview above was recorded with version 0.11's nine-clock, 521-stage tour.
+Version 0.12 adds Mondaine and Great British Railways to each theme's clock block;
+the [railway clock film](../CLOCKS.md) shows those additions separately.
 
 ## Separation from live monitoring
 

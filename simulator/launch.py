@@ -22,14 +22,16 @@ CLOCK_STYLES = (("original", "Original"), ("celestial", "Celestial"),
                 ("flip", "Flip"), ("analogue", "Analogue"),
                 ("corpus", "Corpus Time Eater"),
                 ("haute_celestial", "Celestial Atelier"),
-                ("neon_orrery", "Neon Orrery"))
+                ("neon_orrery", "Neon Orrery"),
+                ("mondaine", "Mondaine"),
+                ("great_british_railways", "Great British Railways"))
 parser = argparse.ArgumentParser()
 parser.add_argument("--screenshot", action="store_true")
 parser.add_argument("--record", "--video", type=Path, help="Record actual DEMO renderer frames to an MP4, GIF preview and contact sheet")
 parser.add_argument("--seconds", type=float, default=24, help="Bounded recording duration (1..60 real seconds)")
 parser.add_argument("--video-fps", type=int, default=15, help="Maximum capture sampling rate (5..30), not device FPS")
 parser.add_argument("--record-view", choices=["lcd", "window"], default="lcd")
-parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "atelier", "sky", "notifications", "feature-demo"], default="tour")
+parser.add_argument("--showcase", choices=["idle", "tour", "calls", "themes", "clocks", "atelier", "rail", "sky", "notifications", "feature-demo"], default="tour")
 parser.add_argument("--feature-demo", action="store_true",
                     help="Start the app's production showcase; recordings explicitly abbreviate it with manual feature jumps")
 parser.add_argument("--feature-stage", type=int,
@@ -71,6 +73,9 @@ if options.feature_demo:
 if options.showcase == "atelier":
     options.demo_date = options.demo_date or "2026-12-12"
     options.demo_time = options.demo_time or "10:08:30"
+if options.showcase == "rail":
+    options.demo_date = options.demo_date or "2026-12-12"
+    options.demo_time = options.demo_time or "10:08:52"
 if options.notification:
     options.keyboard = True
     options.idle_page = options.idle_page or "weather"
@@ -139,10 +144,15 @@ if options.record:
         scenes = [dict(page="moon", kind="night", date="2026-12-12", label="Moon / calendar demonstration"),
                   dict(page="meteors", kind="night", date="2026-12-12", label="Meteors / Geminids season"),
                   dict(page="moon", kind="night", date="2026-12-20", label="Moon / later calendar date")]
-    elif options.showcase in ("clocks", "atelier"):
+    elif options.showcase in ("clocks", "atelier", "rail"):
         scenes = [dict(page="clock", clock=key, kind="night", label="Clock / " + label)
                   for key, label in CLOCK_STYLES
-                  if options.showcase == "clocks" or key in ("haute_celestial", "neon_orrery")]
+                  if options.showcase == "clocks"
+                  or options.showcase == "atelier" and key in ("haute_celestial", "neon_orrery")
+                  or options.showcase == "rail" and key in ("mondaine", "great_british_railways")]
+        if options.showcase == "rail":
+            scenes[0].update(synthetic_time=options.demo_time)
+            scenes[1].update(synthetic_time="10:09:22", label="GBR / DEMO time cut")
     elif options.showcase == "themes":
         scenes = [dict(theme=key, page="weather", kind="clear", label="Theme / " + label)
                   for key, label in (("original", "Original"), ("christmas", "Christmas"), ("easter", "Easter"),
@@ -517,7 +527,7 @@ def feature_stage_metadata():
 
 def apply_film_event(event):
     """Change synthetic inputs, then let the production app draw each view."""
-    global film_label
+    global film_label, fixture_clock_started, demo_hms
     app = preview_app
     if app is None:
         return
@@ -529,6 +539,11 @@ def apply_film_event(event):
         film_label = event["label"]
         film_recorder.events.append(dict(event, at=round(film_recorder.elapsed(), 6)))
         return
+    if options.showcase == "rail" and event.get("synthetic_time"):
+        # Each explicitly labelled synthetic time cut then runs at real speed.
+        options.demo_time = event["synthetic_time"]
+        demo_hms = tuple(int(part) for part in options.demo_time.split(":"))
+        fixture_clock_started = host_time.monotonic()
     app.settings_open = False
     app.controller.detail_view = False
     app.controller.own_view = False
@@ -588,9 +603,9 @@ class PreviewMonitor(ThreeCXMonitor):
             idle = getattr(self, "idle_pages", None)
             if idle is None:
                 raise RuntimeError("The badge idle-page UI is not available yet")
-            if options.record and options.showcase == "atelier":
-                # This selective two-face film keeps each production clock on
-                # screen for14seconds; only the DEMO rotation dwell is extended.
+            if options.record and options.showcase in ("atelier", "rail"):
+                # These selective two-face films extend only DEMO rotation
+                # dwell, leaving animation timing and production drawing intact.
                 idle.rotate_ms = max(idle.rotate_ms, int(options.seconds * 1000) + 1000)
             requested_page = options.idle_page
             if options.component_theme and requested_page == "advent" and requested_page not in idle.pages:
@@ -638,12 +653,13 @@ latest_render_status = None
 gallery_stills_saved = set()
 notification_fixture_opened = False
 feature_started_frame = None
+rail_started_frame = None
 def side_text(text, y, size=20, colour=(220,230,240)):
     font = pygame.font.Font(None, size)
     _sim.screen.blit(font.render(text, True, colour), (755,y))
 def report_render():
     global frames, film_event_index, native_screenshot, latest_render_status, notification_fixture_opened
-    global feature_started_frame, film_plan
+    global feature_started_frame, rail_started_frame, film_plan
     if options.screenshot:
         native_screenshot = pygame.Surface((240, 240))
         native_screenshot.fill((0, 0, 0))
@@ -655,6 +671,10 @@ def report_render():
     app_ready = preview_app is not None and scheduler.app_is_foregrounded(preview_app) and not boot_overlay
     if options.screenshot and not app_ready:
         _sim.SCREENSHOT_DELAY = max(2, _sim.SCREENSHOT_DELAY)
+    if options.showcase == "rail" and film_recorder and app_ready and rail_started_frame is None:
+        apply_film_event(film_plan[0])
+        film_event_index = 1
+        rail_started_frame = frames
     if options.feature_demo and app_ready and feature_started_frame is None:
         if getattr(preview_app, "showcase", None) is None and not preview_app._start_showcase():
             raise RuntimeError("The production showcase did not start")
@@ -800,7 +820,8 @@ def report_render():
         with open(str(RUN / name),"w") as handle:
             json.dump(latest_render_status, handle)
     if (film_recorder is not None and app_ready and frames >= 8
-            and (not options.feature_demo or (feature_started_frame is not None and frames >= feature_started_frame + 2))):
+            and (not options.feature_demo or (feature_started_frame is not None and frames >= feature_started_frame + 2))
+            and (options.showcase != "rail" or (rail_started_frame is not None and frames >= rail_started_frame + 2))):
         if options.record_view == "lcd":
             recorded = pygame.Surface((240, 240))
             recorded.fill((0, 0, 0))
@@ -814,6 +835,12 @@ def report_render():
                     "settings": settings_open, "theme": options.theme, "clock_style": options.clock_style}
         metadata.update(notification_fixture=options.notification, notification_visible=bool(visible_notification),
                         notification_progress=visible_notification.get("progress") if visible_notification else None)
+        if options.showcase == "rail":
+            supplied_weather, supplied_fresh, supplied_elapsed = preview_app._weather(preview_app._now())
+            supplied_local = preview_app._local_weather_time(supplied_weather, supplied_elapsed)
+            metadata["synthetic_local_time"] = ("%02d:%02d:%02d" % tuple(supplied_local[3:6])
+                                                 if supplied_local else None)
+            metadata["clock_elapsed_ms"] = supplied_elapsed
         if options.feature_demo:
             metadata.update(production_showcase=True, abbreviated_showcase=True, manual_feature_jumps=True,
                             showcase_stage=feature_stage, theme=feature_stage["theme"],
@@ -839,6 +866,8 @@ def report_render():
                     stem = "theme-advent" if event.get("page") == "advent" else "theme-" + event["theme"]
                 elif options.showcase == "atelier":
                     stem = "clocks-atelier-" + event["clock"]
+                elif options.showcase == "rail":
+                    stem = "clock-" + event["clock"]
                 elif options.showcase == "clocks":
                     stem = "clock-" + event["clock"]
                 elif options.showcase == "sky":

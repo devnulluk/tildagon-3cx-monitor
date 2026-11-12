@@ -17,7 +17,7 @@ SPEC.loader.exec_module(clocks)
 LOCAL = (2026, 11, 12, 21, 7, 0, 3, 316)
 SKY = {"valid": True, "moon": {"phase_fraction": .25, "illumination_percent": 50}}
 EXPECTED_CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus",
-                   "haute_celestial", "neon_orrery")
+                   "haute_celestial", "neon_orrery", "mondaine", "great_british_railways")
 
 
 class Canvas:
@@ -64,10 +64,10 @@ class ClockTests(unittest.TestCase):
         catalog = clocks.get_clock_catalog()
         self.assertEqual(clocks.CLOCKS, EXPECTED_CLOCKS)
         self.assertEqual(tuple(entry["id"] for entry in catalog), clocks.CLOCKS)
-        self.assertEqual(len(catalog), 9)
+        self.assertEqual(len(catalog), 11)
         self.assertTrue(all(set(entry) == {"id", "name"} for entry in catalog))
-        self.assertEqual(catalog[-2:], [{"id": "haute_celestial", "name": "Celestial Atelier"},
-                                        {"id": "neon_orrery", "name": "Neon Orrery"}])
+        self.assertEqual(catalog[-2:], [{"id": "mondaine", "name": "Mondaine"},
+                                        {"id": "great_british_railways", "name": "Great British Railways"}])
         catalog[0]["name"] = "modified"
         self.assertEqual(clocks.get_clock_catalog()[0]["name"], "Original")
 
@@ -95,7 +95,12 @@ class ClockTests(unittest.TestCase):
     def test_primary_time_is_large_and_has_all_digits(self):
         for style in clocks.CLOCKS[1:]:
             handled, canvas = render(style)
-            if style == "flip":
+            if style == "mondaine":
+                # Its bold hands and baton indices carry the primary time;
+                # an intrusive digital overlay would defeat the station dial.
+                self.assertIn("MONDAINE", [word for word, size, position in canvas.words])
+                self.assertNotIn("21:07", [word for word, size, position in canvas.words])
+            elif style == "flip":
                 digits = [(word, size) for word, size, position in canvas.words if word in ("21", "07")]
                 self.assertEqual(len(digits), 2)
                 self.assertTrue(all(size >= 52 for word, size in digits))
