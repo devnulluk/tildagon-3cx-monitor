@@ -309,8 +309,6 @@ def _chrome(ctx, page, palette, own_rgb, demo, context):
         own = (.35, .40, .45)
     if palette[6]:
         own = tuple(channel * .48 for channel in own)
-    _circle(ctx, -18, -106, 2.6, own)
-    _text(ctx, "MB", 4, -106, 14, 32, own, 14)
     if demo:
         _text(ctx, "DEMO", 48, -98, 9.5, 35, palette[5] if not palette[6] else (.56, .22, .36), 9.5)
     pages = ("weather", "rain", "clock", "advent") if context.get("advent") else ("weather", "rain", "clock")

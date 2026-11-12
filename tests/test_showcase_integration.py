@@ -120,11 +120,12 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                 self.assertIn("%d%%" % item["progress"], words)
         elif feature == "call":
             call = payload["own"]["calls"][0]
-            self.assertIn(call["peer_initials"], words)
+            self.assertIn(monitor.config["partner_name"] if stage["partner"] and call["state"] != "connected" else call["peer_name"], words)
+            self.assertNotIn(call["peer_number"], words)
             if call["state"] == "connected":
                 self.assertIn("ME", words)
             else:
-                label = "PARTNER" if stage["partner"] else "PRIORITY" if call["priority"] else call["kind"].upper()
+                label = "Partner" if stage["partner"] else "PRIORITY" if call["priority"] else call["kind"].upper()
                 self.assertIn(label, words)
         else:
             self.fail("Unverified showcase feature: " + feature)
@@ -146,6 +147,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                 self.assertTrue(records)
                 self.assertIn("DEMO", records[-1]["text"])
                 self.assertNotIn("PRIVATE PARTNER FIXTURE", " ".join(words))
+                self.assertNotIn("MB", words)
                 self.assertNotIn("1980-02-03", str(monitor.config))
                 self.assertTrue(monitor.controller.payload["demo"])
                 self.assertFalse(monitor.controller.payload["controls"]["enabled"])
@@ -264,7 +266,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
             monitor._showcase_seek(index)
             words = [item["text"] for item in self.draw(monitor)]
             cases[stage["scene"]] = words
-            self.assertEqual("PARTNER" in words, stage["scene"] == "partner", stage["scene"])
+            self.assertEqual("Partner" in words, stage["scene"] == "partner", stage["scene"])
         self.assertTrue({"ddi", "internal", "queue", "priority", "partner"} <= set(cases))
         self.assertIn("DDI", cases["ddi"])
         self.assertIn("INTERNAL", cases["internal"])

@@ -152,10 +152,10 @@ class ThemeIntegrationTests(unittest.TestCase):
         with patch.object(module, "draw_clock_content", wraps=module.draw_clock_content) as alternate:
             records = self.draw(monitor)
         words = [record["text"] for record in records]
-        self.assertIn("EC", words)
+        self.assertIn("Example Caller", words)
         self.assertNotIn("SETTINGS", words)
         self.assertNotIn("CELESTIAL", words)
-        self.assertTrue(any("447700900456" in word.replace("+", "") for word in words))
+        self.assertFalse(any("447700900456" in word.replace("+", "") for word in words))
         alternate.assert_not_called()
         self.assertIsNone(monitor.controls.pending)
 

@@ -58,7 +58,7 @@ class RailClockIntegrationTests(unittest.TestCase):
                     post.assert_not_called()
                     self.assertIsNone(monitor.controls.pending)
                     if reason != "connected":
-                        self.assertIn("OFFLINE" if reason == "offline" else "EC", words)
+                        self.assertIn("OFFLINE" if reason == "offline" else "Partner", words)
                     else:
                         # A connected call returns to the live BLF view;
                         # selecting own-call detail remains an explicit action.

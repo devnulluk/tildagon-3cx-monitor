@@ -76,8 +76,7 @@ class LuxuryClockIntegrationTests(unittest.TestCase):
         original.assert_called_once()
         self.assertEqual(monitor.themes.selection, "kitty")
         status = [item for item in records if item["text"] == "MB"]
-        self.assertEqual(len(status), 1)
-        self.assertTrue(all(channel >= .8 for channel in status[0]["colour"]))
+        self.assertEqual(status, [])
         self.assertIsNone(monitor.controls.pending)
 
     def test_incoming_call_preempts_each_new_face_before_clock_or_bitmap_dispatch(self):
@@ -90,8 +89,8 @@ class LuxuryClockIntegrationTests(unittest.TestCase):
                     with patch.object(module, "post_json") as post:
                         records = self.fixture.draw(monitor)
                 words = [item["text"] for item in records]
-                self.assertIn("EC", words)
-                self.assertTrue(any("447700900456" in word.replace("+", "") for word in words))
+                self.assertIn("Example Caller", words)
+                self.assertFalse(any("447700900456" in word.replace("+", "") for word in words))
                 draw.assert_not_called()
                 post.assert_not_called()
                 self.assertIsNone(monitor.controls.pending)

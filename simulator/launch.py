@@ -267,7 +267,7 @@ if film_recorder:
     "idle_seconds": 60,
     "theme": options.theme, "theme_auto": False, "personal_dates": {}, "clock_style": options.clock_style,
     "bridge_url": "", "token": "", "control_token": "",
-    "partner_name": "Partner",
+    "partner_name": "Partner", "partner_surname": "Example",
     "demo_notifications": [],
     "eeh": {"slot": 6, "type": "EEH Logo"},
     "matrix": {"slot": 2, "type": "Liteloop", "brightness": 0.35} if options.matrix_demo else False,

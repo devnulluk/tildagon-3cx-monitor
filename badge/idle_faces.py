@@ -54,8 +54,6 @@ def _chrome(ctx, page, own_rgb, accent, demo):
     except (TypeError, ValueError):
         own = (0.32, 0.35, 0.42)
     y = -89 if page == "clock" else -102
-    _circle(ctx, -18, y, 3, own)
-    _text(ctx, "MB", 4, y, 15, 32, own, 15)
     if demo:
         _text(ctx, "DEMO", 43, -100 if page != "clock" else -76, 9.5, 35, AMBER, 9.5)
     selected = ("weather", "rain", "clock").index(page)
@@ -158,8 +156,6 @@ def draw_idle_face(ctx, page, weather, fresh, local, elapsed_ms, now_ms, own_rgb
     else:
         _weather(ctx, weather, bool(fresh), now_ms)
     if page == "clock" and callable(clock_draw):
-        _circle(ctx, -18, -106, 3, tuple(v / 255 for v in own_rgb))
-        _text(ctx, "MB", 4, -106, 12, 30, WHITE, 12)
         if demo:
             _text(ctx, "DEMO", 0, 106, 9, 36, AMBER, 9)
     else:

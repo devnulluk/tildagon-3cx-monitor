@@ -1,4 +1,29 @@
-# Validation: badge 0.12.1 / bridge 0.6.0
+# Validation: badge 0.13.0 / bridge 0.6.0
+
+## Version 0.13 caller presentation
+
+All 699 tests passed in 70.881 seconds. Tests verify partner first/surname
+lines, absence of initials and phone numbers for recognized callers, complete
+unknown-number rendering, bounded animated bunny geometry and restored canvas
+state. Every one of the 547 showcase stages asserts the owner header is absent.
+Phone interruptions, expiry, LED status and existing clock recovery tests remain
+covered. The official simulator film contains 110 actual captures over 8.031637
+seconds, with synthetic names; its MP4 fully decodes. Earlier media retain their
+recorded version scope.
+
+The physical Spaceagon then completed **90 stages and 18 injected time-boundary
+cases: 216 native frames over 53 seconds**, with no render errors or missing
+cases. Coverage includes partner calls and railway clocks in every theme, plus
+the original theme's feature block. The first attempt lost USB before its final
+report; these figures are from the completed repeat. There were zero telephone
+write attempts and zero new bridge reads during the synthetic tour. The original
+configuration/controller/appearance were restored and live monitoring resumed;
+Spaceagon inputs, keyboard, EEH and matrix were ready. This is accelerated
+coverage, not a full-duration endurance or real incoming-call test.
+
+The partner surname was added to the badge's private configuration with readback
+verification; every other existing configuration key and the TLS trust root were
+preserved. Public source and media contain generic synthetic names only.
 
 ## Version 0.12.1 automatic clock recovery
 

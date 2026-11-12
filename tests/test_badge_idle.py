@@ -214,7 +214,7 @@ class BadgeIdleTests(unittest.TestCase):
         monitor.draw(AnimationCanvas())
         number = "+441632960123"
         incoming = {"id": "interrupt", "state": "ringing", "direction": "inbound", "kind": "external",
-                    "peer_name": "Alice Smith", "peer_initials": "AS", "peer_number": number, "priority": True}
+                    "peer_name": "Unknown caller", "peer_initials": "", "peer_number": number, "priority": True}
         value = copy.deepcopy(monitor.controller.payload)
         value["alert"] = incoming
         value["own"].update(state="ringing", calls=[incoming])
@@ -342,7 +342,8 @@ class BadgeIdleTests(unittest.TestCase):
         with patch.object(module, "draw_idle_face", wraps=module.draw_idle_face) as face:
             texts = [record["text"] for record in self.draw(monitor)]
             face.assert_not_called()
-        self.assertIn("+441632960123", texts)
+        self.assertNotIn("+441632960123", texts)
+        self.assertIn("Alice Smith", texts)
         self.assertNotIn("Overcast", texts)
         self.assertNotIn("EEH", texts)
 

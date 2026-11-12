@@ -57,3 +57,50 @@ def draw_love(ctx, now_ms):
         ctx.curve_to(-1.5, -.15, -.75, -1.25, 0, -.55)
         ctx.curve_to(.75, -1.25, 1.5, -.15, 0, .85).fill()
         ctx.restore()
+
+
+def draw_bunny(ctx, now_ms):
+    """Small native-vector rabbit, waving without external image assets."""
+    ctx.save()
+    ctx.translate(0, 33 + math.sin(now_ms / 350) * 1.5)
+    cream, pink, ink = (.98, .95, .91), (1, .53, .65), (.18, .12, .18)
+    def disc(x, y, radius, colour):
+        ctx.rgb(*colour).arc(x, y, radius, 0, math.pi * 2, False).fill()
+    def oval(x, y, rx, ry, colour):
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.scale(rx, ry)
+        disc(0, 0, 1, colour)
+        ctx.restore()
+    oval(-15, -28, 10, 31, cream)
+    oval(13, -30, 10, 32, cream)
+    oval(-15, -29, 4, 21, pink)
+    oval(13, -31, 4, 22, pink)
+    oval(0, 33, 27, 30, cream)
+    oval(0, 38, 18, 20, (1, .85, .84))
+    oval(-18, 58, 15, 8, cream)
+    oval(18, 58, 15, 8, cream)
+    disc(-24, 32, 9, cream)
+    ctx.save()
+    ctx.translate(25, 24)
+    ctx.rotate(-.6 + math.sin(now_ms / 150) * .45)
+    oval(7, -13, 9, 20, cream)
+    disc(9, -25, 10, cream)
+    disc(9, -25, 4, pink)
+    ctx.restore()
+    oval(0, 0, 32, 27, cream)
+    disc(-20, 9, 6, pink)
+    disc(20, 9, 6, pink)
+    blink = now_ms % 3600 > 3440
+    for x in (-11, 11):
+        if blink:
+            ctx.line_width = 2
+            ctx.rgb(*ink).move_to(x - 3, -3).line_to(x + 3, -3).stroke()
+        else:
+            oval(x, -3, 3, 4, ink)
+            disc(x - .7, -4, .9, (1, 1, 1))
+    disc(0, 6, 3, pink)
+    ctx.line_width = 1.5
+    ctx.rgb(*ink).move_to(0, 9).line_to(0, 13)
+    ctx.move_to(-5, 12).curve_to(-3, 17, 3, 17, 5, 12).stroke()
+    ctx.restore()

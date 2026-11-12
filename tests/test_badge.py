@@ -427,9 +427,8 @@ class BadgeAppTests(unittest.TestCase):
         monitor.update(200)
         context = RecordingCanvas()
         monitor.draw(context)
-        header = next(record for record in context.records if record["text"] == "MB")
-        self.assertLess(max(header["colour"]), 0.1)
-        self.assertLess(max(header["colour"]) - min(header["colour"]), 0.02)
+        self.assertNotIn("MB", [record["text"] for record in context.records])
+        self.assertEqual(monitor.expansions.colours[-1], (0, 0, 0))
 
     def test_idle_overview_uses_large_initials_in_two_by_two_grid_without_small_chrome(self):
         _, monitor, _ = self.live_monitor()
@@ -447,7 +446,7 @@ class BadgeAppTests(unittest.TestCase):
         for unwanted in ("BUSY", "IDLE", "RINGING", "223", "268", "214", "277", "3CX MONITOR"):
             self.assertNotIn(unwanted, texts)
         self.assertFalse(any("LED" in text or "A TB" in text or "LIGHT" in text for text in texts))
-        self.assertGreaterEqual(next(record["size"] for record in context.records if record["text"] == "MB"), 20)
+        self.assertNotIn("MB", [record["text"] for record in context.records])
 
     def test_internal_team_call_shows_large_extension_with_first_name_beneath(self):
         _, monitor, _ = self.live_monitor()
@@ -549,9 +548,8 @@ class BadgeAppTests(unittest.TestCase):
         monitor.draw(own)
         lines = [record for record in own.records if record["text"] and record["x"] == 0
                  and all(character in "+0123456789" for character in record["text"])]
-        self.assertEqual("".join(record["text"] for record in lines), number)
-        self.assertTrue(all(record["size"] >= 22 for record in lines))
-        self.assertIn("AS", [record["text"] for record in own.records])
+        self.assertEqual(lines, [])
+        self.assertIn("Alice Smith", [record["text"] for record in own.records])
 
     def test_incoming_priority_call_stays_large_and_overrides_brightness_feedback(self):
         _, monitor, _ = self.live_monitor()
@@ -562,7 +560,7 @@ class BadgeAppTests(unittest.TestCase):
         monitor._adjust_eeh_brightness(1)
         context = RecordingCanvas()
         monitor.draw(context)
-        for text, minimum in (("KZ", 42), ("PRIORITY", 22), ("07700900123", 20), ("EXTERNAL", 18)):
+        for text, minimum in (("Partner", 42), ("PRIORITY", 22), ("EXTERNAL", 18)):
             self.assertGreaterEqual(next(record["size"] for record in context.records if record["text"] == text), minimum)
         self.assertNotIn("EEH", [record["text"] for record in context.records])
 
@@ -612,8 +610,7 @@ class BadgeAppTests(unittest.TestCase):
         context = RecordingCanvas()
         monitor.draw(context)
         self.assertIn("OFFLINE", [record["text"] for record in context.records])
-        header = next(record for record in context.records if record["text"] == "MB")
-        self.assertLess(max(header["colour"]) - min(header["colour"]), 0.02)
+        self.assertNotIn("MB", [record["text"] for record in context.records])
 
     def test_control_result_notice_is_large_without_old_key_legends(self):
         _, monitor, _ = self.live_monitor()

@@ -79,8 +79,6 @@ def _chrome(ctx, page, own_rgb, palette, demo):
         colour = palette[4]
     else:
         colour = tuple(c / 255 for c in own_rgb)
-    _circle(ctx, -20, -103, 2.5, colour)
-    _text(ctx, "MB", -103, 13, 38, colour, 13, x=0)
     if demo:
         _text(ctx, "DEMO", -103, 9, 38, palette[5], 9, x=43)
     _text(ctx, "MOON" if page == "moon" else "METEORS", -80, 21, 170, palette[3], 18)

@@ -30,7 +30,7 @@ from .clock_assets import ClockAssetStore
 from .astronomy import sky_snapshot
 from .astro_faces import draw_astro_face
 from .matrix import MatrixDisplay
-from .love import partner_call, partner_active, draw_love
+from .love import partner_call, partner_active, draw_love, draw_bunny
 from .notifications import NotificationInbox, draw_notification, led_frame as notification_leds
 from .space_inputs import SpaceInputs
 from .showcase import Showcase, snapshot as showcase_snapshot, demo_config as showcase_config
@@ -933,7 +933,9 @@ class ThreeCXMonitor(app.App):
 
     @staticmethod
     def _named_peer(call):
-        peer = call.get("peer_initials") or initials(call.get("peer_name"), call.get("peer_number"))
+        peer = str(call.get("peer_name") or "").strip()
+        if peer.lower() in ("unknown", "unknown caller", "anonymous", "withheld", "private", "private number", "unavailable", "external", "incoming call", "outgoing call"):
+            return ""
         return peer if any(c.isalpha() for c in str(peer)) else ""
 
     def draw(self, ctx):
@@ -980,7 +982,6 @@ class ThreeCXMonitor(app.App):
             self._idle_draw_page = None
             decorated_call = dict(alert, _colour=call_colour(alert)) if alert else None
             backdrop(ctx, now, own_rgb, decorated_call, offline=not live)
-            self._text(ctx, "MB", -98, 24, 90, tuple(v / 255 for v in own_rgb))
         if self.settings_open and not alert:
             self._draw_settings(ctx)
         elif not self.controller.live(now):
@@ -1173,13 +1174,16 @@ class ThreeCXMonitor(app.App):
         label = call_label(call)
         beloved = partner_call(call, self.config, self.demo_mode)
         if beloved:
-            draw_love(ctx, self.clock_ms)
+            self._text(ctx, str(self.config.get("partner_name") or "Partner"), -76, 38, 182)
+            self._text(ctx, str(self.config.get("partner_surname") or ""), -40, 24, 194)
+            draw_bunny(ctx, self.clock_ms)
+            return
         self._text(ctx, str(self.config.get("partner_name") or "Partner").upper() if beloved else "PRIORITY" if call.get("priority") else label,
                    -63, 24, 155 if beloved else 190, colour)
         peer = self._named_peer(call)
         if peer:
-            self._text(ctx, peer, -20, 48, 210)
-            number_lines = self._draw_number(ctx, call.get("peer_number"), y=39, size=26)
+            self._text(ctx, peer, -20, 48, 210, minimum_size=18)
+            number_lines = 0
         else:
             number_lines = self._draw_number(ctx, call.get("peer_number"), y=5, size=34)
         route = call.get("queue_name") or call.get("queue_number") or call.get("ddi") or ""
@@ -1213,8 +1217,8 @@ class ThreeCXMonitor(app.App):
                 return
             peer = self._named_peer(call)
             if peer:
-                self._text(ctx, peer, -20, 44, 210)
-                number_lines = self._draw_number(ctx, call.get("peer_number"), y=36, size=26)
+                self._text(ctx, peer, -20, 44, 210, minimum_size=18)
+                number_lines = 0
             else:
                 number_lines = self._draw_number(ctx, call.get("peer_number"), y=4, size=34)
             self._text(ctx, call_label(call), 82 if peer and number_lines > 1 else 70,

@@ -116,3 +116,12 @@ In the interactive simulator, **Shift+D** emits the expansion keyboard's D key
 to start or stop the production showcase; unshifted A–F retain their physical
 badge-button mappings. The standalone `-FeatureDemo` preview runs continuously
 without the recording's manual feature jumps.
+
+## Waving bunny, version 0.13
+
+The [bunny film](bunny-call.mp4), [GIF](bunny-call.gif) and
+[poster](bunny-call-poster.png) use synthetic Partner/Example labels, with no
+phone number or caller initials. The native vector rabbit waves and blinks.
+This is an official-simulator recording: 110 actual frames over 8.031637 seconds,
+not camera footage or native FPS evidence. Older galleries predate removal of
+the owner initials/status strip.

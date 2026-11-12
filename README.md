@@ -8,6 +8,20 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 
 ![Theme examples](docs/gallery/themes-contact-sheet.png)
 
+## Caller display, version 0.13
+
+![Waving bunny, synthetic partner preview](docs/gallery/bunny-call.gif)
+
+[Watch the bunny animation](docs/gallery/bunny-call.mp4). Partner calls show the
+configured first name and surname above an animated waving rabbit, without
+initials or a phone number. Known callers show their name; unknown callers keep
+the complete number. The owner initials and presence dot have been removed
+from every screen. BLF colours, own-status pages and expansion status LEDs remain
+available. Older gallery films below retain their original version layouts.
+
+The optional private `partner_surname` configuration field supplies the second
+name line. Public previews use invented names; personal details stay local.
+
 ## What it does
 
 - Live team status and internal peer extension/first name; teammates' external calls show **External**.
@@ -19,10 +33,10 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 - Weather, next-hour rain, moon phase and animated meteor calendar pages during quiet periods. Call activity interrupts them immediately.
 - Rich Apprise/ntfy notification cards with local icons, severity colours and progress updates. Calls take precedence over notification cards.
 - Spaceagon joystick and capacitive touch-ring navigation, including notification browsing. These gestures never place calls or change DND.
-- A personal caller celebration, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
+- A waving bunny for your configured partner, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.12.1** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.13.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
 
 ## On-device demo tour
 

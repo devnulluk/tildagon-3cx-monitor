@@ -83,7 +83,7 @@ def demo_config():
     return {"demo": True, "theme": "original", "theme_auto": False, "clock_style": "original",
             "personal_dates": {"birthday_self": "1990-02-03", "birthday_partner": "1991-06-07",
                                "anniversary": "2020-09-10"},
-            "partner_name": "Partner", "partner_numbers": [_PARTNER]}
+            "partner_name": "Partner", "partner_surname": "Example", "partner_numbers": [_PARTNER]}
 
 
 class Showcase:
