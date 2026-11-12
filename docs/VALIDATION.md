@@ -1,4 +1,25 @@
-# Validation: badge 0.15.0 / bridge 0.6.0
+# Validation: badge 0.15.1 / bridge 0.6.0
+
+## Version0.15.1: on-demand BLF and visible partner dial
+
+All730 tests passed in77.581seconds. Five new cases verify immediate quiet boot,
+all active teammate states holding the overview, immediate return when calls
+end, manual wake timeout, presence/automatic touches not waking it, first-key
+call suppression and a subsequent E queuing only the allowlisted partner ID.
+Legacy scheduling remains explicitly covered by compatibility fixtures. After
+the small footer/DEMO-layout adjustment, all47 focused showcase/on-demand checks
+passed again. No actual call was placed.
+
+The physical badge reported live/focused0.15.1 with on-demand mode and idle pages
+active while no teammate call was present. Its private partner name was configured
+and the existing kz destination was advertised by the live bridge. Changed files
+were read-back verified; saved brightness and all expansions remained ready.
+No bridge destination, PBX permission, password or live phone status was changed.
+Automatic busy-team takeover and key-to-dial intent were checked with fake
+hardware; real calling was intentionally not exercised.
+
+The screenshot shows the actual official simulator renderer after a synthetic
+Space wake, with a generic Partner label. It is not camera footage.
 
 ## Version0.15: native matrix text and connected calls
 

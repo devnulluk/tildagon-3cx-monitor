@@ -41,6 +41,7 @@ DEFAULT_CONFIG = {
     "poll_seconds": 0.75, "eeh_brightness": 0.03, "ring_brightness": 0.15, "ca_file": "ca.der",
     "control_token": "", "demo_keyboard": False,
     "idle_seconds": 60, "rotate_seconds": 12,
+    "overview_on_demand": True,
     "theme": "original", "theme_auto": False, "clock_style": "original",
     "space_joystick": True, "space_touch": True, "space_proximity": False, "space_tilt": False,
 }
@@ -124,7 +125,8 @@ class ThreeCXMonitor(app.App):
         self._idle_draw_page = None
         self._idle_entered_ms = 0
         self.idle_pages = IdlePages(idle_after_ms=max(0, min(86400, float(self.config.get("idle_seconds", 60)))) * 1000,
-                                    rotate_ms=max(1, min(3600, float(self.config.get("rotate_seconds", 12)))) * 1000)
+                                    rotate_ms=max(1, min(3600, float(self.config.get("rotate_seconds", 12)))) * 1000,
+                                    overview_on_demand=self.config.get('overview_on_demand',True) is not False)
         self.demo_scene = 0
         self.clock_ms = 0
         self._ticks = time.ticks_ms()
@@ -738,7 +740,7 @@ class ThreeCXMonitor(app.App):
                            "confirm": "ENTER"}.get(action)
                     if key:
                         self._settings_key(key)
-                self.idle_pages.touch(self.clock_ms)
+                self.idle_pages.touch(self.clock_ms, manual=True)
                 continue
             visible = self._visible_notification(self.clock_ms)
             if self.notifications_open or visible:
@@ -773,7 +775,7 @@ class ThreeCXMonitor(app.App):
             else:
                 if direction:
                     self.controller.select(direction)
-                self.idle_pages.touch(self.clock_ms)
+                self.idle_pages.touch(self.clock_ms, manual=True)
 
     def _run_demo_control(self):
         intent = self.controls.take()
@@ -827,7 +829,7 @@ class ThreeCXMonitor(app.App):
         self._observe_idle(self.clock_ms)
         was_idle = self.idle_pages.active(self.clock_ms)
         if edges or any(key not in ("LEFT", "RIGHT") or not was_idle for key in keys):
-            self.idle_pages.touch(self.clock_ms)
+            self.idle_pages.touch(self.clock_ms, manual=True)
         if self.settings_open:
             self._space_navigation(space_events, was_idle)
             for key in edges + keys:
@@ -861,6 +863,13 @@ class ThreeCXMonitor(app.App):
             self._space_navigation(space_events, was_idle)
             self._write_leds()
             return True
+        if (was_idle and self.idle_pages.overview_on_demand
+                and (edges or any(key not in ('LEFT','RIGHT','UP','DOWN','ESCAPE') for key in keys))):
+            # Waking the hidden dial panel must never also place a call.
+            self.controller.own_view = self.controller.detail_view = False
+            self._settings_hold_started = None
+            self._write_leds()
+            return True
         if keyboard:
             for key in keys:
                 if key == "ESCAPE":
@@ -883,6 +892,8 @@ class ThreeCXMonitor(app.App):
                 elif key == "SPACE":
                     self.controller.own_view = False if was_idle else not self.controller.own_view
                     self.controller.detail_view = False
+                elif key == 'E':
+                    self.controls.queue_call(self._status_payload(),self.controller.live(self.clock_ms),'kz',self.clock_ms)
                 elif key == "ENTER" and self.demo_mode:
                     self._confirm()
             for key in edges:
@@ -1046,7 +1057,8 @@ class ThreeCXMonitor(app.App):
             else:
                 self._draw_member(ctx)
         if demo and not graphical_idle and self.showcase is None:
-            self._text(ctx, "DEMO", 104, 16, 70, (0.5, 0.65, 0.7))
+            overview = not alert and not own_call and not self.settings_open and not self.controller.own_view and not self.controller.detail_view
+            self._text(ctx, "DEMO", 115 if overview else 104, 8 if overview else 16, 70, (0.5, 0.65, 0.7))
         self._draw_showcase_footer(ctx)
         ctx.restore()
 
@@ -1200,7 +1212,7 @@ class ThreeCXMonitor(app.App):
         if self.showcase is None:
             return
         stage = self._showcase_stage
-        notification = stage.get("feature") == "notification"
+        notification = stage.get("feature") in ("notification", "team", "team_detail")
         y = -109 if notification else 106
         ctx.rgb(.012, .026, .055).round_rectangle(-58, y - 8, 116, 16, 6).fill()
         prefix = "DEMO PAUSE" if self.showcase.paused else "DEMO"
@@ -1330,6 +1342,9 @@ class ThreeCXMonitor(app.App):
                     self._text(ctx, "External", y + 8, 22, 102, x=x)
             else:
                 self._text(ctx, name, y, 52, 94, colour, x=x)
+        targets=((self.controller.payload or {}).get('controls') or {}).get('targets') or []
+        if any(isinstance(target,dict) and target.get('id')=='kz' for target in targets):
+            self._text(ctx,'E: '+str(self.config.get('partner_name') or 'Partner'),99,14,116,(1,.45,.70),minimum_size=10)
 
 
 __app_export__ = ThreeCXMonitor

@@ -13,6 +13,7 @@
   "eeh_brightness": 0.03,
   "ring_brightness": 0.15,
   "idle_seconds": 60,
+  "overview_on_demand": true,
   "rotate_seconds": 12,
   "theme": "original",
   "theme_auto": false,

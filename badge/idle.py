@@ -1,8 +1,8 @@
 """Pure MicroPython-compatible quiet-period and rotating idle-page state.
 
-Own calls always interrupt. Stable answered teammate calls may coexist with idle
-pages: a change immediately returns to the team display, while ringing/dialling
-keeps it visible. Generated timestamps and age counters are not call changes.
+Own calls always interrupt. On-demand mode starts quiet immediately and keeps
+all active team calls visible. Legacy quiet-delay mode allows stable answered
+teammate calls alongside idle pages. Timestamps/age counters are not call changes.
 """
 
 DEFAULT_PAGES = ("weather", "rain", "clock", "moon")
@@ -22,17 +22,17 @@ def _call(call):
     return state in ACTIVE_CALLS or state in ENDED_CALLS, state, signature
 
 
-def _member(member, own=False):
+def _member(member, own=False, block_active=False):
     if not isinstance(member, dict) or not isinstance(member.get("calls"), list):
         return False, True, ()
     state = str(member.get("state") or "unknown").lower()
     known = state == "idle" or state in ACTIVE_CALLS
-    blocked = state in ACTIVE_CALLS if own else state in TRANSIENT_CALLS
+    blocked = state in ACTIVE_CALLS if own or block_active else state in TRANSIENT_CALLS
     signatures = []
     for call in member["calls"]:
         valid, call_state, signature = _call(call)
         known = known and valid
-        blocked = blocked or call_state in (ACTIVE_CALLS if own else TRANSIENT_CALLS)
+        blocked = blocked or call_state in (ACTIVE_CALLS if own or block_active else TRANSIENT_CALLS)
         signatures.append(signature)
     if not own and not member["calls"] and state in ("unknown", "offline", "unregistered"):
         known = True
@@ -41,7 +41,7 @@ def _member(member, own=False):
 
 
 class IdlePages:
-    def __init__(self, pages=None, idle_after_ms=60000, rotate_ms=12000):
+    def __init__(self, pages=None, idle_after_ms=60000, rotate_ms=12000, overview_on_demand=False):
         if (isinstance(idle_after_ms, bool) or not isinstance(idle_after_ms, (int, float))
                 or not 0 <= idle_after_ms <= 86400000):
             raise ValueError("Invalid idle delay")
@@ -58,6 +58,8 @@ class IdlePages:
                 self.pages.append(page)
         self.idle_after_ms = int(idle_after_ms)
         self.rotate_ms = int(rotate_ms)
+        self.overview_on_demand = overview_on_demand is True
+        self._overview_until = 0
         self._quiet_since = None
         self._healthy = False
         self._blocked = True
@@ -84,17 +86,21 @@ class IdlePages:
     def preview(self, now_ms):
         """Show a user-selected appearance only while PBX state allows idle."""
         if self._healthy and not self._blocked:
+            if self.overview_on_demand:
+                self._overview_until = now_ms
             self._quiet_since = now_ms - self.idle_after_ms
             self._rotation_index = 0
             self._rotation_at = now_ms
             return True
         return False
 
-    def touch(self, now_ms):
+    def touch(self, now_ms, manual=False):
         """Return to the overview; begin a new quiet period at this input."""
         self._quiet_since = now_ms
         self._rotation_at = None
         self._rotation_index = 0
+        if self.overview_on_demand and manual:
+            self._overview_until = now_ms + max(1000,self.idle_after_ms)
 
     def observe(self, payload, live, now_ms):
         healthy, blocked, signature = False, True, None
@@ -106,7 +112,7 @@ class IdlePages:
             team_signatures = []
             if isinstance(team, list):
                 for member in team:
-                    known, active, member_signature = _member(member)
+                    known, active, member_signature = _member(member, block_active=self.overview_on_demand)
                     healthy = healthy and known
                     blocked = blocked or active
                     team_signatures.append(member_signature)
@@ -119,13 +125,20 @@ class IdlePages:
             presence = own.get("presence") or {} if isinstance(own, dict) else {}
             presence_signature = tuple(str(presence.get(key) or "") for key in ("state", "profile", "confirmed")) if isinstance(presence, dict) else ()
             signature = (own_signature, tuple(team_signatures), alert_signature, presence_signature)
-        if (not healthy or blocked or not self._healthy or self._blocked
+        if self.overview_on_demand:
+            if self._quiet_since is None or (healthy and not blocked and (not self._healthy or self._blocked)):
+                self._quiet_since = now_ms - self.idle_after_ms
+                self._rotation_at = now_ms
+                self._rotation_index = 0
+        elif (not healthy or blocked or not self._healthy or self._blocked
                 or signature != self._signature or self._quiet_since is None):
             self.touch(now_ms)
         self._healthy, self._blocked, self._signature = bool(healthy), bool(blocked), signature
         return self.active(now_ms)
 
     def active(self, now_ms):
+        if self.overview_on_demand:
+            return bool(self.pages and self._healthy and not self._blocked and now_ms >= self._overview_until)
         return bool(self.pages and self._healthy and not self._blocked
                     and self._quiet_since is not None
                     and now_ms - self._quiet_since >= self.idle_after_ms)

@@ -1,7 +1,7 @@
 {
   "startup": {
-    "live": true,
-    "demo": false,
+    "weather_fresh": true,
+    "ring_brightness": 0.2,
     "idle_pages": [
       "weather",
       "rain",
@@ -9,24 +9,29 @@
       "moon",
       "meteors"
     ],
-    "clock_preview": true,
-    "focused": true,
-    "matrix_ready": true,
-    "keyboard": true,
-    "eeh_ready": true,
-    "ring_brightness": 0.2,
-    "matrix_call_brightness": 1.0,
     "eeh_brightness": 0.03,
-    "weather_fresh": true,
+    "overview_on_demand": true,
+    "partner_name_configured": true,
+    "idle_active": true,
+    "version": "0.15.1",
+    "keziah_speed_dial_available": true,
+    "clock_preview": true,
+    "matrix_ready": true,
+    "matrix_call_brightness": 1.0,
+    "demo": false,
+    "focused": true,
+    "keyboard": true,
+    "team_active": false,
+    "live": true,
     "clock_style": "neon_orrery",
-    "version": "0.15.0",
     "keyboard_slots": [
       4
-    ]
+    ],
+    "eeh_ready": true
   },
-  "verified_at_utc": "2026-11-12T13:30:45.089573+00:00",
+  "verified_at_utc": "2026-11-12T14:09:43.794986+00:00",
   "launch_method": "mpremote run --no-follow; graceful RTS-before-DTR close",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "changed_file_readback_verified": true,
   "private_configuration_preserved": true
 }

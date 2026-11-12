@@ -8,6 +8,16 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 
 ![Theme examples](docs/gallery/themes-contact-sheet.png)
 
+## Quiet by default, version0.15.1
+
+Quiet live phone state goes straight to the rotating idle pages. Press Space or
+a badge button to reveal the BLF/speed-dial panel; the first press only wakes,
+never dials. Any teammate call keeps the panel visible until it ends. A manual
+wake lasts60seconds by default. The partner speed dial is shown as **E: Partner**
+(your configured name); after waking, badge E or keyboard E selects it.
+
+![Manually activated speed-dial panel, synthetic simulator](docs/gallery/on-demand-speeddial.png)
+
 ## Urgent notifications
 
 Priority5 notifications stay visible until dismissed or their original TTL
@@ -69,7 +79,7 @@ name line. Public previews use invented names; personal details stay local.
 - A waving bunny for your configured partner, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.15.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.15.1** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
 
 ## On-device demo tour
 

@@ -269,10 +269,10 @@ def app_runtime():
 
 class BadgeAppTests(unittest.TestCase):
     @staticmethod
-    def live_monitor(keyboard=True):
+    def live_monitor(keyboard=True, overview_on_demand=False):
         app_module, hw = app_runtime()
         config = dict(app_module.DEFAULT_CONFIG, demo=False, bridge_url="https://bridge.invalid",
-                      token="read-token", control_token="different-control-token")
+                      token="read-token", control_token="different-control-token", overview_on_demand=overview_on_demand)
         with patch.object(app_module, "load_config", return_value=config):
             monitor = app_module.ThreeCXMonitor()
         payload = demo.snapshot("team")

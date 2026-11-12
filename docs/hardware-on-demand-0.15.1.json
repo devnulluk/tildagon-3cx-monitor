@@ -1,0 +1,30 @@
+{
+  "weather_fresh": true,
+  "ring_brightness": 0.2,
+  "idle_pages": [
+    "weather",
+    "rain",
+    "clock",
+    "moon",
+    "meteors"
+  ],
+  "eeh_brightness": 0.03,
+  "overview_on_demand": true,
+  "partner_name_configured": true,
+  "idle_active": true,
+  "version": "0.15.1",
+  "keziah_speed_dial_available": true,
+  "clock_preview": true,
+  "matrix_ready": true,
+  "matrix_call_brightness": 1.0,
+  "demo": false,
+  "focused": true,
+  "keyboard": true,
+  "team_active": false,
+  "live": true,
+  "clock_style": "neon_orrery",
+  "keyboard_slots": [
+    4
+  ],
+  "eeh_ready": true
+}

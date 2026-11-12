@@ -26,6 +26,7 @@ class SemanticCanvas(support.RecordingCanvas):
 class ShowcaseFixtures:
     def monitor(self, **config):
         values = {"theme": "ocean", "clock_style": "radar", "ring_brightness": .37,
+                  "overview_on_demand": False,
                   "eeh_brightness": .12, "partner_name": "PRIVATE PARTNER FIXTURE",
                   "personal_dates": {"birthday_self": "1980-02-03", "anniversary": "2000-06-07"}}
         values.update(config)
