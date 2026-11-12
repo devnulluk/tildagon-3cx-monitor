@@ -1,3 +1,3 @@
 """3CX call-state bridge and narrow own-extension badge controls."""
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"

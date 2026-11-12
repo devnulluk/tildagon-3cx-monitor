@@ -52,7 +52,7 @@ def validate_config(raw):
         member["extension"] = dn
         member["name"] = str(member.get("name", dn))[:80]
         seen.add(dn)
-    for field in ("queues", "ddis", "contacts", "internal_extensions", "initials"):
+    for field in ("queues", "ring_groups", "ddis", "contacts", "internal_extensions", "initials"):
         config.setdefault(field, {})
         if not isinstance(config[field], dict):
             raise ValueError(field + " must be an object mapping numbers to names")

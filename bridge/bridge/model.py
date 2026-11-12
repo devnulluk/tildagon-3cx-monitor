@@ -83,6 +83,10 @@ def build_state(config, dns, connected, age_seconds, demo=False, status=""):
     for number, dn in directory.items():
         if _type(dn.get("type")) == "queue":
             queue_names.setdefault(number, number)
+    ring_group_names = {str(k): str(v) for k, v in config.get("ring_groups", {}).items()}
+    for number, dn in directory.items():
+        if _type(dn.get("type")).replace("_", "") == "ringgroup":
+            ring_group_names.setdefault(number, text(dn.get("name")) or number)
     ddi_names = {norm(k): str(v) for k, v in config.get("ddis", {}).items() if norm(k)}
     priority_ddis = {norm(x) for x in config.get("priority_ddis", []) if norm(x)}
     known_ddis = set(ddi_names) | priority_ddis
@@ -118,6 +122,9 @@ def build_state(config, dns, connected, age_seconds, demo=False, status=""):
         queue = next((number for number in routing if number in queue_names), "")
         if not queue:
             queue = next((str(p.get("dn", "")) for p in related if str(p.get("dn", "")) in queue_names), "")
+        ring_group = next((number for number in routing if number in ring_group_names), "")
+        if not ring_group:
+            ring_group = next((str(p.get("dn", "")) for p in related if str(p.get("dn", "")) in ring_group_names), "")
         # A known dialled number is required: an arbitrary external caller isn't a DDI.
         ddi = next((norm(p.get("party_did")) for p in group if norm(p.get("party_did")) in known_ddis), "")
         if not ddi:
@@ -136,7 +143,7 @@ def build_state(config, dns, connected, age_seconds, demo=False, status=""):
             candidates.extend(entry.get("name") for entry in team if str(entry["extension"]) == peer_extension)
             peer_first_name = next((name for index, candidate in enumerate(candidates)
                                     if (name := _first_name(candidate, peer_aliases, actual_first_name=index == 1))), "")
-        kind = "queue" if queue else "internal" if internal else "ddi" if ddi else "external" if peer_number else "unknown"
+        kind = "queue" if queue else "ring_group" if ring_group else "internal" if internal else "ddi" if ddi else "external" if peer_number else "unknown"
         priority = (norm(peer_number) in priority_callers if norm(peer_number) else False) or peer_dn in priority_extensions or (bool(ddi) and ddi in priority_ddis)
         directions = {_direction(p) for p in group}
         direction = "outbound" if "outbound" in directions else "inbound" if "inbound" in directions else "unknown"
@@ -148,6 +155,7 @@ def build_state(config, dns, connected, age_seconds, demo=False, status=""):
             "peer_initials": aliases.get(norm(peer_number)) or aliases.get(norm(peer_dn)) or "",
             "kind": kind, "priority": bool(priority), "ddi": ddi,
             "ddi_name": text(ddi_names.get(ddi, "")),
+            "ring_group_number": ring_group, "ring_group_name": text(ring_group_names.get(ring_group, "")),
             "queue_number": queue, "queue_name": text(queue_names.get(queue, "")),
         }
 

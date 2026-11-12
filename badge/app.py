@@ -1295,6 +1295,8 @@ class ThreeCXMonitor(app.App):
     def _draw_call(self, ctx, call, incoming=False):
         colour = tuple(value / 255 for value in call_colour(call))
         label = call_label(call)
+        route = (call.get("queue_name") or call.get("queue_number") or
+                 call.get("ring_group_name") or call.get("ring_group_number") or call.get("ddi") or "")
         state = call.get('state')
         elapsed = self.controller.call_elapsed(call, self.clock_ms)
         timer = ('%d:%02d:%02d' % (elapsed // 3600, elapsed // 60 % 60, elapsed % 60)
@@ -1328,7 +1330,7 @@ class ThreeCXMonitor(app.App):
             else:
                 self._text(ctx, 'DIALLING' if state == 'dialing' else 'RINGING', 38, 24, 190, colour)
             direction = 'OUTGOING' if call.get('direction') == 'outbound' else 'INCOMING' if call.get('direction') == 'inbound' else 'CALL'
-            self._text(ctx, direction + ' / ' + label.replace('PRIORITY / ', ''), 84, 14, 194, colour, minimum_size=10)
+            self._text(ctx, direction + ' / ' + (route or label.replace('PRIORITY / ', '')), 84, 14, 194, colour, minimum_size=10)
             return
         self._text(ctx, str(self.config.get("partner_name") or "Partner").upper() if beloved else "PRIORITY" if call.get("priority") else label,
                    -63, 24, 155 if beloved else 190, colour)
@@ -1338,8 +1340,7 @@ class ThreeCXMonitor(app.App):
             number_lines = 0
         else:
             number_lines = self._draw_number(ctx, call.get("peer_number"), y=5, size=34)
-        route = call.get("queue_name") or call.get("queue_number") or call.get("ddi") or ""
-        detail = label.replace("PRIORITY / ", "") if call.get("priority") else route
+        detail = route or (label.replace("PRIORITY / ", "") if call.get("priority") else "")
         self._text(ctx, detail, 84 if peer and number_lines > 1 else 72,
                    18 if peer and number_lines > 1 else 20, 178,
                    colour if call.get("priority") else (0.7, 0.75, 0.8))

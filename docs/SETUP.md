@@ -149,3 +149,10 @@ The tests use synthetic data and local fake servers. They do not place PBX calls
 ### Spatial BLF lights (0.16.1)
 
 With four team members, the twelve outer LEDs match the screen quadrants: TB upper-left (10-12), PD upper-right (1-3), JH lower-left (7-9), SM lower-right (4-6). Indices are the one-based hardware LEDs, clockwise from the upper-right. Incoming-call and urgent-notification effects still use the full ring.
+
+
+### Queue and ring-group names (0.17.0)
+
+Configure `queues` and `ring_groups` as maps from routing extensions to display names in the bridge JSON. The bridge checks referred-by, on-behalf-of and originated-by DNs, and legs sharing the same nonzero call ID. Queue membership alone never classifies a direct call as a queue call. Queue routes take precedence when both are present; both fields are retained. Unknown routes stay unknown rather than being guessed.
+
+Incoming calls show the route name beneath the caller. Connected/held calls retain it in the lower caption. Queue effects are cyan; ring-group effects violet; priority colours override either while preserving the route caption. The PBX must expose routing metadata or a matching call leg to the scoped client.

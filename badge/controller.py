@@ -11,6 +11,7 @@ UNKNOWN = (12, 12, 14)
 KINDS = {
     "internal": (255, 155, 0),
     "queue": (0, 230, 255),
+    "ring_group": (125, 75, 255),
     "ddi": (35, 80, 255),
     "external": (255, 255, 255),
     "unknown": (100, 100, 110),
@@ -25,7 +26,7 @@ def call_colour(call):
 
 def call_label(call):
     labels = {
-        "internal": "INTERNAL", "queue": "QUEUE", "ddi": "DDI",
+        "internal": "INTERNAL", "queue": "QUEUE", "ring_group": "RING GROUP", "ddi": "DDI",
         "external": "EXTERNAL", "unknown": "UNKNOWN ROUTE",
     }
     kind = labels.get(call.get("kind"), "UNKNOWN ROUTE")

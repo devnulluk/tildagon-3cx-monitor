@@ -1,0 +1,44 @@
+{
+  "badge_version": "0.17.0",
+  "live": true,
+  "focused": true,
+  "demo": false,
+  "usb_readback_verified": true,
+  "bridge_version": "0.7.0",
+  "bridge_healthy": true,
+  "queue_route": "IT (222)",
+  "ring_group_route": "Operations Office (826)",
+  "full_suite_passed_before_final_renderer_test": 744,
+  "route_tests_including_renderer_passed": 6,
+  "real_routed_call_tested": false,
+  "calls_or_dnd_actions_performed": false,
+  "matrix_scroll_offset_changed": true,
+  "matrix_direct_register_expected": 0,
+  "matrix_direct_register_observed": 113,
+  "matrix_register_check": "unexpected readback - not marked verified",
+  "final_clean_launch": {
+    "live": true,
+    "demo": false,
+    "idle_pages": [
+      "weather",
+      "rain",
+      "clock",
+      "moon",
+      "meteors"
+    ],
+    "clock_preview": true,
+    "focused": true,
+    "matrix_ready": true,
+    "keyboard": true,
+    "eeh_ready": true,
+    "ring_brightness": 0.2,
+    "matrix_call_brightness": 1.0,
+    "eeh_brightness": 0.03,
+    "weather_fresh": true,
+    "clock_style": "neon_orrery",
+    "version": "0.17.0",
+    "keyboard_slots": [
+      4
+    ]
+  }
+}

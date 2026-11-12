@@ -407,3 +407,10 @@ real partner-call timing remain deployment-specific checks.
 ## Version 0.16.1 - spatial BLF LEDs
 
 Corrects four-member sectors to match the screen: upper-left TB 10-12, upper-right PD 1-3, lower-left JH 7-9, lower-right SM 4-6. Mapping agrees with the firmware LED coordinates and the user photo. All 93 tests in the four affected controller, brightness and app suites pass. Physical installation remains pending because the badge is unplugged.
+
+
+## Version 0.17.0 - named call routes
+
+744 tests passed before adding the final renderer regression; all six route tests including that renderer check pass. Route detection covers all three routing fields, same-call correlation, unrelated-call isolation, direct-call isolation and priority preservation. Final complete suite runs in GitHub CI.
+
+Badge source was uploaded with byte-for-byte readback and cleanly launched live/focused as 0.17.0. Bridge 0.7.0 is deployed healthy with existing permissions and saved login. No real routed test calls or DND changes were made. Menu rendered on native hardware; matrix notification offsets changed, but direct register 0x50 read 113 instead of the expected zero, so that readback check remains unresolved. The temporary test notification was expired and final launch returned to live operation.
