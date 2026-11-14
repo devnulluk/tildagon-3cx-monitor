@@ -10,7 +10,7 @@ int main(int argc,char** argv){
  Presentation p;Snapshot s;s.live=true;s.weather=true;s.temperature=14;s.condition="Partly cloudy";s.rain="Dry next hour";
  s.team={{"TB","busy","Marion"},{"PD","idle",""},{"JH","idle",""},{"SM","ringing","External"}};
  p.view=View::Idle;int page=0;
- if(scene=="weather")page=1;else if(scene=="crew")page=2;
+ if(scene=="rain")page=1;else if(scene=="moon")page=2;else if(scene=="meteors")page=3;else if(scene=="advent")page=4;
  else if(scene=="queue"||scene=="group"||scene=="partner"||scene=="connected"){
  p.view=scene=="connected"?View::Call:View::Ringing;p.title="Example Caller";p.kind=scene=="group"?"ring_group":"queue";p.subtitle=scene=="group"?"Operations Office":"IT";p.body=scene=="connected"?"CONNECTED":"INCOMING";p.seconds=83;
  if(scene=="partner"){p.partner=true;p.priority=true;p.title="Keziah";p.subtitle="Partner";}

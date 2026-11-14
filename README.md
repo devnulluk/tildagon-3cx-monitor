@@ -10,7 +10,7 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 
 ## Spaceport audio companion
 
-The [Waveshare 1.85-inch Wi-Fi companion](companion/README.md) adds a 360×360 space display and speaker alongside Spaceagon: distinct ringtones, a waving bunny for partner calls, live call details, notifications, weather and a clock. Firmware and backup-first installation tools are ready; physical validation awaits the new board.
+The [Waveshare Wi-Fi companion](companion/README.md) now handles weather, astronomy, Advent, rich notifications and ringtone audio. Spaceagon keeps 3CX and clocks, with notification LED effects that never replace those screens. Physical validation awaits the new Waveshare board.
 
 ![Spaceport host preview, synthetic data](companion/docs/spaceport-gallery.png)
 
@@ -102,7 +102,7 @@ name line. Public previews use invented names; personal details stay local.
 - A waving bunny for your configured partner, a heartbeat on the East Essex logo and an animated heart on the Liteloop matrix.
 - Optional verified PNG asset packs on microSD. Every bundled theme, including the photographic background, fits internal storage.
 
-Badge **0.16.0** / bridge **0.6.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
+Badge **0.18.0** / bridge **0.7.0**. The code targets the round 240×240 Spaceagon/Tildagon screen and MicroPython firmware APIs. Gallery images and animations are recordings of the official SDL/ctx simulator running the app with synthetic data. They are not camera footage or hardware frame-rate measurements. Native checks and their version scope are recorded in [validation](docs/VALIDATION.md).
 
 ## On-device demo tour
 

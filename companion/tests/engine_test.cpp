@@ -25,5 +25,15 @@ int main() {
   assert(normalize("07700900124")!=normalize("07700900123"));
   s.calls.clear();s.notices.clear();s.received=0xfffffff0;s.sourceAgeMs=0;e.accept(s);assert(e.fresh(0x20));
   e.muted=true;s.received=8000;s.calls={c};e.accept(s);assert(e.present(8100).cue==Cue::Silent);
+  Engine phone,dashboard;Snapshot split;split.live=true;split.received=100;
+  c.priority=true;c.partner=false;split.calls={c};n.id="split";n.priority=5;n.remainingMs=10000;split.notices={n};
+  phone.accept(split);dashboard.accept(dashboardSnapshot(split));
+  auto ph=phone.present(200),screen=dashboard.present(200);
+  assert(ph.view==View::Ringing&&screen.view==View::Notice);
+  assert(audioPresentation(ph,screen).cue==Cue::Priority);
+  split.calls[0].state="connected";phone.accept(split);
+  assert(audioPresentation(phone.present(300),screen).view==View::Notice);
+  dashboard.acknowledge(screen);assert(dashboard.present(300).view==View::Idle);
+  assert(dashboard.snapshot().calls.empty()&&dashboard.snapshot().team.empty());
   std::cout<<"Engine: call priority, mute, expiry, reconnect, timer and rollover checks passed\n";
 }

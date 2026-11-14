@@ -17,9 +17,9 @@
 #include "protocol.h"
 
 using namespace spaceport;
-static constexpr char VERSION[]="0.1.0";
+static constexpr char VERSION[]="0.2.0";
 Preferences prefs;
-Engine engine;
+Engine engine,dashboard;
 SemaphoreHandle_t stateLock;
 Snapshot latest;
 WebServer web(80);
@@ -102,7 +102,7 @@ static void networkTask(void*) {
           }
           JsonDocument j;
           if(body.length()<=65536&&!deserializeJson(j,body)&&j["version"]==1&&j["own"].is<JsonObject>()&&j["team"].is<JsonArray>()) {
-            Snapshot s=parseState(j,millis(),partnerNumber.c_str(),partnerName.c_str(),partnerSurname.c_str());xSemaphoreTake(stateLock,portMAX_DELAY);latest=s;engine.accept(s);xSemaphoreGive(stateLock);
+            Snapshot s=parseState(j,millis(),partnerNumber.c_str(),partnerName.c_str(),partnerSurname.c_str());xSemaphoreTake(stateLock,portMAX_DELAY);latest=s;engine.accept(s);dashboard.accept(dashboardSnapshot(s));xSemaphoreGive(stateLock);
           }
         }
         http.end();
@@ -183,12 +183,12 @@ static void webSetup() {
     if(web.header("X-Spaceport")!="1"||web.arg("plain").length()>256){web.send(400);return;}
     JsonDocument j;if(deserializeJson(j,web.arg("plain"))){web.send(400);return;}
     String a=j["action"]|"";
-    xSemaphoreTake(stateLock,portMAX_DELAY);Presentation p=engine.present(millis());
-    if(a=="mute"){permanentMute=true;engine.muted=true;audioCue=Cue::Silent;}
-    else if(a=="unmute"){permanentMute=false;engine.muted=false;}
-    else if(a=="silence"){engine.silence(p);audioCue=Cue::Silent;}
-    else if(a=="dismiss"){engine.acknowledge(p);audioCue=Cue::Silent;}
-    else if(a=="page"){page=(page+1)%3;manualPage=true;manualPageAt=millis();}
+    xSemaphoreTake(stateLock,portMAX_DELAY);Presentation phone=engine.present(millis());Presentation shown=dashboard.present(millis());Presentation p=phone.view==View::Ringing?phone:shown;
+    if(a=="mute"){permanentMute=true;engine.muted=true;dashboard.muted=true;audioCue=Cue::Silent;}
+    else if(a=="unmute"){permanentMute=false;engine.muted=false;dashboard.muted=false;}
+    else if(a=="silence"){engine.silence(p);dashboard.silence(p);audioCue=Cue::Silent;}
+    else if(a=="dismiss"){dashboard.acknowledge(shown);audioCue=Cue::Silent;}
+    else if(a=="page"){page=(page+1)%dashboardPages(time(nullptr));manualPage=true;manualPageAt=millis();}
     else if(a=="volume")volume=constrain(j["value"]|20,0,75);
     else if(a=="priority_volume")priorityVolume=constrain(j["value"]|35,0,75);
     else if(a=="brightness"){brightness=constrain(j["value"]|50,5,100);ledcWrite(0,brightness*255/100);}
@@ -202,11 +202,8 @@ static void webSetup() {
 }
 
 static Presentation demoPresentation(uint32_t now) {
-  Presentation p;int step=((now-demoSince)/6000)%9;
-  p.id="demo";p.title="Example Caller";p.subtitle="IT";p.kind="queue";p.body="INCOMING";
-  if(step<4){p.view=View::Ringing;p.kind=step==0?"queue":step==1?"ring_group":"internal";p.subtitle=step==0?"IT":step==1?"Operations Office":"Internal";p.partner=step==3;if(p.partner){p.title=partnerName.length()?partnerName.c_str():"Partner";p.subtitle=partnerSurname.c_str();}}
-  else if(step==4){p.view=View::Call;p.seconds=83;p.body="CONNECTED";}
-  else if(step<7){p.view=View::Notice;p.priority=step==6;p.title=step==6?"Storage needs attention":"Backup complete";p.body=step==6?"An example urgent notification. Hold BOOT to clear.":"All files copied successfully.";p.kind=step==6?"failure":"success";p.progress=step==5?73:-1;}
+  Presentation p;int step=((now-demoSince)/6000)%7;
+  if(step<2){p.view=View::Notice;p.priority=step==1;p.id="demo";p.title=step==1?"Storage needs attention":"Backup complete";p.body=step==1?"An example urgent alert. Hold BOOT to clear.":"All files copied successfully.";p.kind=step==1?"failure":"success";p.progress=step==0?73:-1;}
   else p.view=View::Idle;
   return p;
 }
@@ -214,7 +211,7 @@ static Presentation demoPresentation(uint32_t now) {
 void setup() {
   Serial.begin(115200);pinMode(0,INPUT_PULLUP);pinMode(5,OUTPUT);digitalWrite(5,LOW);
   prefs.begin("spaceport",true);ssid=prefs.getString("ssid");password=prefs.getString("password");origin=prefs.getString("origin");token=prefs.getString("token");ca=prefs.getString("ca");webKey=prefs.getString("web_key");partnerNumber=prefs.getString("partner");partnerName=prefs.getString("partner_name","Partner");partnerSurname=prefs.getString("partner_surname");brightness=constrain(prefs.getInt("brightness",50),5,100);volume=prefs.getInt("volume",20);priorityVolume=prefs.getInt("priority",35);permanentMute=prefs.getBool("muted",false);prefs.end();
-  configured=validOrigin(origin)&&token.length()>=16&&webKey.length()>=16;engine.muted=permanentMute;
+  configured=validOrigin(origin)&&token.length()>=16&&webKey.length()>=16;engine.muted=permanentMute;dashboard.muted=permanentMute;
   stateLock=xSemaphoreCreateMutex();
   expanderReset();displayReady=screen.begin(40000000);ledcSetup(0,5000,8);ledcAttachPin(5,0);ledcWrite(0,brightness*255/100);
   if(!displayReady)Serial.println("DISPLAY_INIT_FAILED");
@@ -222,7 +219,7 @@ void setup() {
   configTzTime("GMT0BST,M3.5.0/1,M10.5.0","pool.ntp.org","time.cloudflare.com");
   xTaskCreatePinnedToCore(networkTask,"network",16384,nullptr,1,nullptr,0);
   xTaskCreatePinnedToCore(audioTask,"audio",4096,nullptr,2,nullptr,0);
-  webSetup();Serial.println("SPACEPORT_READY 0.1.0");
+  webSetup();Serial.println("SPACEPORT_READY 0.2.0");
 }
 void loop() {
   web.handleClient();
@@ -231,20 +228,21 @@ void loop() {
   if(down&&!buttonSince)buttonSince=now;
   if(!down&&buttonSince) {
     uint32_t held=now-buttonSince;buttonSince=0;
-    if(held>=40){xSemaphoreTake(stateLock,portMAX_DELAY);auto p=engine.present(now);
-      if(held>1500&&p.view==View::Notice)engine.acknowledge(p);
-      else if(p.view==View::Ringing||p.view==View::Notice)engine.silence(p);
+    if(held>=40){xSemaphoreTake(stateLock,portMAX_DELAY);auto phone=engine.present(now);auto shown=dashboard.present(now);auto p=phone.view==View::Ringing?phone:shown;
+      if(held>1500&&shown.view==View::Notice)dashboard.acknowledge(shown);
+      else if(p.view==View::Ringing||p.view==View::Notice){engine.silence(p);dashboard.silence(p);}
       else if(held>1500){demo=!demo;demoAudio=false;demoSince=now;}
-      else {page=(page+1)%3;manualPage=true;manualPageAt=now;}
+      else {page=(page+1)%dashboardPages(time(nullptr));manualPage=true;manualPageAt=now;}
       audioCue=Cue::Silent;xSemaphoreGive(stateLock);}
   }
   if(demo&&now-demoSince>120000)demo=false;
   if(now-lastRender>=100) {
-    lastRender=now;xSemaphoreTake(stateLock,portMAX_DELAY);Presentation p=engine.present(now);Snapshot s=latest;xSemaphoreGive(stateLock);
-    // Real priority calls and real urgent notices always interrupt the visual tour.
+    lastRender=now;xSemaphoreTake(stateLock,portMAX_DELAY);Presentation phone=engine.present(now);Presentation p=dashboard.present(now);Snapshot s=latest;xSemaphoreGive(stateLock);
+    // Urgent notifications interrupt the visual tour; phone priority controls audio only.
     if(demo&&!p.priority)p=demoPresentation(now);
-    setSound(p);
-    int idlePage=manualPage&&uint32_t(now-manualPageAt)<20000?page:(now/15000)%3;
+    setSound(audioPresentation(phone,p));
+    int idlePage=manualPage&&uint32_t(now-manualPageAt)<20000?page:(now/15000)%dashboardPages(time(nullptr));
+    if(demo&&p.view==View::Idle)idlePage=std::max(0,int(((now-demoSince)/6000)%7)-2);
     if(displayReady){render(screen,p,s,now,idlePage,configured,WiFi.localIP().toString().c_str(),permanentMute,demo);screen.flush();}
   }
   delay(2);

@@ -29,5 +29,6 @@
     "type": "Liteloop",
     "brightness": 0.15,
     "call_brightness": 1.0
-  }
+  },
+  "device_role": "phone_clock"
 }

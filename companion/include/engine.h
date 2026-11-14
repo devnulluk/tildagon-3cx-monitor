@@ -19,7 +19,7 @@ struct Notice {
 };
 struct Team {std::string initials, state, peer;};
 struct Snapshot {
-  bool live=false;
+  bool live=false,feedLive=false;
   uint32_t received=0, sourceAgeMs=0;
   std::vector<Call> calls;
   std::vector<Notice> notices;
@@ -98,6 +98,12 @@ class Engine {
     silence(p);if(p.view==View::Notice){dismissed.push_back(p.id.substr(7));if(dismissed.size()>64)dismissed.erase(dismissed.begin());}
   }
 };
+// A separate presentation engine gives Waveshare notifications the full screen
+// while the original state still drives call audio and Spaceagon's call display.
+inline Snapshot dashboardSnapshot(Snapshot value) {value.live=value.feedLive||value.live;value.sourceAgeMs=0;value.calls.clear();value.team.clear();return value;}
+inline Presentation audioPresentation(const Presentation& phone,const Presentation& dashboard) {
+  return phone.view==View::Ringing?phone:dashboard;
+}
 inline std::string ascii(const std::string& s,size_t limit=100) {
   std::string out;for(unsigned char c:s){if(c>=32&&c<127)out+=char(c);if(out.size()>=limit)break;}return out;
 }

@@ -8,24 +8,25 @@ A standalone Wi-Fi companion for the **Waveshare ESP32-S3-LCD-1.85, non-touch**:
 
 ![Production layout rendered on a PC with synthetic data](docs/spaceport-gallery.png)
 
-**Version 0.1.0.** ESP32-S3 firmware compiles; native logic checks pass. These are **host-rendered previews**, using the production drawing code and font bitmaps with a PC raster shim. They are not camera footage or evidence of physical performance. The ordered board has not arrived: display orientation/colours, expander reset, speaker output, buttons, Wi-Fi reconnection and USB recovery still require hardware validation.
+**Version 0.2.0.** ESP32-S3 firmware compiles; native logic checks pass. These are **host-rendered previews**, using the production drawing code and font bitmaps with a PC raster shim. They are not camera footage or evidence of physical performance. The ordered board has not arrived: display orientation/colours, expander reset, speaker output, buttons, Wi-Fi reconnection and USB recovery still require hardware validation.
 
 ## What it does
 
-- Ringtones and animated caller screens for direct, internal, queue, ring-group, priority and partner calls. Each has a different original tune. Listen to the [partner chime](data/sounds/partner.wav), [queue ringtone](data/sounds/queue.wav) or [priority ringtone](data/sounds/priority.wav).
-- Keziah gets a pink waving bunny and hearts. Matching uses the privately provisioned exact number, with UK formatting normalisation. Known callers show names; unknown callers show their number.
-- Incoming and outgoing connected calls show the other party and an elapsed timer. The timer starts when this device first observes the connected call; restarting it resets that timer.
-- IT queue and Operations Office ring-group labels come from the bridge's route fields. It cannot reconstruct route information absent from the server state.
-- Existing bridge notifications appear here too, with progress bars, type and urgency. Priority 5 stays visible until its bridge TTL expires or you clear it locally; a priority call can interrupt it. Normal calls take precedence over ordinary notifications. Notification chimes are deduplicated by ID during this boot.
-- Idle rotation: orbital clock with approximate decorative moon, weather and next-hour rain outlook, and four crew indicators. Weather comes from the existing bridge/Open-Meteo feed, not another API key. [Open-Meteo](https://open-meteo.com/) weather data is licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- Automatic Wi-Fi reconnection and UK time/DST via NTP. HTTPS waits for a plausible clock; TLS verifies the configured CA and hostname. Ringing stops when live call data becomes five seconds old.
-- Separate normal/priority audio levels, persistent mute, adjustable display brightness, a silent visual demo and a short test sound. The speaker's physical knob still works.
+- **Spaceagon owns 3CX and clocks:** call screens, BLFs/speed dials, DND, caller animations and clock faces stay on the badge. Set `"device_role": "phone_clock"` in its private `config.json` (also shown in the public example). Missing/other values retain the standalone full-screen notification behaviour.
+- **Waveshare owns the dashboard:** weather, next-hour rain outlook, approximate Moon phase, a seasonal meteor activity view and an Advent page from 1–24 December. Clocks and crew/caller screens are excluded from its live rotation. Meteor streaks are decorative; activity windows reuse the [badge's IMO catalogue](../docs/ASTRONOMY.md), not observed rates or visibility predictions. The lunar picture uses a mean 29.530589-day cycle and is approximate.
+- Notifications get Waveshare's full screen, including progress and urgency. Urgent notifications remain until local acknowledgement or bridge TTL expiry, including during phone calls. They never cover Spaceagon's clocks or call details in the split role.
+- The same notification feed activates Spaceagon's ring LEDs; urgent alerts retain full red ring and slow EEH red breathing. Priority calls override notification lighting. Notification text does not scroll on the badge matrix in the split role; it keeps its phone/clock duties.
+- Waveshare still supplies the original call ringtones, including the partner melody. Phone ringing takes audio precedence over notification chimes, while call details remain on Spaceagon. Listen to the [partner chime](data/sounds/partner.wav), [queue ringtone](data/sounds/queue.wav) or [priority ringtone](data/sounds/priority.wav).
+- Automatic Wi-Fi reconnection and UK time/DST via NTP. Verified HTTPS waits for a plausible clock. Stale call data stops ringing within five seconds; dashboard freshness is based on the server connection so a disconnected PBX does not hide otherwise available weather/notifications.
+- Separate normal/priority audio levels, persistent mute, adjustable display brightness, a silent visual demo and a short test sound. The physical speaker knob still works.
 
-Spaceagon remains the call/DND controller. Spaceport only performs authenticated **GET /v1/state** requests. Existing Apprise/ntfy/send-only notification integrations continue to feed the bridge; no new notification endpoint is required. Local acknowledgement does not dismiss notifications on Spaceagon. Network polling is independent on each device, so transitions can differ briefly; this is not sample-synchronised multi-room audio.
+Both devices independently read the existing protected **GET /v1/state** feed. Existing Apprise/ntfy notification integrations need no extra endpoint or direct device-to-device connection. Spaceagon observes the same notification even when Waveshare is offline. Weather is supplied by [Open-Meteo](https://open-meteo.com/), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+**Acknowledgement remains local:** clearing an alert on Waveshare does not clear the shared bridge item or Spaceagon's LEDs; an urgent LED effect ends when that item expires or is updated to a nonurgent state by its sender. No new write token or server route is introduced. Independent polling means transitions may differ briefly.
 
 ## Ready for arrival
 
-Download the `spaceport-0.1.0.zip` build artifact or build it below. The factory image contains no Wi-Fi password, bridge token, contact number or personal dates. It includes the eight default WAV sounds. You do not need a microSD card.
+Download the `spaceport-0.2.0.zip` build artifact or build it below. The factory image contains no Wi-Fi password, bridge token, contact number or personal dates. It includes the eight default WAV sounds. You do not need a microSD card.
 
 1. Unzip into a new folder. Connect **the new Waveshare**, and identify its port by comparing before/after port lists. Do not choose the Spaceagon's port.
 2. In PowerShell, inside the unzipped folder:
@@ -34,7 +35,7 @@ Download the `spaceport-0.1.0.zip` build artifact or build it below. The factory
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-install.txt
 .\.venv\Scripts\python.exe -m serial.tools.list_ports
-.\.venv\Scripts\python.exe flash.py --port COM12 --image spaceport-0.1.0.bin
+.\.venv\Scripts\python.exe flash.py --port COM12 --image spaceport-0.2.0.bin
 ```
 
 Replace COM12 with the new device. The helper checks the image SHA-256, asks you to identify the target, reads and verifies a **full 16MB factory backup**, then flashes and verifies the new image. Backups may contain factory configuration; keep them private. If USB download mode is required, follow the vendor BOOT/RESET procedure. Do not overwrite an unfamiliar device.
@@ -62,7 +63,7 @@ The helper creates `spaceport-access.local.json` with a generated local-control 
 | Hold BOOT over 1.5 seconds otherwise | Start/stop silent visual demo |
 | Local web page | Mute/unmute, normal/priority volume, brightness, silence, dismiss, page, demo, test sound |
 
-Use BOOT during normal running, not RESET or the power button. The ordered variant does not require touch. A real priority call or urgent notice interrupts the visual demo. The tour exits after two minutes. Global mute also mutes priority calls; unmute explicitly to hear them. Defaults are conservative digital levels (20% normal, 35% priority), independent of the analog knob. Actual acoustic level is unmeasured.
+Use BOOT during normal running, not RESET or the power button. The ordered variant does not require touch. A real urgent notice interrupts the visual demo; priority call ringtones can still sound without replacing the dashboard. The tour exits after two minutes. Global mute also mutes priority calls; unmute explicitly to hear them. Defaults are conservative digital levels (20% normal, 35% priority), independent of the analog knob. Actual acoustic level is unmeasured.
 
 ## Build and customise
 
@@ -74,7 +75,7 @@ py -m venv .build
 .\.build\Scripts\python.exe tools/build_release.py
 ```
 
-This builds firmware and LittleFS and produces `release/spaceport-0.1.0.zip`, its merged image and SHA-256 manifest. Dependencies are pinned in `platformio.ini`. Flash layout: two 5MB OTA slots and a 0x5f0000-byte LittleFS partition; no OTA upload endpoint is enabled in this release. Hardware target is 16MB flash/8MB OPI PSRAM. Do not flash the image to a differently sized board.
+This builds firmware and LittleFS and produces `release/spaceport-0.2.0.zip`, its merged image and SHA-256 manifest. Dependencies are pinned in `platformio.ini`. Flash layout: two 5MB OTA slots and a 0x5f0000-byte LittleFS partition; no OTA upload endpoint is enabled in this release. Hardware target is 16MB flash/8MB OPI PSRAM. Do not flash the image to a differently sized board.
 
 Default tones are original generated compositions. Regenerate using `python tools/make_sounds.py`. Replace one with your own recording/music using ffmpeg:
 

@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image,ImageDraw
 ap=argparse.ArgumentParser();ap.add_argument('--compiler',default='g++');ap.add_argument('--video',action='store_true');args=ap.parse_args()
 root=Path(__file__).resolve().parents[1];out=root/'docs';out.mkdir(exist_ok=True)
-scenes=['clock','weather','queue','group','partner','connected','notification','urgent','crew','offline']
+scenes=['weather','rain','moon','meteors','notification','urgent','advent','offline']
 with tempfile.TemporaryDirectory() as temp:
  t=Path(temp);fonts=t/'Fonts';fonts.mkdir()
  for name in ['FreeSansBold24pt7b.h','FreeSansBold12pt7b.h','FreeSans9pt7b.h']:
@@ -30,7 +30,7 @@ print('Host previews saved:',out)
 if args.video:
  import array,wave,imageio_ffmpeg
  audio=out/'preview-audio.wav'
- cues=['','','queue','group','partner','','info','urgent','','']
+ cues=['','','','','info','urgent','','']
  with wave.open(str(audio),'wb') as w:
   w.setparams((1,2,22050,0,'NONE','not compressed'))
   for cue in cues:

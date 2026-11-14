@@ -371,7 +371,7 @@ class ThreeCXMonitor(app.App):
 
     def _write_leds(self):
         frame = self.controller.led_frame(self._now())
-        notification = self._visible_notification(self.clock_ms)
+        notification = self._notification_effect(self.clock_ms)
         urgent = notification is not None and notification.get("priority") == 5
         if urgent:
             frame = [(255, 0, 0)] * 12
@@ -412,7 +412,7 @@ class ThreeCXMonitor(app.App):
             payload['own']=own
         candidate=self.notifications.current(self.clock_ms)
         active_own=bool(isinstance(calls,list) and any(isinstance(call,dict) and call.get('state') in ('ringing','dialing','connected','hold','held','busy') for call in calls))
-        if (candidate and not self.controller._priority_ring_override(self.clock_ms)
+        if (candidate and not self._phone_clock_role() and not self.controller._priority_ring_override(self.clock_ms)
                 and (candidate.get('priority')==5 or (live and not active_own))):
             payload=dict(payload)
             payload['_matrix_notification']=candidate
@@ -732,7 +732,15 @@ class ThreeCXMonitor(app.App):
                 self._notification_pending = current["id"]
         self.notifications.current(now)
 
+    def _phone_clock_role(self):
+        return self.config.get("device_role") == "phone_clock" and self.showcase is None
+
     def _visible_notification(self, now):
+        if self._phone_clock_role():
+            return None
+        return self._notification_effect(now)
+
+    def _notification_effect(self, now):
         self._observe_notifications(now)
         current = self.notifications.current(now)
         urgent = current is not None and current.get("priority") == 5
@@ -753,6 +761,8 @@ class ThreeCXMonitor(app.App):
         return None
 
     def _open_notifications(self):
+        if self._phone_clock_role():
+            return
         self._observe_notifications(self.clock_ms)
         self.notifications_open = True
         self._notification_entered = self.clock_ms
@@ -1123,6 +1133,8 @@ class ThreeCXMonitor(app.App):
             pages.append("meteors")
         if theme.get("advent"):
             pages.append("advent")
+        if self._phone_clock_role():
+            pages = ["clock"]
         self.idle_pages.set_pages(pages, now)
         if self.showcase is not None:
             page = (self._showcase_stage or {}).get("page")
@@ -1249,7 +1261,7 @@ class ThreeCXMonitor(app.App):
     def _draw_menu(self,ctx):
         presence=(self._status_payload().get('own') or {}).get('presence') or {}
         state='ON' if presence.get('state')=='dnd' else 'OFF' if presence.get('state')=='available' else '?'
-        labels=('Speed dials','DND: '+state,'Notifications','Settings','Demo tour','Exit app')
+        labels=('Speed dials','DND: '+state,'Alerts: Waveshare' if self._phone_clock_role() else 'Notifications','Settings','Demo tour','Exit app')
         self._text(ctx,'MENU',-84 if self.showcase else -91,27,160,(.24,.90,.83))
         self._text(ctx,'%d / 6'%(self.menu_selected+1),-61 if self.showcase else -68,11,80,(.6,.7,.8))
         start=max(0,min(3,self.menu_selected-1))

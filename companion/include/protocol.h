@@ -5,7 +5,8 @@ namespace spaceport {
 inline Snapshot parseState(JsonDocument& j,uint32_t now,const std::string& partnerNumber="",const std::string& partnerName="Partner",const std::string& partnerSurname="") {
   Snapshot s;s.received=now;
   const double age=j["age_seconds"]|99999.0;
-  s.live=j["own"].is<JsonObject>()&&j["team"].is<JsonArray>()&&j["version"]==1 && j["connected"]==true && !j["demo"].as<bool>() && std::isfinite(age)&&age>=0&&age<5;
+  s.feedLive=j["own"].is<JsonObject>()&&j["team"].is<JsonArray>()&&j["version"]==1&&!j["demo"].as<bool>();
+  s.live=s.feedLive&&j["connected"]==true&&std::isfinite(age)&&age>=0&&age<5;
   s.sourceAgeMs=uint32_t(std::min(99999.0,std::max(0.0,age))*1000);
   for(JsonObject c:j["own"]["calls"].as<JsonArray>()) {
     if(s.calls.size()>=8)break;

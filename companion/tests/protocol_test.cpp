@@ -15,6 +15,7 @@ int main(){
  j["demo"]=true;assert(!parseState(j,100).live);j["demo"]=false;
  j["age_seconds"]=5;assert(!parseState(j,100).live);j["age_seconds"]=-1;assert(!parseState(j,100).live);
  j["age_seconds"]=0;j["notifications"][0]["age_seconds"]=60;assert(parseState(j,100).notices.empty());
+ j["connected"]=false;auto down=parseState(j,100);assert(!down.live&&down.feedLive&&dashboardSnapshot(down).live);
  j["version"]=2;assert(!parseState(j,100).live);
  JsonDocument missing;assert(!parseState(missing,100).live);
  std::cout<<"Protocol: route fallback, partner matching, weather, expiry and stale/demo rejection checks passed\n";

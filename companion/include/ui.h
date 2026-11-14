@@ -64,6 +64,7 @@ inline void paragraph(Arduino_GFX& g,const std::string& text,int y,uint16_t c=SP
   }
   if(!line.empty())label(g,line,y+row*24,1,c,270);
 }
+inline int dashboardPages(time_t epoch) {struct tm local={};localtime_r(&epoch,&local);return epoch>=1700000000&&local.tm_mon==11&&local.tm_mday<=24?5:4;}
 inline void render(Arduino_GFX& g,const Presentation& p,const Snapshot& s,uint32_t now,int page,bool configured,const std::string& ip,bool muted,bool demo) {
   uint16_t accent=p.partner?SP_PINK:p.priority?0xf986:p.kind=="ring_group"?0xab7f:p.kind=="internal"?SP_GOLD:SP_CYAN;
   backdrop(g,now,accent);
@@ -93,27 +94,52 @@ inline void render(Arduino_GFX& g,const Presentation& p,const Snapshot& s,uint32
     label(g,configured?"Checking Wi-Fi / server":"Run provision.py on your PC",258,1,SP_DIM);
     label(g,"AUDIO FAIL-SAFE ACTIVE",300,1,SP_GOLD,240);
   }else {
-    int pane=page;
-    if(pane==0) {
-      label(g,"ORBITAL CHRONOMETER",65,1,SP_CYAN,245);
-      time_t epoch=time(nullptr);struct tm tm={};localtime_r(&epoch,&tm);char b[40];
-      if(epoch<1700000000)snprintf(b,sizeof b,"--:--");else strftime(b,sizeof b,"%H:%M",&tm);
-      label(g,b,174,3,SP_WHITE);strftime(b,sizeof b,"%a %d %b",&tm);label(g,epoch<1700000000?"SYNCING CLOCK":b,210,2,SP_DIM);
-      float moon=fmod((epoch/86400.0-10963.26)/29.530588853,1.0);if(moon<0)moon+=1;
-      g.fillCircle(180,258,23,0x8c72);g.fillCircle(180+int(cosf(moon*6.2831853f)*20),258,21,SP_NAVY);
-      label(g,"MOON / APPROXIMATE",308,1,SP_DIM,230);
-    }else if(pane==1) {
+    time_t epoch=time(nullptr);struct tm local={};localtime_r(&epoch,&local);
+    if(page==0) {
       label(g,"PLANETARY WEATHER",65,1,SP_CYAN,245);
       if(s.weather){g.fillCircle(180,116,23,SP_GOLD);for(int i=0;i<8;i++){float a=i*.785398f;g.drawLine(180+cosf(a)*30,116+sinf(a)*30,180+cosf(a)*40,116+sinf(a)*40,SP_GOLD);}
         char b[20];snprintf(b,sizeof b,"%.0f C",s.temperature);label(g,b,208,3,SP_WHITE);label(g,s.condition,242,2,SP_DIM);label(g,s.rain,289,1,SP_CYAN,280);
       }else {label(g,"Weather unavailable",201,2,SP_DIM);label(g,"No forecast is guessed",242,1,SP_DIM);}
-    }else {
-      label(g,"CREW TELEMETRY",65,1,SP_CYAN,230);
-      for(size_t i=0;i<s.team.size();i++) {
-        int x=i%2?245:115,y=i<2?123:224;auto& t=s.team[i];uint16_t c=t.state=="idle"?0x3fe9:t.state=="busy"?0xf986:t.state=="ringing"?SP_GOLD:SP_DIM;
-        g.drawCircle(x,y,45,c);g.setFont(&FreeSansBold12pt7b);g.setTextColor(c);g.setCursor(x-19,y+7);g.print(t.initials.c_str());
+    }else if(page==1) {
+      label(g,"RAIN / OUTLOOK",65,1,SP_CYAN,245);
+      g.fillCircle(153,132,27,SP_DIM);g.fillCircle(190,118,35,SP_DIM);g.fillCircle(217,139,23,SP_DIM);g.fillRoundRect(127,137,112,24,10,SP_DIM);
+      for(int i=0;i<8;i++){int x=131+i*14,y=177+int((now/24+i*17)%58);g.drawLine(x,y,x-5,y+10,SP_CYAN);}
+      label(g,s.weather?s.rain:"Forecast unavailable",264,2,SP_CYAN,285);
+      label(g,"NEXT HOUR / FORECAST",302,1,SP_DIM,250);
+    }else if(page==2) {
+      label(g,"LUNAR OBSERVATORY",65,1,SP_CYAN,245);
+      if(epoch<1700000000){label(g,"Waiting for time",200,2,SP_DIM);}
+      else {
+        float phase=fmod((double(epoch)-947182440.0)/2551442.88,1.0);if(phase<0)phase+=1;
+        float angle=phase*6.2831853f,illum=(1-cosf(angle))/2;
+        // Sphere illumination: project the terminator per scanline.
+        for(int y=-66;y<=66;y++){int edge=int(sqrtf(66*66-y*y));int term=int(edge*cosf(angle));
+          int left=phase<.5f?term:-edge,right=phase<.5f?edge:-term;
+          g.drawLine(180-edge,162+y,180+edge,162+y,0x18e6);
+          if(right>=left)g.drawLine(180+left,162+y,180+right,162+y,0xc638);
+        }
+        g.drawCircle(180,162,67,SP_DIM);char text[40];snprintf(text,sizeof text,"%.0f%% illuminated",illum*100);label(g,text,271,2,SP_WHITE);
+        label(g,phase<.5f?"WAXING":"WANING",300,1,SP_CYAN);label(g,"APPROXIMATE PHASE",323,1,SP_DIM,220);
       }
-      label(g,"LIVE FROM THE SAME BRIDGE",310,1,SP_DIM,260);
+    }else if(page==3) {
+      label(g,"METEOR WATCH",65,1,SP_CYAN,245);
+      // Calendar activity windows from the existing badge's IMO catalogue.
+      struct Shower {const char* name;int start,end;};
+      static const Shower showers[]={{"Quadrantids",1228,112},{"Lyrids",414,430},{"Eta Aquariids",419,528},{"S. Delta Aquariids",712,823},{"Perseids",717,824},{"Draconids",1006,1010},{"Orionids",1002,1107},{"S. Taurids",920,1120},{"N. Taurids",1020,1210},{"Leonids",1106,1130},{"Geminids",1204,1220},{"Ursids",1217,1223}};
+      int day=(local.tm_mon+1)*100+local.tm_mday,row=0;
+      for(int i=0;i<5;i++){float t=fmodf(now/1500.f+i*.21f,1.f);int x=270-t*180,y=85+t*95+i*7;g.drawLine(x,y,x+25,y-14,SP_CYAN);}
+      if(epoch<1700000000)label(g,"Waiting for time",242,2,SP_DIM);
+      else {for(const auto& shower:showers){bool active=shower.start>shower.end?(day>=shower.start||day<=shower.end):(day>=shower.start&&day<=shower.end);
+        if(active&&row<3){label(g,shower.name,226+row*28,2,SP_WHITE,285);row++;}}
+        if(!row)label(g,"Quiet catalogue window",250,2,SP_DIM,285);
+      }
+      label(g,"SEASONAL ACTIVITY",320,1,SP_DIM,240);
+    }else {
+      label(g,"SPACE ADVENT",65,1,SP_PINK,245);
+      for(int i=0;i<22;i++){float a=i*.48f;int y=115+i*6,x=180+int(sinf(a)*i*2.1f);g.fillCircle(x,y,4,i%2?SP_GOLD:SP_PINK);}
+      if(epoch>=1700000000&&local.tm_mon==11&&local.tm_mday<=24){char b[30];snprintf(b,sizeof b,"DOOR %d",local.tm_mday);label(g,b,278,3,SP_GOLD);}
+      else label(g,"RETURNS IN DECEMBER",278,2,SP_GOLD,280);
+      label(g,"A LITTLE DAILY WONDER",317,1,SP_PINK,245);
     }
   }
   if(demo)label(g,"DEMO",343,1,SP_GOLD,90);
