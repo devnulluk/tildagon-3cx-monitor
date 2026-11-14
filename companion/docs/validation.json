@@ -1,0 +1,23 @@
+{
+  "version": "0.1.0",
+  "date": "2026-11-14",
+  "firmware_compile": "pass, PlatformIO espressif32 6.12.0, Arduino ESP32 2.0.17",
+  "native_engine": "pass",
+  "native_protocol": "pass",
+  "existing_suite": "745 passed, project Python 3.14.6; Python 3.10 is unsuitable for existing asyncio.timeout tests",
+  "wav_formats": "8 canonical mono PCM16 22050Hz WAV files, each <=8 seconds",
+  "preview": "production ui.h plus host raster shim; synthetic data, includes GIF and MP4 with generated ringtone audio",
+  "release_zip_crc": "pass",
+  "firmware_sha256": "3b160672d74ac9c7232ca6a33fd5f74f49519f5ede61aec12cf74d255a510388",
+  "privacy_scan": "pass, no private bridge token, control token, partner number or personal dates found in public companion source",
+  "physical_validation": false,
+  "pending": [
+    "panel orientation and colours",
+    "I2C expander reset on actual board",
+    "speaker and volume output",
+    "BOOT input",
+    "USB backup and recovery",
+    "Wi-Fi/NTP reconnect",
+    "real PBX calls and notification playback"
+  ]
+}

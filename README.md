@@ -8,6 +8,12 @@ A full-colour desk companion for a 3CX phone system, built for Spaceagon and com
 
 ![Theme examples](docs/gallery/themes-contact-sheet.png)
 
+## Spaceport audio companion
+
+The [Waveshare 1.85-inch Wi-Fi companion](companion/README.md) adds a 360×360 space display and speaker alongside Spaceagon: distinct ringtones, a waving bunny for partner calls, live call details, notifications, weather and a clock. Firmware and backup-first installation tools are ready; physical validation awaits the new board.
+
+![Spaceport host preview, synthetic data](companion/docs/spaceport-gallery.png)
+
 ## Crowned speed dials and menu, version0.16
 
 ![Five equal speed-dial tiles, personalised synthetic simulator preview](docs/gallery/crowned-speed-dials.png)

@@ -1,0 +1,6 @@
+Spaceport panel_init.h derives the LCD command sequence from Espressif Systems ESP32_Display_Panel, commit 92b790ed6d24b0678e2f45b1fc85f0abd2d41b33, src/board/supported/waveshare/BOARD_WAVESHARE_ESP32_S3_TOUCH_LCD_1_85.h.
+Copyright (c) 2023-2025 Espressif Systems (Shanghai) CO LTD.
+Licensed under Apache License, Version 2.0; see LICENSE-APACHE-2.0.txt.
+The command sequence was converted to Arduino_GFX batch operations; peripheral configuration is implemented separately.
+
+Arduino_GFX, ArduinoJson and Adafruit GFX are external dependencies retaining their respective upstream licences. Font files are not copied into this source tree; the host preview uses the installed Adafruit dependency. The generated sound files are original project assets.

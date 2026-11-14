@@ -1,0 +1,30 @@
+name: Spaceport companion
+on:
+  push:
+    paths: ['companion/**', '.github/workflows/spaceport.yml']
+  pull_request:
+    paths: ['companion/**', '.github/workflows/spaceport.yml']
+permissions:
+  contents: read
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install platformio==6.1.18
+      - run: python companion/tools/build_release.py
+      - name: Native behaviour and protocol checks
+        working-directory: companion
+        run: |
+          g++ -std=c++17 -Iinclude tests/engine_test.cpp -o /tmp/engine-test
+          /tmp/engine-test
+          g++ -std=c++17 -Iinclude -I.pio/libdeps/spaceport/ArduinoJson/src tests/protocol_test.cpp -o /tmp/protocol-test
+          /tmp/protocol-test
+          python -m compileall -q tools
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spaceport-0.1.0
+          path: companion/release/spaceport-0.1.0.zip

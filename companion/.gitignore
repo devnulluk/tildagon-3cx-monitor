@@ -1,0 +1,6 @@
+.pio/
+__pycache__/
+private*
+*.local.json
+release/
+spaceport-factory-backup*/
