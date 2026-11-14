@@ -11,7 +11,7 @@
   "native_protocol": "pass, including dashboard independent of PBX connectivity",
   "existing_suite": "748 tests pass with project Python 3.14.6",
   "preview": "host production renderer, synthetic data, generated WAV audio; not physical footage",
-  "firmware_sha256": "eafdd53c64de5d372aa4ed6072543620fe7a8e65bd4d52c3f91f8b37ec9603cb",
+  "firmware_sha256": "See the build-specific release manifest.json",
   "physical_validation": false,
   "badge_installed": false,
   "badge_usb": "COM1 and COM3 only; badge absent",
