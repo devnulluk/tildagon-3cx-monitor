@@ -44,4 +44,3 @@ class DeviceRolesTests(unittest.TestCase):
         self.assertIsNone(monitor._visible_notification(monitor.clock_ms))
         self.assertFalse(monitor.notifications_open)
         self.assertEqual(monitor.idle_pages.pages,['clock'])
-

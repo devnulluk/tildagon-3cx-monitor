@@ -177,7 +177,7 @@ static const char WEB_PAGE[] PROGMEM=R"HTML(<!doctype html><meta name="viewport"
 static void webSetup() {
   const char* headers[]={"X-Spaceport"};web.collectHeaders(headers,1);
   web.on("/",HTTP_GET,[]{if(authenticate())web.send(200,"text/html",FPSTR(WEB_PAGE));});
-  web.on("/status",HTTP_GET,[]{if(!authenticate())return;JsonDocument j;xSemaphoreTake(stateLock,portMAX_DELAY);j["live"]=engine.fresh(millis());xSemaphoreGive(stateLock);j["version"]=VERSION;j["muted"]=permanentMute;j["demo"]=demo;j["volume"]=volume;j["brightness"]=brightness;j["audio_ready"]=audioReady;String out;serializeJson(j,out);web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",out);});
+  web.on("/status",HTTP_GET,[]{if(!authenticate())return;JsonDocument j;xSemaphoreTake(stateLock,portMAX_DELAY);j["live"]=dashboard.fresh(millis());j["phone_live"]=engine.fresh(millis());xSemaphoreGive(stateLock);j["version"]=VERSION;j["muted"]=permanentMute;j["demo"]=demo;j["volume"]=volume;j["brightness"]=brightness;j["audio_ready"]=audioReady;String out;serializeJson(j,out);web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",out);});
   web.on("/action",HTTP_POST,[]{
     if(!authenticate())return;
     if(web.header("X-Spaceport")!="1"||web.arg("plain").length()>256){web.send(400);return;}
