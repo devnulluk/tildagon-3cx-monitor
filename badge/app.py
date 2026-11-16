@@ -35,7 +35,7 @@ from .notifications import NotificationInbox, draw_notification, led_frame as no
 from .space_inputs import SpaceInputs
 from .showcase import Showcase, snapshot as showcase_snapshot, demo_config as showcase_config
 
-from .away import AwayState, draw_lock, rainbow
+from .away import AwayState, draw_lock, draw_welcome, rainbow
 
 SPEED_DIAL_KEYS = {'F':'tb','B':'pd','E':'jh','C':'sm','D':'kz'}
 
@@ -1113,6 +1113,12 @@ class ThreeCXMonitor(app.App):
         alert = self.controller.alert(now)
         notification = self._visible_notification(now)
         own_call = self.controller.own_call(now)
+        if self.away.welcoming(now) and not self.demo_mode and self.showcase is None:
+            if not alert and not own_call and not notification and not self.settings_open and not self.menu_open:
+                draw_welcome(ctx,now,draw_bunny)
+                ctx.restore()
+                return
+            self.away.welcome_until=0
         empty_inbox = (self.notifications_open and not self._phone_attention(now)
                        and not self.settings_open and not self.controls.is_busy
                        and now >= self.controls.message_until and now >= self._brightness_notice_until)

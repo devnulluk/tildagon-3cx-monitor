@@ -60,3 +60,23 @@ class AwayTests(unittest.TestCase):
   self.assertEqual(len(matrix._GLYPHS['away']),5);self.assertTrue(all(len(row)==17 for row in matrix._GLYPHS['away']))
   display.away_label(20000);fixture.drain(display);self.assertEqual(fixture.image(),image)
   display.update(payload(),True,21000);fixture.drain(display);self.assertNotEqual(fixture.image(),image)
+
+ def test_welcome_only_on_return_not_boot_and_not_each_poll(self):
+  a=away.AwayState(True);near=dict(version=1,enabled=True,enrolled=True,nearby=True)
+  a.accept(near,100);self.assertFalse(a.welcoming(101))
+  a.accept(dict(near,nearby=False),200);self.assertFalse(a.welcoming(201))
+  a.accept(near,300);self.assertTrue(a.welcoming(301));end=a.welcome_until
+  a.accept(near,800);self.assertEqual(a.welcome_until,end);self.assertFalse(a.welcoming(end))
+ def test_welcome_cancels_when_away_again(self):
+  a=away.AwayState(True);near=dict(version=1,enabled=True,enrolled=True,nearby=True)
+  a.accept(dict(near,nearby=False),0);a.accept(near,100);self.assertTrue(a.welcoming(101));a.accept(dict(near,nearby=False),200);self.assertFalse(a.welcoming(201))
+ def test_welcome_draws_once_and_calls_preempt_it(self):
+  from test_clocks import Canvas
+  class Screen(Canvas):ARITIES=dict(Canvas.ARITIES,rectangle=4)
+  module,m,hw=support.BadgeAppTests.live_monitor(True);m.away.configured=True
+  m.away.accept(dict(version=1,enabled=True,enrolled=True,nearby=False),0)
+  m.away.accept(dict(version=1,enabled=True,enrolled=True,nearby=True),1)
+  m._now=lambda:2
+  c=Screen();m.draw(c);self.assertIn("WELCOME BACK",[x[0] for x in c.words]);self.assertEqual(c.saved,0)
+  with patch.object(m.controller,"own_call",return_value={"state":"connected"}),patch.object(module,"draw_welcome") as welcome,patch.object(m,"_draw_call"):
+   m.draw(Screen());welcome.assert_not_called();self.assertEqual(m.away.welcome_until,0)

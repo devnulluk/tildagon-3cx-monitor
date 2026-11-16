@@ -146,4 +146,18 @@ inline void render(Arduino_GFX& g,const Presentation& p,const Snapshot& s,uint32
   else if(muted)label(g,"MUTED",343,1,SP_GOLD,90);
   else if(p.view==View::Idle)label(g,ip,343,1,SP_DIM,155);
 }
+inline void renderWelcome(Arduino_GFX& g,uint32_t now){
+  g.fillScreen(SP_NAVY);
+  for(int i=0;i<12;i++)g.fillCircle(50+(i*47)%260,65+(i*31)%210,1,SP_DIM);
+  g.fillRoundRect(153,109,16,57,8,SP_WHITE);g.fillRoundRect(184,105,16,60,8,SP_WHITE);
+  g.fillRoundRect(158,117,6,38,3,SP_PINK);g.fillRoundRect(189,113,6,40,3,SP_PINK);
+  g.fillRoundRect(155,196,50,47,20,SP_WHITE);g.fillCircle(180,175,35,SP_WHITE);
+  g.fillCircle(168,169,3,SP_NAVY);g.fillCircle(192,169,3,SP_NAVY);
+  g.fillCircle(157,182,5,SP_PINK);g.fillCircle(203,182,5,SP_PINK);g.fillCircle(180,181,3,SP_PINK);
+  int handX=228+int(sinf(now/140.f)*7),handY=188+int(cosf(now/140.f)*4);
+  for(int i=0;i<=6;i++)g.fillCircle(201+(handX-201)*i/6,215+(handY-215)*i/6,6,SP_WHITE);
+  g.fillCircle(handX,handY,8,SP_WHITE);g.fillCircle(handX,handY,3,SP_PINK);
+  label(g,"WELCOME BACK",285,2,SP_WHITE,285);
+}
+
 }

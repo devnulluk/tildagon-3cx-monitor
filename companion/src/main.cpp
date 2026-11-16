@@ -18,7 +18,7 @@
 #include "presence.h"
 
 using namespace spaceport;
-static constexpr char VERSION[]="0.4.0";
+static constexpr char VERSION[]="0.5.0";
 Preferences prefs;
 PhonePresence presence;
 volatile bool presenceAudioAllowed=true;
@@ -266,7 +266,7 @@ void setup() {
   presence.begin();
   prefs.begin("presence",false);presenceReadKey=prefs.getString("read_key");
   if(presenceReadKey.length()!=64){char key[65];for(int i=0;i<8;i++)snprintf(key+i*8,9,"%08lx",(unsigned long)esp_random());presenceReadKey=key;prefs.putString("read_key",presenceReadKey);}prefs.end();
-  webSetup();Serial.println("SPACEPORT_READY 0.4.0");
+  webSetup();Serial.println("SPACEPORT_READY 0.5.0");
 }
 void loop() {
   presence.tick();presenceAudioAllowed=presence.allows();web.handleClient();
@@ -291,9 +291,14 @@ void loop() {
     int idlePage=manualPage&&uint32_t(now-manualPageAt)<20000?page:(now/15000)%dashboardPages(time(nullptr));
     if(demo&&p.view==View::Idle)idlePage=std::max(0,int(((now-demoSince)/6000)%7)-2);
     bool away=presence.status().enabled&&!presence.allows();
+    static uint32_t awaySince=0,welcomeUntil=0;
+    if(away&&!awaySince)awaySince=now;
+    if(!away&&awaySince){if(now-awaySince>5000)welcomeUntil=now+2300;awaySince=0;}
+    if(phone.view==View::Ringing||p.view!=View::Idle||(welcomeUntil&&int32_t(now-welcomeUntil)>=0))welcomeUntil=0;
     ledcWrite(0,(away?std::min(brightness,15):brightness)*255/100);
     if(displayReady&&away){screen.fillScreen(0);screen.drawRoundRect(157,130,46,37,7,SP_CYAN);screen.drawCircle(180,127,15,SP_CYAN);screen.fillRect(154,131,52,12,0);screen.drawRoundRect(157,137,46,37,7,SP_CYAN);label(screen,"AWAY",213,3,SP_WHITE);label(screen,"PHONE NOT NEARBY",250,1,SP_CYAN);screen.flush();}
-    else if(displayReady){render(screen,p,s,now,idlePage,configured,(presence.status().enabled?(presence.status().nearby(now)?"PHONE NEAR":"QUIET - PHONE AWAY"):WiFi.localIP().toString()).c_str(),permanentMute,demo);screen.flush();}
+    else if(displayReady&&welcomeUntil&&int32_t(welcomeUntil-now)>0){renderWelcome(screen,now);screen.flush();}
+    else if(displayReady){render(screen,p,s,now,idlePage,configured,(presence.status().enabled?String(""):WiFi.localIP().toString()).c_str(),permanentMute,demo);screen.flush();}
   }
   delay(2);
 }

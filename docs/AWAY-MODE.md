@@ -18,3 +18,6 @@ If the next room still counts as nearby, use the Waveshare's local controls to r
 The independent custom dials now use the recovered full circular display area, including Celestial Atelier. This screenshot is a native simulator render using synthetic demo data, not a camera recording:
 
 ![Full-screen Celestial Atelier](atelier-fullscreen.png)
+
+
+On return, a small bunny waves for about 2.3 seconds, then the normal display resumes. Initial connection does not trigger the badge greeting; repeated nearby updates do not restart it. Calls and notifications preempt it. Normal presence captions are omitted from the Waveshare display. The away ring defaults to 5%, the EEH logo is off and the static matrix word uses 180/255 for legibility.

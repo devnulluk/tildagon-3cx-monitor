@@ -1,15 +1,20 @@
 """Read-only companion presence: stale or unknown status locks the screen."""
 class AwayState:
     def __init__(self, configured=False):
-        self.configured=bool(configured);self.received=None;self.value=None
+        self.configured=bool(configured);self.received=None;self.value=None;self.welcome_until=0
     def accept(self,value,now):
         if not isinstance(value,dict) or value.get("version")!=1:return False
         if any(type(value.get(k)) is not bool for k in ("enabled","enrolled","nearby")):return False
+        returning=(self.value is not None and self.value["enabled"] and self.value["enrolled"] and not self.value["nearby"] and value["enabled"] and value["enrolled"] and value["nearby"])
+        if returning:self.welcome_until=now+2300
+        if not value["nearby"]:self.welcome_until=0
         self.value={k:value[k] for k in ("enabled","enrolled","nearby")};self.received=now;return True
     def away(self,now):
         if not self.configured:return False
         if self.received is None or now-self.received>15000:return True
         return self.value["enabled"] and not (self.value["enrolled"] and self.value["nearby"])
+    def welcoming(self,now):
+        return not self.away(now) and now<self.welcome_until
     def label(self,now):
         if self.received is None or now-self.received>15000:return "PRESENCE OFFLINE"
         return "PHONE AWAY" if self.value["enrolled"] else "PAIR YOUR PHONE"
@@ -35,3 +40,11 @@ def rainbow(now_ms, count=12, brightness=.05, ceiling=1.0):
         up=round(floor+(peak-floor)*fraction);down=round(peak-(peak-floor)*fraction)
         result.append(((peak,up,floor),(down,peak,floor),(floor,peak,up),(floor,down,peak),(up,floor,peak),(peak,floor,down))[sector])
     return result
+
+def draw_welcome(ctx,now,bunny):
+    ctx.rgb(.006,.012,.03).rectangle(-120,-120,240,240).fill()
+    ctx.rgb(.20,.47,.59)
+    for x,y in ((-71,-24),(68,-35),(-82,29),(79,43),(-51,-52),(46,-51)):
+        ctx.arc(x,y,1.4,0,6.28318531,False).fill()
+    ctx.font_size=18;ctx.rgb(.68,.89,.96).move_to(0,-73).text("WELCOME BACK")
+    bunny(ctx,now)
