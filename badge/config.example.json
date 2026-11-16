@@ -31,5 +31,7 @@
     "call_brightness": 1.0
   },
   "device_role": "phone_clock",
-  "notify_token": ""
+  "notify_token": "",
+  "presence_url": "",
+  "presence_token": ""
 }

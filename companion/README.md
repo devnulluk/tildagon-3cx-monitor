@@ -1,6 +1,6 @@
-# Spaceport — Spaceagon's audio and display companion
+# Spaceport â€” Spaceagon's audio and display companion
 
-A standalone Wi-Fi companion for the **Waveshare ESP32-S3-LCD-1.85, non-touch**: a 360×360 round colour display, PCM5101 audio DAC, included speaker and physical volume knob. It sits alongside Spaceagon and reads the same protected 3CX bridge. No cable between the two devices is needed.
+A standalone Wi-Fi companion for the **Waveshare ESP32-S3-LCD-1.85, non-touch**: a 360Ã—360 round colour display, PCM5101 audio DAC, included speaker and physical volume knob. It sits alongside Spaceagon and reads the same protected 3CX bridge. No cable between the two devices is needed.
 
 ![Animated host preview with synthetic calls and notifications](docs/spaceport-tour.gif)
 
@@ -8,16 +8,16 @@ A standalone Wi-Fi companion for the **Waveshare ESP32-S3-LCD-1.85, non-touch**:
 
 ![Production layout rendered on a PC with synthetic data](docs/spaceport-gallery.png)
 
-**Version 0.3.0.** ESP32-S3 firmware compiles; native logic checks pass. These are **host-rendered previews**, using the production drawing code and font bitmaps with a PC raster shim. They are not camera footage or evidence of physical performance. First hardware installation on 16 November 2026 identified and fixed the factory-image boot mode, USB provisioning pacing and LCD colour mode. Firmware startup, Wi-Fi, NTP, verified HTTPS state reception and the local control interface are confirmed on hardware. Final visual/audio observations and the scope of checks are recorded in `docs/validation.json`; the gallery remains host-rendered.
+**Version 0.4.0.** ESP32-S3 firmware compiles; native logic checks pass. These are **host-rendered previews**, using the production drawing code and font bitmaps with a PC raster shim. They are not camera footage or evidence of physical performance. First hardware installation on 16 November 2026 identified and fixed the factory-image boot mode, USB provisioning pacing and LCD colour mode. Firmware startup, Wi-Fi, NTP, verified HTTPS state reception and the local control interface are confirmed on hardware. Final visual/audio observations and the scope of checks are recorded in `docs/validation.json`; the gallery remains host-rendered.
 
 ## Phone presence and pegboard mounting
 
-[iPhone pairing and quiet ringing](docs/PRESENCE.md) works locally without Home Assistant. [Skådis carrier print files and editable design](../hardware/skadis-simple/README.md) hide behind the display, with the speaker mounted separately behind the pegboard. Physical phone calibration and printed fit remain to be checked.
+[iPhone pairing and quiet ringing](docs/PRESENCE.md) works locally without Home Assistant. [SkÃ¥dis carrier print files and editable design](../hardware/skadis-simple/README.md) hide behind the display, with the speaker mounted separately behind the pegboard. Physical phone calibration and printed fit remain to be checked.
 
 ## What it does
 
 - **Spaceagon owns 3CX and clocks:** call screens, BLFs/speed dials, DND, caller animations and clock faces stay on the badge. Set `"device_role": "phone_clock"` in its private `config.json` (also shown in the public example). Missing/other values retain the standalone full-screen notification behaviour.
-- **Waveshare owns the dashboard:** weather, next-hour rain outlook, approximate Moon phase, a seasonal meteor activity view and an Advent page from 1–24 December. Clocks and crew/caller screens are excluded from its live rotation. Meteor streaks are decorative; activity windows reuse the [badge's IMO catalogue](../docs/ASTRONOMY.md), not observed rates or visibility predictions. The lunar picture uses a mean 29.530589-day cycle and is approximate.
+- **Waveshare owns the dashboard:** weather, next-hour rain outlook, approximate Moon phase, a seasonal meteor activity view and an Advent page from 1â€“24 December. Clocks and crew/caller screens are excluded from its live rotation. Meteor streaks are decorative; activity windows reuse the [badge's IMO catalogue](../docs/ASTRONOMY.md), not observed rates or visibility predictions. The lunar picture uses a mean 29.530589-day cycle and is approximate.
 - Notifications get Waveshare's full screen, including progress and urgency. Urgent notifications remain until local acknowledgement or bridge TTL expiry, including during phone calls. They never cover Spaceagon's clocks or call details in the split role.
 - The same notification feed activates Spaceagon's ring LEDs; urgent alerts retain full red ring and slow EEH red breathing. Priority calls override notification lighting. Notification text does not scroll on the badge matrix in the split role; it keeps its phone/clock duties.
 - Waveshare still supplies the original call ringtones, including the partner melody. Phone ringing takes audio precedence over notification chimes, while call details remain on Spaceagon. Listen to the [partner chime](data/sounds/partner.wav), [queue ringtone](data/sounds/queue.wav) or [priority ringtone](data/sounds/priority.wav).
@@ -30,7 +30,7 @@ Both devices independently read the existing protected **GET /v1/state** feed. E
 
 ## Ready for arrival
 
-Download the `spaceport-0.3.0.zip` build artifact or build it below. The factory image contains no Wi-Fi password, bridge token, contact number or personal dates. It includes the eight default WAV sounds. You do not need a microSD card.
+Download the `spaceport-0.4.0.zip` build artifact or build it below. The factory image contains no Wi-Fi password, bridge token, contact number or personal dates. It includes the eight default WAV sounds. You do not need a microSD card.
 
 1. Unzip into a new folder. Connect **the new Waveshare**, and identify its port by comparing before/after port lists. Do not choose the Spaceagon's port.
 2. In PowerShell, inside the unzipped folder:
@@ -39,7 +39,7 @@ Download the `spaceport-0.3.0.zip` build artifact or build it below. The factory
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-install.txt
 .\.venv\Scripts\python.exe -m serial.tools.list_ports
-.\.venv\Scripts\python.exe flash.py --port COM12 --image spaceport-0.3.0.bin
+.\.venv\Scripts\python.exe flash.py --port COM12 --image spaceport-0.4.0.bin
 ```
 
 Replace COM12 with the new device. The factory image preserves the DIO bootloader mode required by this board. The helper checks the image SHA-256, asks you to identify the target, reads and verifies a **full 16MB factory backup**, then flashes and verifies the new image. Backups may contain factory configuration; keep them private. If USB download mode is required, follow the vendor BOOT/RESET procedure. Do not overwrite an unfamiliar device.
@@ -79,7 +79,7 @@ py -m venv .build
 .\.build\Scripts\python.exe tools/build_release.py
 ```
 
-This builds firmware and LittleFS and produces `release/spaceport-0.3.0.zip`, its merged image and SHA-256 manifest. Dependencies are pinned in `platformio.ini`. Flash layout: two 5MB OTA slots and a 0x5f0000-byte LittleFS partition; no OTA upload endpoint is enabled in this release. Hardware target is 16MB flash/8MB OPI PSRAM. Do not flash the image to a differently sized board.
+This builds firmware and LittleFS and produces `release/spaceport-0.4.0.zip`, its merged image and SHA-256 manifest. Dependencies are pinned in `platformio.ini`. Flash layout: two 5MB OTA slots and a 0x5f0000-byte LittleFS partition; no OTA upload endpoint is enabled in this release. Hardware target is 16MB flash/8MB OPI PSRAM. Do not flash the image to a differently sized board.
 
 Default tones are original generated compositions. Regenerate using `python tools/make_sounds.py`. Replace one with your own recording/music using ffmpeg:
 
@@ -119,7 +119,7 @@ Restore the full factory backup using the same port and esptool version:
 
 A newline-terminated `{"command":"status"}` request on the USB serial port returns a `SPACEPORT_STATUS` JSON line with version, Wi-Fi/IP, display/audio readiness, clock readiness and bridge/PBX freshness. It never returns passwords, tokens, SSID, caller details or contact numbers. This is a read-only diagnostic, separate from the setup JSON.
 
-### First hardware fixes (0.3.0)
+### First hardware fixes (0.4.0)
 
 The factory image retains **DIO** in the bootloader header; forcing QIO there caused a ROM boot loop on the first board. The build checks that merging has not changed this byte. The LCD vendor sequence is followed by explicit `COLMOD=0x55` (RGB565); leaving the panel in its default format caused the image to wrap and occupy only part of the screen. Provisioning is paced and the USB RX buffer enlarged to avoid dropping setup bytes during display transfers.
 

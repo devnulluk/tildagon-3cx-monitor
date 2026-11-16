@@ -157,8 +157,8 @@ def draw_idle_face(ctx, page, weather, fresh, local, elapsed_ms, now_ms, own_rgb
         _weather(ctx, weather, bool(fresh), now_ms)
     if page == "clock" and callable(clock_draw):
         if demo:
-            ctx.rgb(.015, .025, .05).round_rectangle(-23, 100, 46, 13, 6).fill()
-            _text(ctx, "DEMO", 0, 106, 9, 36, AMBER, 9)
+            ctx.rgb(.015, .025, .05).round_rectangle(-20, -116, 40, 11, 5).fill()
+            _text(ctx, "DEMO", 0, -110, 8, 34, AMBER, 8)
     else:
         _chrome(ctx, page, own_rgb, accent, demo)
     ctx.restore()

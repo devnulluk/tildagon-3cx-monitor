@@ -35,6 +35,8 @@ from .notifications import NotificationInbox, draw_notification, led_frame as no
 from .space_inputs import SpaceInputs
 from .showcase import Showcase, snapshot as showcase_snapshot, demo_config as showcase_config
 
+from .away import AwayState, draw_lock, rainbow
+
 SPEED_DIAL_KEYS = {'F':'tb','B':'pd','E':'jh','C':'sm','D':'kz'}
 
 
@@ -93,6 +95,8 @@ class ThreeCXMonitor(app.App):
         super().__init__()
         self.config = load_config()
         self.buttons = Buttons(self)
+        self.away = AwayState(bool(self.config.get("presence_url") and self.config.get("presence_token")))
+        self._presence_poll_at = -3000
         self.demo_mode = self.config.get("demo") is True
         self.showcase = None
         self._showcase_saved = None
@@ -379,6 +383,14 @@ class ThreeCXMonitor(app.App):
         return self.clock_ms
 
     def _write_leds(self):
+        if self.away.away(self._now()) and not self.demo_mode and self.showcase is None:
+            frame=rainbow(self.clock_ms,brightness=self.config.get("away_led_brightness",.03),ceiling=self.controller.ring_brightness)
+            if frame!=self._last_leds:
+                for index,colour in enumerate(frame):tildagonos.leds[index+1]=colour
+                tildagonos.leds.write();self._last_leds=frame
+            self.expansions.write_own_status((0,0,0),now_ms=self.clock_ms,heartbeat=False)
+            self.matrix.away_label(self.clock_ms)
+            return
         frame = self.controller.led_frame(self._now())
         notification = self._notification_effect(self.clock_ms)
         urgent = notification is not None and notification.get("priority") == 5
@@ -557,6 +569,8 @@ class ThreeCXMonitor(app.App):
         token = str(base_config.get("token") or "")
         control_token = str(base_config.get("control_token") or "")
         notify_token = str(base_config.get("notify_token") or "")
+        presence_url = str(base_config.get("presence_url") or "")
+        presence_token = str(base_config.get("presence_token") or "")
         if not url.startswith(("http://", "https://")) or "?" in url or "#" in url or "@" in url:
             base_controller.failed("SET BRIDGE URL")
             return
@@ -598,6 +612,14 @@ class ThreeCXMonitor(app.App):
                     target.failed("CLOCK SYNC FAILED")
                     await asyncio.sleep(3)
                     continue
+                if presence_url and presence_token and self._now()-self._presence_poll_at>=3000:
+                    self._presence_poll_at=self._now()
+                    try:
+                        presence_value=await async_helpers.unblock(get_json,self._network_yield,presence_url,presence_token,ca_file,1.5)
+                        if self._network_current(generation,target):self.away.accept(presence_value,self._now())
+                    except Exception:
+                        pass
+
                 intent = queue.take()
                 if intent:
                     try:
@@ -903,6 +925,11 @@ class ThreeCXMonitor(app.App):
         down = {key for key, button in FRONTBOARD_BUTTON_TYPES.items() if self.buttons.get(button)}
         edges = self.control_buttons.physical_edges(down, keyboard, self.clock_ms)
         keys = self.expansions.pop_keys()
+        if self.away.away(self.clock_ms) and not self.demo_mode and self.showcase is None:
+            self.menu_open=self.settings_open=False
+            self.controller.detail_view=self.controller.own_view=False
+            self._write_leds()
+            return True
         if self._showcase_entry(keys, down):
             self._write_leds()
             return True
@@ -1065,6 +1092,10 @@ class ThreeCXMonitor(app.App):
         ctx.save()
         ctx.text_align = ctx.CENTER
         ctx.text_baseline = ctx.MIDDLE
+        if self.away.away(now) and not self.demo_mode and self.showcase is None:
+            draw_lock(ctx,self.away.label(now))
+            ctx.restore()
+            return
         if self.showcase is not None and self._showcase_stage.get("page") == "intro":
             self._draw_showcase_intro(ctx, now)
             self._draw_showcase_footer(ctx)
@@ -1216,7 +1247,7 @@ class ThreeCXMonitor(app.App):
         render_theme = "photo" if self.assets.photo_available(asset_id) else theme["id"]
         # Independent dials own their full-screen background; skip outer
         # theme navigation chrome which would overlap the expanded face.
-        if page == "clock" and self.clock_style in ("haute_celestial", "neon_orrery", "mondaine", "great_british_railways"):
+        if page == "clock" and self.clock_style in ("celestial", "tokyoflash", "radar", "flip", "analogue", "corpus", "haute_celestial", "neon_orrery", "mondaine", "great_british_railways"):
             render_theme = "original"
         clock_draw = None
         if self.clock_style != "original":

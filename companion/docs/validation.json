@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "date": "2026-11-16",
   "installed": true,
   "bootloader_mode": "DIO, factory and compiled bootloader headers agree",
@@ -19,7 +19,7 @@
   "audio_output": "User confirmed steady tone and normal chime audible",
   "audio_clock": "44.1kHz stereo 16-bit, vendor legacy-I2S DMA settings; audio initialised before LCD",
   "badge": {
-    "version": "0.19.0",
+    "version": "0.20.0",
     "installed": true,
     "role": "phone_clock",
     "runtime_bytes_verified": true,
@@ -34,9 +34,10 @@
     "config_changes": [
       "device_role phone_clock",
       "separate send-only notify_token"
-    ]
+    ],
+    "away_link": "Read-only LAN route reached from physical badge; final app files byte-verified"
   },
-  "native_checks": "engine, protocol and presence policy pass",
+  "native_checks": "766 regression tests pass; firmware compiles; all custom clocks audited in native simulator",
   "remaining": [
     "Physical iPhone enrolment and locked-screen/range checks",
     "Printed carrier fit and load check",
@@ -48,8 +49,12 @@
     "pairing_window_started": true,
     "quiet_gate_hardware_check": true,
     "enrolled": true,
-    "physical_phone_validation": "paired and detected; locked-screen/range checks pending",
+    "physical_phone_validation": "User confirmed Spaceagon AWAY during walk-away; Waveshare lock visibility was too low and has been increased",
     "phone_nearby_detected": true,
-    "audio_generated_when_nearby": true
+    "audio_generated_when_nearby": true,
+    "away_leds": "Ring: slow gentle 3% rainbow with saved ceiling; EEH: off; matrix: static 17x5 AWAY at 26/255",
+    "wave_away_display": "15% maximum backlight with white/cyan lock, user visibility recheck pending",
+    "badge_runtime_preview": "Native hardware preview: rainbow peak 8/255, static matrix AWAY 41 pixels at 26/255, then normal display restored; EEH off path tested",
+    "walk_away": "User confirmed badge AWAY during physical walk-away; Waveshare visibility revised afterwards, awaiting visual recheck"
   }
 }

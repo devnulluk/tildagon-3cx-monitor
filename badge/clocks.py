@@ -12,7 +12,9 @@ from .clock_rail import draw_mondaine as _mondaine, draw_gbr as _great_british_r
 CLOCKS = ("original", "celestial", "tokyoflash", "radar", "flip", "analogue", "corpus", "haute_celestial", "neon_orrery", "mondaine", "great_british_railways")
 _NAMES = ("Original", "Celestial", "Tokyo Code", "Orbital Radar", "Flip Station", "Clean Analogue", "Corpus / Time Eater", "Celestial Atelier", "Neon Orrery", "Mondaine", "Great British Railways")
 TAU = math.pi * 2
-_FULL_BLEED = {"neon_orrery": (.005, .012, .032),
+_FULL_BLEED = {"haute_celestial": (.006,.012,.045), "celestial": (.008,.015,.04),
+               "tokyoflash": (.005,.012,.025), "radar": (.005,.015,.012),
+               "flip": (.01,.015,.025), "analogue": (.01,.015,.025), "corpus": (.006,.01,.025), "neon_orrery": (.005, .012, .032),
                "mondaine": (.985, .98, .965),
                "great_british_railways": (.008, .009, .012)}
 _DAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
@@ -171,7 +173,7 @@ def _celestial(ctx, value, elapsed, now, palette, sky):
     _text(ctx, value["weekday"] if len(value["weekday"]) <= 3 else "--", 57, 54, 16, 37, text, 14)
     _text(ctx, "DAY", 57, 70, 8, 32, muted, 8)
     detail = "MOON ~%d%%" % round(illumination) if phase is not None and illumination is not None else "MOON UNKNOWN"
-    _text(ctx, detail, 0, 88, 10, 130, muted, 10)
+    _text(ctx, detail, 0, 84, 10, 116, muted, 10)
     # Decorative orbit has no claim to represent a real planet's position.
     x, y = _UNIT[int(now // 150) % 360]
     _circle(ctx, x * 99, y * 99, 2.8, accent)
@@ -239,7 +241,7 @@ def _flip(ctx, value, elapsed, now, palette, sky):
     _circle(ctx, 0, -14, 1.9, accent)
     _circle(ctx, 0, 10, 1.9, accent)
     _text(ctx, value["weekday"], 0, 64, 18, 165, accent, 16)
-    _text(ctx, value["date"], 0, 88, 16, 166, muted, 14)
+    _text(ctx, value["date"], 0, 80, 15, 142, muted, 14)
     # A small mechanical highlight, without manufacturing a prior time value.
     if value["second"] == 0 and elapsed % 1000 < 350:
         y = -45 + int(elapsed % 1000) * 84 / 350
@@ -265,9 +267,9 @@ def _analogue(ctx, value, elapsed, now, palette, sky):
         _circle(ctx, 0, -9, 1.8, panel)
     else:
         _text(ctx, "?", 0, -9, 23, 34, muted, 20)
-    _panel(ctx, -84, 35, 168, 42, panel, 11)
-    _text(ctx, value["clock"], 0, 56, 48, 163, text, 40)
-    _text(ctx, value["weekday"] + " / " + value["day"], 0, 88, 15, 154, muted, 14)
+    _panel(ctx, -72, 30, 144, 44, panel, 11)
+    _text(ctx, value["clock"], 0, 50, 45, 148, text, 45)
+    _text(ctx, value["weekday"] + " / " + value["day"], 0, 82, 15, 114, muted, 14)
 
 
 def _dart(now):

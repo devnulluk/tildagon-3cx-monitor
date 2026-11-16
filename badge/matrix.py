@@ -81,6 +81,13 @@ def _glyph_pixels(glyph):
                  if cell == "1" and GRID[(top + y) * WIDTH + left + x] >= 0)
 
 
+# Compact 17x5 AWAY lettering fits the full 18-column display without scrolling.
+_GLYPHS["away"] = tuple("0".join(parts) for parts in zip(
+    ("010","101","111","101","101"),
+    ("10101","10101","10101","10101","01010"),
+    ("010","101","111","101","101"),
+    ("101","101","010","010","010")))
+
 _PIXELS = {name: _glyph_pixels(glyph) for name, glyph in _GLYPHS.items()}
 _ACTIVE = ("ringing", "dialing", "connected", "busy", "hold", "held")
 
@@ -401,6 +408,30 @@ class MatrixDisplay:
         self._phase = 0
         self._scroll_key = None
         self._reset_text()
+        return True
+
+    def blank(self, now_ms):
+        if not self.refresh(now_ms):return False
+        self._clock_ms=now_ms
+        if self._last_frame==("away",0):return True
+        self._reset_text()
+        self._packet[1:]=self._zero
+        self._known[:]=self._zero
+        self._last_frame=("away",0);self.last_mode="away"
+        self._phase=0;self._goal_pending=True;self._goal_peak=0
+        return True
+
+    def away_label(self, now_ms):
+        if not self.refresh(now_ms):return False
+        self._clock_ms=now_ms
+        level=26
+        if self._last_frame==("away",level):return True
+        self._reset_text()
+        self._packet[1:]=self._zero
+        self._known[:]=self._zero
+        for index in _PIXELS["away"]:self._packet[index+1]=level
+        self._last_frame=("away",level);self.last_mode="away"
+        self._phase=0;self._goal_pending=True;self._goal_peak=level;self._peak=level
         return True
 
     def update(self, payload, live, now_ms, page=None, partner=False, weather_fresh=False):
