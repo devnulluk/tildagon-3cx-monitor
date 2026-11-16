@@ -1,12 +1,12 @@
 # Simple one-piece Spaceport SkÃ¥dis holder
 
-**One printed part. One top hook. One lower locating peg. Only the three screen screws.** No separate hooks, nuts, feet or speaker tray. The holder stays inside the 55 mm screen footprint. Screen front sits approximately 22 mm from the pegboard.
+**One printed part. One top hook. One lower locating peg. Only the three screen screws.** No separate hooks, nuts, feet or speaker tray. The holder stays inside the 55 mm screen footprint. Screen front sits approximately 16 mm from the pegboard.
 
 ![Rear fittings](rear-preview.png)
 
 Print `spaceport-skadis-simple.stl` once. It is oriented on its side for hook strength. Suggested PETG, 0.2 mm layers, four walls, 30% infill, an 8 mm brim and supports everywhere. Remove supports carefully from the hook throat and the three 2.4 mm screw holes. Do not print a separate peg or hook.
 
-Fit the screen to the three front posts with suitable M2 screws and washers. There is a 9 mm post/plate stack: select a length giving only 1.5â€“2 mm engagement into the screen's threaded mounts. M2Ã—12 with approximately 1 mm washers is a starting point; check actual thread depth and component clearance before tightening. Never clamp the glass.
+Fix the flat 3 mm carrier directly to the screen’s existing raised mounting bosses using the three M2 holes. No extra printed standoffs are needed. Choose screws for the 3 mm plate, any washer, and only 1.5–2 mm thread engagement. M2×5 with approximately 0.5 mm washers is a starting point; check the actual threaded depth before tightening. The existing bosses provide component clearance.
 
 Tilt the holder to feed the upper hook through a slot, then lower it into place while guiding the stabilising peg into the next hole **in the same column, 40 mm below**. SkÃ¥dis rows are staggered: skip the offset intermediate row. The retaining lip reaches above the upper slot; the short lower peg prevents sideways rotation. Check secure seating before leaving the device hanging.
 

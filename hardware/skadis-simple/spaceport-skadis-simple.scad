@@ -12,8 +12,8 @@ mounts=[[14.90,15.73],[-14.10,15.73],[0,-21.27]];
 assert(hook_width<slot_width);
 module bar(a,b,w=7){hull(){translate(a)cylinder(d=w,h=3);translate(b)cylinder(d=w,h=3);}}
 module mount(){difference(){union(){
- // Skeletal carrier and the three device screw posts.
- for(p=mounts){bar([0,3],p);translate(p)cylinder(d=6,h=9);}
+ // Flat 3mm carrier: the device already has raised mounting bosses.
+ for(p=mounts)bar([0,3],p);
  bar([0,3],[0,lower_slot_y],5);
  bar([0,3],[0,10],7);
  // Hook neck sits at the bottom of the upper 15mm slot.
@@ -31,14 +31,14 @@ module mount(){difference(){union(){
   translate([-1.5,lower_slot_y-1,-11.5])cube([3,2,1]);
  }
  }
- for(p=mounts)translate([p[0],p[1],-1])cylinder(d=2.4,h=12);
+ for(p=mounts)translate([p[0],p[1],-1])cylinder(d=2.4,h=5);
  }}
 if(part=="assembled")mount();
 // Side orientation puts layer lines along the hook profile. Use supports + brim.
 if(part=="print")translate([14.6,0,17.6])rotate([0,-90,0])mount();
 if(part=="preview"){
  color("#16394b")mount();
- color("#141b25")translate([0,0,9])cylinder(d=50,h=4);
- color("#263650")translate([0,0,13])cylinder(d=55,h=1.7);
- color("#4bbbd4")translate([0,0,14.8])cylinder(d=46.08,h=.2);
+ color("#141b25")translate([0,0,3])cylinder(d=50,h=4);
+ color("#263650")translate([0,0,7])cylinder(d=55,h=1.7);
+ color("#4bbbd4")translate([0,0,8.8])cylinder(d=46.08,h=.2);
 }
