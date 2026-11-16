@@ -92,3 +92,10 @@ For an additional data-only photo theme, add a unique safe ID and entry to `badg
 ## Credits and evidence
 
 Gallery media are actual official-simulator app renders with invented calls and dates. Animations decorate the data and never claim to be live meteor observations. Cute Cat is original artwork, rather than an imported Hello Kitty image. LCARS and other style names describe an independent visual homage. The photographic asset's source, prompt and processing are recorded in [artwork](artwork/README.md). See [clock guide](CLOCKS.md), [astronomy](docs/ASTRONOMY.md) and [validation](docs/VALIDATION.md).
+
+
+## Returning welcome
+
+The short returning animation follows the selected theme and clock style, with no bunny outside Keziah's call screen. [Examples and the away Snake animation](docs/AWAY-MODE.md).
+
+![Native simulator theme welcome examples](docs/welcome-themes.png)

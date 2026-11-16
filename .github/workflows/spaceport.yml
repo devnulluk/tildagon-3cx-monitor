@@ -28,5 +28,5 @@ jobs:
           python -m compileall -q tools
       - uses: actions/upload-artifact@v4
         with:
-          name: spaceport-0.5.0
-          path: companion/release/spaceport-0.5.0.zip
+          name: spaceport-0.6.0
+          path: companion/release/spaceport-0.6.0.zip

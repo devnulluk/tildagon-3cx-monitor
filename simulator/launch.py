@@ -48,6 +48,7 @@ parser.add_argument("--theme", choices=["original", "christmas", "easter", "anni
 parser.add_argument("--clock-style", choices=[key for key, name in CLOCK_STYLES], default="original")
 parser.add_argument("--demo-date", help="Synthetic YYYY-MM-DD calendar date; never reads personal dates")
 parser.add_argument("--demo-time", help="Synthetic HH:MM or HH:MM:SS local time; never sets a badge clock")
+parser.add_argument("--welcome-preview", action="store_true", help="Render a synthetic themed welcome using the production renderer")
 parser.add_argument("--component-theme", action="store_true", help="DEMO-only direct component review before app theme dispatch is integrated")
 parser.add_argument("--partner-demo", action="store_true", help="Synthetic KZ priority caller using a reserved example number")
 parser.add_argument("--matrix-demo", action="store_true", help="Show the real Liteloop adapter output through a simulated I2C sink and labelled diagram")
@@ -62,6 +63,9 @@ parser.add_argument("--action-frame", type=int, default=12)
 parser.add_argument("--action-hold-frames", type=int, default=3, help="Duration of a synthetic held key in DEMO")
 parser.add_argument("--diagnose", action="store_true")
 options = parser.parse_args()
+if options.welcome_preview:
+    options.idle_page="clock"
+    options.showcase="idle"
 if options.settings_row is not None:
     options.settings = True
 if options.showcase == 'matrix':
@@ -480,7 +484,7 @@ def process_events():
         if (options.keyboard and event.type in (pygame.KEYDOWN, pygame.KEYUP) and event.key == pygame.K_d
                 and ((event.type == pygame.KEYDOWN and getattr(event, "mod", pygame.key.get_mods()) & pygame.KMOD_SHIFT)
                      or keyboard_d_down)):
-            # PC A–F keep representing the six physical buttons. Shift+D is
+            # PC Aâ€“F keep representing the six physical buttons. Shift+D is
             # the separate expansion-keyboard D key, including its matching Up.
             keyboard_d_down = event.type == pygame.KEYDOWN
             eventbus.emit((ButtonDownEvent if keyboard_d_down else ButtonUpEvent)(KEYBOARD_BUTTONS["D"]))
@@ -651,6 +655,10 @@ class PreviewMonitor(ThreeCXMonitor):
             self._accept_demo()
 
     def _draw_idle(self, ctx, now):
+        if options.welcome_preview:
+            from threecx_monitor.away import draw_welcome
+            draw_welcome(ctx,now,{"id":options.theme},options.clock_style)
+            return
         if options.component_theme:
             from threecx_monitor.theme_art import draw_theme_face
             from threecx_monitor.themes import ThemeManager

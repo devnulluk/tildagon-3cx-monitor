@@ -12,6 +12,7 @@ https://github.com/kristianhentschel/tildagon-matrix-hexpansion-app
 import asyncio
 from .matrix_text import caller_text, columns, timer_bits, notification_text
 from .controls import initials
+from .snake import Snake
 
 # Physical grid derived from the manufacturer's MIT-licensed companion app.
 # Copyright (c)2026 Kristian Hentschel.
@@ -221,6 +222,8 @@ class MatrixDisplay:
         self._packet[0] = 3
         self._zero = bytes(LED_COUNT)
         self._peak = 38
+        self._snake = None
+        self._snake_due = 0
         self._scroll_key = None
         self._scroll_columns = ()
         self._scroll_position = 0
@@ -421,17 +424,27 @@ class MatrixDisplay:
         self._phase=0;self._goal_pending=True;self._goal_peak=0
         return True
 
-    def away_label(self, now_ms):
+    def away_snake(self, now_ms):
         if not self.refresh(now_ms):return False
         self._clock_ms=now_ms
-        level=180
-        if self._last_frame==("away",level):return True
-        self._reset_text()
+        entering=self.last_mode!="away_snake"
+        if entering:
+            self._snake=Snake(now_ms);self._reset_text();self._known[:]=self._zero;self._phase=0
+        elif self._goal_pending or now_ms<self._snake_due:return True
+        else:self._snake.step()
+        self._snake_due=now_ms+450
         self._packet[1:]=self._zero
-        self._known[:]=self._zero
-        for index in _PIXELS["away"]:self._packet[index+1]=level
-        self._last_frame=("away",level);self.last_mode="away"
-        self._phase=0;self._goal_pending=True;self._goal_peak=level;self._peak=level
+        for x in range(WIDTH):
+            for y in (1,8):self._packet[GRID[y*WIDTH+x]+1]=6
+        for y in range(1,9):
+            for x in (0,17):self._packet[GRID[y*WIDTH+x]+1]=6
+        points=self._snake.points()
+        for i,(x,y) in enumerate(reversed(points)):
+            self._packet[GRID[y*WIDTH+x]+1]=24+int(42*i/max(1,len(points)-1))
+        x,y=points[0];self._packet[GRID[y*WIDTH+x]+1]=90
+        x,y=self._snake.apple();self._packet[GRID[y*WIDTH+x]+1]=90
+        self._last_frame=("away_snake",self._snake.ticks);self.last_mode="away_snake"
+        self._goal_pending=True;self._goal_peak=90;self._peak=90
         return True
 
     def update(self, payload, live, now_ms, page=None, partner=False, weather_fresh=False):

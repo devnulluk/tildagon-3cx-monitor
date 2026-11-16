@@ -149,15 +149,14 @@ inline void render(Arduino_GFX& g,const Presentation& p,const Snapshot& s,uint32
 inline void renderWelcome(Arduino_GFX& g,uint32_t now){
   g.fillScreen(SP_NAVY);
   for(int i=0;i<12;i++)g.fillCircle(50+(i*47)%260,65+(i*31)%210,1,SP_DIM);
-  g.fillRoundRect(153,109,16,57,8,SP_WHITE);g.fillRoundRect(184,105,16,60,8,SP_WHITE);
-  g.fillRoundRect(158,117,6,38,3,SP_PINK);g.fillRoundRect(189,113,6,40,3,SP_PINK);
-  g.fillRoundRect(155,196,50,47,20,SP_WHITE);g.fillCircle(180,175,35,SP_WHITE);
-  g.fillCircle(168,169,3,SP_NAVY);g.fillCircle(192,169,3,SP_NAVY);
-  g.fillCircle(157,182,5,SP_PINK);g.fillCircle(203,182,5,SP_PINK);g.fillCircle(180,181,3,SP_PINK);
-  int handX=228+int(sinf(now/140.f)*7),handY=188+int(cosf(now/140.f)*4);
-  for(int i=0;i<=6;i++)g.fillCircle(201+(handX-201)*i/6,215+(handY-215)*i/6,6,SP_WHITE);
-  g.fillCircle(handX,handY,8,SP_WHITE);g.fillCircle(handX,handY,3,SP_PINK);
-  label(g,"WELCOME BACK",285,2,SP_WHITE,285);
+  g.drawCircle(180,165,36,SP_CYAN);g.fillCircle(170,155,23,0x1168);g.fillCircle(163,148,10,0x2290);
+  for(int i=0;i<48;i++){
+    float a=i*6.2831853f/48,b=(i+1)*6.2831853f/48;
+    g.drawLine(180+int(cosf(a)*83),165+int(sinf(a)*29),180+int(cosf(b)*83),165+int(sinf(b)*29),SP_CYAN);
+  }
+  float angle=now/650.f;int x=180+int(cosf(angle)*83),y=165+int(sinf(angle)*29);
+  g.fillTriangle(x,y-10,x-7,y+7,x+7,y+7,SP_GOLD);
+  label(g,"WELCOME BACK",280,2,SP_WHITE,285);
 }
 
 }

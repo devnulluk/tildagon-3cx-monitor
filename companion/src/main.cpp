@@ -18,7 +18,7 @@
 #include "presence.h"
 
 using namespace spaceport;
-static constexpr char VERSION[]="0.5.0";
+static constexpr char VERSION[]="0.6.0";
 Preferences prefs;
 PhonePresence presence;
 volatile bool presenceAudioAllowed=true;
@@ -261,12 +261,12 @@ void setup() {
   expanderReset();displayReady=screen.begin(40000000);ledcSetup(0,5000,8);ledcAttachPin(5,0);ledcWrite(0,brightness*255/100);
   if(!displayReady)Serial.println("DISPLAY_INIT_FAILED");
   WiFi.mode(WIFI_STA);WiFi.setHostname("spaceport");if(configured)WiFi.begin(ssid.c_str(),password.c_str());
-  configTzTime("GMT0BST,M3.5.0/1,M10.5.0","pool.ntp.org","time.cloudflare.com");
+  configTzTime("GMT0BST,M3.5.0/1,M10.6.0","pool.ntp.org","time.cloudflare.com");
   xTaskCreatePinnedToCore(networkTask,"network",16384,nullptr,1,nullptr,0);
   presence.begin();
   prefs.begin("presence",false);presenceReadKey=prefs.getString("read_key");
   if(presenceReadKey.length()!=64){char key[65];for(int i=0;i<8;i++)snprintf(key+i*8,9,"%08lx",(unsigned long)esp_random());presenceReadKey=key;prefs.putString("read_key",presenceReadKey);}prefs.end();
-  webSetup();Serial.println("SPACEPORT_READY 0.5.0");
+  webSetup();Serial.println("SPACEPORT_READY 0.6.0");
 }
 void loop() {
   presence.tick();presenceAudioAllowed=presence.allows();web.handleClient();

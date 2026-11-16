@@ -389,7 +389,7 @@ class ThreeCXMonitor(app.App):
                 for index,colour in enumerate(frame):tildagonos.leds[index+1]=colour
                 tildagonos.leds.write();self._last_leds=frame
             self.expansions.write_own_status((0,0,0),now_ms=self.clock_ms,heartbeat=False)
-            self.matrix.away_label(self.clock_ms)
+            self.matrix.away_snake(self.clock_ms)
             return
         frame = self.controller.led_frame(self._now())
         notification = self._notification_effect(self.clock_ms)
@@ -1115,7 +1115,9 @@ class ThreeCXMonitor(app.App):
         own_call = self.controller.own_call(now)
         if self.away.welcoming(now) and not self.demo_mode and self.showcase is None:
             if not alert and not own_call and not notification and not self.settings_open and not self.menu_open:
-                draw_welcome(ctx,now,draw_bunny)
+                weather,fresh,elapsed=self._weather(now)
+                theme=self.themes.resolve(self._local_weather_time(weather,elapsed),photo_available=self.assets.photo_available())
+                draw_welcome(ctx,now,theme,self.clock_style)
                 ctx.restore()
                 return
             self.away.welcome_until=0
