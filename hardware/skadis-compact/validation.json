@@ -1,0 +1,100 @@
+{
+  "carrier": {
+    "watertight": true,
+    "components": 1,
+    "volume_mm3": 4295.594805940106,
+    "bounds_mm": [
+      [
+        -24.0,
+        -24.77,
+        0.0
+      ],
+      [
+        24.0,
+        19.23,
+        9.0
+      ]
+    ],
+    "extents_mm": [
+      48.0,
+      44.0,
+      9.0
+    ]
+  },
+  "hook_left": {
+    "watertight": true,
+    "components": 1,
+    "volume_mm3": 1081.7322360662,
+    "bounds_mm": [
+      [
+        0.0,
+        -8.0,
+        0.0
+      ],
+      [
+        18.7,
+        12.0,
+        14.0
+      ]
+    ],
+    "extents_mm": [
+      18.7,
+      20.0,
+      14.0
+    ]
+  },
+  "hook_right": {
+    "watertight": true,
+    "components": 1,
+    "volume_mm3": 1081.7322259953917,
+    "bounds_mm": [
+      [
+        1.90735e-07,
+        -8.0,
+        0.0
+      ],
+      [
+        18.7,
+        12.0,
+        14.0
+      ]
+    ],
+    "extents_mm": [
+      18.699999809264998,
+      20.0,
+      14.0
+    ]
+  },
+  "foot": {
+    "watertight": true,
+    "components": 1,
+    "volume_mm3": 508.99893099876,
+    "bounds_mm": [
+      [
+        -4.0,
+        -4.0,
+        0.0
+      ],
+      [
+        4.0,
+        4.0,
+        11.0
+      ]
+    ],
+    "extents_mm": [
+      8.0,
+      8.0,
+      11.0
+    ]
+  },
+  "physical_fit_tested": false,
+  "screen_diameter_mm": 55,
+  "assembled_maximum_radius_mm": {
+    "carrier": 27.0,
+    "hook_left": 25.236,
+    "hook_right": 25.236,
+    "foot": 24.615
+  },
+  "hook_pitch_mm": 40,
+  "all_parts_fit_behind_55mm_screen": true
+}
