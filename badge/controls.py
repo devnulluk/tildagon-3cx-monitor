@@ -112,6 +112,7 @@ class ControlQueue:
             raise ValueError("boot_id must contain 16 hexadecimal characters")
         self.boot_id = boot_id.lower()
         self._counter = 0
+        self._notify_after = 0
         self.pending = None
         self._in_flight = None
         self.message = ""
@@ -175,6 +176,22 @@ class ControlQueue:
             return False
         return self._queue("dnd", controls, now, enabled=presence["state"] != "dnd")
 
+    def queue_notification_test(self, configured, now):
+        if self.is_busy:
+            self._message("CONTROL BUSY", now)
+            return False
+        if not configured:
+            self._message("TEST SETUP NEEDED", now)
+            return False
+        if now < self._notify_after:
+            return False
+        self._counter += 1
+        self._notify_after = now + 5000
+        self.pending = {"action": "notify", "id": "badge-test-" + self.boot_id + "-" + str(self._counter)}
+        self.message = ""
+        self.message_until = now
+        return True
+
     def take(self):
         if self._in_flight is not None or self.pending is None:
             return None
@@ -186,7 +203,7 @@ class ControlQueue:
         action = intent.get("action")
         self.pending = None
         self._in_flight = None
-        self._message("DND STATUS UNKNOWN" if action == "dnd" else "CALL STATUS UNKNOWN", now, 8000)
+        self._message("TEST STATUS UNKNOWN" if action == "notify" else "DND STATUS UNKNOWN" if action == "dnd" else "CALL STATUS UNKNOWN", now, 8000)
 
     def finish(self, result, now):
         intent = self._in_flight or self.pending or {}
@@ -208,6 +225,13 @@ class ControlQueue:
             return
         action = intent.get("action")
         state = result.get("status")
+        if action == "notify":
+            if state in ("accepted", "updated", "duplicate"):
+                self.message = ""
+                self.message_until = now
+            else:
+                self._message("TEST NOT SENT", now)
+            return
         if state == "pending":
             message = "DND PENDING" if action == "dnd" else "CALL PENDING"
         elif state == "demo":

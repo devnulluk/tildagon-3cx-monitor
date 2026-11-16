@@ -41,7 +41,7 @@ SPEED_DIAL_KEYS = {'F':'tb','B':'pd','E':'jh','C':'sm','D':'kz'}
 DEFAULT_CONFIG = {
     "demo": True, "bridge_url": "", "token": "",
     "poll_seconds": 0.75, "eeh_brightness": 0.03, "ring_brightness": 0.15, "ca_file": "ca.der",
-    "control_token": "", "demo_keyboard": False,
+    "control_token": "", "notify_token": "", "demo_keyboard": False,
     "idle_seconds": 60, "rotate_seconds": 12,
     "overview_on_demand": True,
     "theme": "original", "theme_auto": False, "clock_style": "original",
@@ -77,6 +77,15 @@ def send_control(url, token, intent, ca_file="ca.der"):
     body = {key: value for key, value in intent.items() if key != "action"}
     return post_json(url.rstrip("/") + "/v1/control/" + action, token, body,
                      ca_file=ca_file, timeout=26)
+
+
+def send_notification_test(url, token, intent, ca_file="ca.der"):
+    if intent.get("action") != "notify":
+        raise ValueError("Invalid notification test intent")
+    body = {"id": intent["id"], "title": "Spaceport online",
+            "body": "Button test from Spaceagon. Calls and clocks stay on the badge.",
+            "priority": 3, "type": "success", "style": "card", "icon": "check", "ttl_seconds": 30}
+    return post_json(url.rstrip("/") + "/v1/notify", token, body, ca_file=ca_file, timeout=5)
 
 
 class ThreeCXMonitor(app.App):
@@ -547,6 +556,7 @@ class ThreeCXMonitor(app.App):
         url = str(base_config.get("bridge_url") or "").rstrip("/")
         token = str(base_config.get("token") or "")
         control_token = str(base_config.get("control_token") or "")
+        notify_token = str(base_config.get("notify_token") or "")
         if not url.startswith(("http://", "https://")) or "?" in url or "#" in url or "@" in url:
             base_controller.failed("SET BRIDGE URL")
             return
@@ -591,8 +601,10 @@ class ThreeCXMonitor(app.App):
                 intent = queue.take()
                 if intent:
                     try:
-                        result = await async_helpers.unblock(send_control, self._network_yield,
-                                                            url, control_token, intent, ca_file)
+                        sender = send_notification_test if intent.get("action") == "notify" else send_control
+                        send_token = notify_token if intent.get("action") == "notify" else control_token
+                        result = await async_helpers.unblock(sender, self._network_yield,
+                                                            url, send_token, intent, ca_file)
                         if self._network_current(generation, target):
                             queue.finish(result, self._now())
                     except Exception:
@@ -762,6 +774,12 @@ class ThreeCXMonitor(app.App):
 
     def _open_notifications(self):
         if self._phone_clock_role():
+            key = self.config.get("notify_token") or ""
+            configured = (not self.demo_mode and isinstance(key, str) and len(key) >= 24
+                          and not any(ch.isspace() for ch in key)
+                          and key not in (self.config.get("token"), self.config.get("control_token")))
+            if self.controls.queue_notification_test(configured, self.clock_ms):
+                self.idle_pages.close_overview(self.clock_ms)
             return
         self._observe_notifications(self.clock_ms)
         self.notifications_open = True
@@ -1261,7 +1279,7 @@ class ThreeCXMonitor(app.App):
     def _draw_menu(self,ctx):
         presence=(self._status_payload().get('own') or {}).get('presence') or {}
         state='ON' if presence.get('state')=='dnd' else 'OFF' if presence.get('state')=='available' else '?'
-        labels=('Speed dials','DND: '+state,'Alerts: Waveshare' if self._phone_clock_role() else 'Notifications','Settings','Demo tour','Exit app')
+        labels=('Speed dials','DND: '+state,'Test notification' if self._phone_clock_role() else 'Notifications','Settings','Demo tour','Exit app')
         self._text(ctx,'MENU',-84 if self.showcase else -91,27,160,(.24,.90,.83))
         self._text(ctx,'%d / 6'%(self.menu_selected+1),-61 if self.showcase else -68,11,80,(.6,.7,.8))
         start=max(0,min(3,self.menu_selected-1))

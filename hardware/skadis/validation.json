@@ -1,0 +1,69 @@
+{
+  "carrier": {
+    "watertight": true,
+    "volume_mm3": 12957.886343093667,
+    "components": 1,
+    "bounds_mm": [
+      [
+        -35.0,
+        -62.0,
+        0.0
+      ],
+      [
+        35.0,
+        54.0,
+        10.0
+      ]
+    ],
+    "extents_mm": [
+      70.0,
+      116.0,
+      10.0
+    ]
+  },
+  "hook": {
+    "watertight": true,
+    "volume_mm3": 1081.7322360662,
+    "components": 1,
+    "bounds_mm": [
+      [
+        0.0,
+        -8.0,
+        0.0
+      ],
+      [
+        18.7,
+        12.0,
+        14.0
+      ]
+    ],
+    "extents_mm": [
+      18.7,
+      20.0,
+      14.0
+    ]
+  },
+  "bumper": {
+    "watertight": true,
+    "volume_mm3": 1199.0398111920401,
+    "components": 1,
+    "bounds_mm": [
+      [
+        -6.0,
+        -6.0,
+        0.0
+      ],
+      [
+        6.0,
+        6.0,
+        11.0
+      ]
+    ],
+    "extents_mm": [
+      12.0,
+      12.0,
+      11.0
+    ]
+  },
+  "physical_fit_tested": false
+}

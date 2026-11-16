@@ -23,8 +23,10 @@ jobs:
           /tmp/engine-test
           g++ -std=c++17 -Iinclude -I.pio/libdeps/spaceport/ArduinoJson/src tests/protocol_test.cpp -o /tmp/protocol-test
           /tmp/protocol-test
+          g++ -std=c++17 -Iinclude tests/presence_test.cpp -o /tmp/presence-test
+          /tmp/presence-test
           python -m compileall -q tools
       - uses: actions/upload-artifact@v4
         with:
-          name: spaceport-0.2.1
-          path: companion/release/spaceport-0.2.1.zip
+          name: spaceport-0.3.0
+          path: companion/release/spaceport-0.3.0.zip

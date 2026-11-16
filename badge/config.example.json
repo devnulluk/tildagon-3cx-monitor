@@ -30,5 +30,6 @@
     "brightness": 0.15,
     "call_brightness": 1.0
   },
-  "device_role": "phone_clock"
+  "device_role": "phone_clock",
+  "notify_token": ""
 }

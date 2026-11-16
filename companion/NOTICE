@@ -4,3 +4,5 @@ Licensed under Apache License, Version 2.0; see LICENSE-APACHE-2.0.txt.
 The command sequence was converted to Arduino_GFX batch operations; peripheral configuration is implemented separately.
 
 Arduino_GFX, ArduinoJson and Adafruit GFX are external dependencies retaining their respective upstream licences. Font files are not copied into this source tree; the host preview uses the installed Adafruit dependency. The generated sound files are original project assets.
+
+NimBLE-Arduino 1.4.3 is an external Apache-2.0 dependency, including Apache Mynewt NimBLE; see https://github.com/h2zero/NimBLE-Arduino/tree/1.4.3 and the bundled Apache licence. Presence enrolment uses standard Bluetooth services and identity resolution. No ESPresense source code is included.
