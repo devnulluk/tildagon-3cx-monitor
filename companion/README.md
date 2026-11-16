@@ -8,7 +8,7 @@ A standalone Wi-Fi companion for the **Waveshare ESP32-S3-LCD-1.85, non-touch**:
 
 ![Production layout rendered on a PC with synthetic data](docs/spaceport-gallery.png)
 
-**Version 0.2.0.** ESP32-S3 firmware compiles; native logic checks pass. These are **host-rendered previews**, using the production drawing code and font bitmaps with a PC raster shim. They are not camera footage or evidence of physical performance. The ordered board has not arrived: display orientation/colours, expander reset, speaker output, buttons, Wi-Fi reconnection and USB recovery still require hardware validation.
+**Version 0.2.1.** ESP32-S3 firmware compiles; native logic checks pass. These are **host-rendered previews**, using the production drawing code and font bitmaps with a PC raster shim. They are not camera footage or evidence of physical performance. First hardware installation on 16 November 2026 identified and fixed the factory-image boot mode, USB provisioning pacing and LCD colour mode. Firmware startup, Wi-Fi, NTP, verified HTTPS state reception and the local control interface are confirmed on hardware. Final visual/audio observations and the scope of checks are recorded in `docs/validation.json`; the gallery remains host-rendered.
 
 ## What it does
 
@@ -26,7 +26,7 @@ Both devices independently read the existing protected **GET /v1/state** feed. E
 
 ## Ready for arrival
 
-Download the `spaceport-0.2.0.zip` build artifact or build it below. The factory image contains no Wi-Fi password, bridge token, contact number or personal dates. It includes the eight default WAV sounds. You do not need a microSD card.
+Download the `spaceport-0.2.1.zip` build artifact or build it below. The factory image contains no Wi-Fi password, bridge token, contact number or personal dates. It includes the eight default WAV sounds. You do not need a microSD card.
 
 1. Unzip into a new folder. Connect **the new Waveshare**, and identify its port by comparing before/after port lists. Do not choose the Spaceagon's port.
 2. In PowerShell, inside the unzipped folder:
@@ -35,10 +35,10 @@ Download the `spaceport-0.2.0.zip` build artifact or build it below. The factory
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-install.txt
 .\.venv\Scripts\python.exe -m serial.tools.list_ports
-.\.venv\Scripts\python.exe flash.py --port COM12 --image spaceport-0.2.0.bin
+.\.venv\Scripts\python.exe flash.py --port COM12 --image spaceport-0.2.1.bin
 ```
 
-Replace COM12 with the new device. The helper checks the image SHA-256, asks you to identify the target, reads and verifies a **full 16MB factory backup**, then flashes and verifies the new image. Backups may contain factory configuration; keep them private. If USB download mode is required, follow the vendor BOOT/RESET procedure. Do not overwrite an unfamiliar device.
+Replace COM12 with the new device. The factory image preserves the DIO bootloader mode required by this board. The helper checks the image SHA-256, asks you to identify the target, reads and verifies a **full 16MB factory backup**, then flashes and verifies the new image. Backups may contain factory configuration; keep them private. If USB download mode is required, follow the vendor BOOT/RESET procedure. Do not overwrite an unfamiliar device.
 
 3. Provision locally through USB:
 
@@ -48,7 +48,7 @@ Replace COM12 with the new device. The helper checks the image SHA-256, asks you
 
 This reuses the Spaceagon's HTTPS origin, **read token**, CA file and optional partner settings, then asks for the companion's Wi-Fi SSID/password. It does not copy the Spaceagon's control token. The CA path is relative to the private config; use `--ca C:\path\to\ca.der` to override. Alternatively omit `--badge-config` and supply `--ca`; you will be prompted for the HTTPS origin/read token/partner number. Credentials stay in the device's NVS and are never compiled into the public firmware.
 
-The helper creates `spaceport-access.local.json` with a generated local-control password. Keep it private. The idle screen shows the device's IP, also visible in your router. Browse to `http://DEVICE-IP`, username **spaceport**, password from that receipt.
+Provisioning sends small paced USB chunks, with an enlarged device RX buffer. The helper creates `spaceport-access.local.json` with a generated local-control password. Keep it private. The idle screen shows the device's IP, also visible in your router. Browse to `http://DEVICE-IP`, username **spaceport**, password from that receipt.
 
 **Local web controls use HTTP Basic authentication and are intended only for your trusted LAN. Do not publish that interface through the internet tunnel.** The outgoing bridge connection uses verified HTTPS. NTP/DNS and outbound HTTPS must be allowed on the Wi-Fi network; the ESP32 uses 2.4GHz Wi-Fi.
 
@@ -75,7 +75,7 @@ py -m venv .build
 .\.build\Scripts\python.exe tools/build_release.py
 ```
 
-This builds firmware and LittleFS and produces `release/spaceport-0.2.0.zip`, its merged image and SHA-256 manifest. Dependencies are pinned in `platformio.ini`. Flash layout: two 5MB OTA slots and a 0x5f0000-byte LittleFS partition; no OTA upload endpoint is enabled in this release. Hardware target is 16MB flash/8MB OPI PSRAM. Do not flash the image to a differently sized board.
+This builds firmware and LittleFS and produces `release/spaceport-0.2.1.zip`, its merged image and SHA-256 manifest. Dependencies are pinned in `platformio.ini`. Flash layout: two 5MB OTA slots and a 0x5f0000-byte LittleFS partition; no OTA upload endpoint is enabled in this release. Hardware target is 16MB flash/8MB OPI PSRAM. Do not flash the image to a differently sized board.
 
 Default tones are original generated compositions. Regenerate using `python tools/make_sounds.py`. Replace one with your own recording/music using ffmpeg:
 
@@ -110,3 +110,13 @@ Restore the full factory backup using the same port and esptool version:
 ## Board references
 
 [Waveshare board documentation](https://docs.waveshare.com/ESP32-S3-LCD-1.85) and [official Espressif board configuration](https://github.com/esp-arduino-libs/ESP32_Display_Panel/blob/92b790ed6d24b0678e2f45b1fc85f0abd2d41b33/src/board/supported/waveshare/BOARD_WAVESHARE_ESP32_S3_TOUCH_LCD_1_85.h). The shared display configuration also covers the non-touch variant. Touch and microphone are not used. See [NOTICE](NOTICE) for panel initialisation attribution.
+
+## USB diagnostics
+
+A newline-terminated `{"command":"status"}` request on the USB serial port returns a `SPACEPORT_STATUS` JSON line with version, Wi-Fi/IP, display/audio readiness, clock readiness and bridge/PBX freshness. It never returns passwords, tokens, SSID, caller details or contact numbers. This is a read-only diagnostic, separate from the setup JSON.
+
+### First hardware fixes (0.2.1)
+
+The factory image retains **DIO** in the bootloader header; forcing QIO there caused a ROM boot loop on the first board. The build checks that merging has not changed this byte. The LCD vendor sequence is followed by explicit `COLMOD=0x55` (RGB565); leaving the panel in its default format caused the image to wrap and occupy only part of the screen. Provisioning is paced and the USB RX buffer enlarged to avoid dropping setup bytes during display transfers.
+
+Audio uses 44.1kHz stereo I2S with 32-bit slots. Stored 22.05kHz mono PCM16 is padded to 32 bits and duplicated into two output frames. The [PCM5101 clocking tables](https://files.waveshare.com/wiki/common/TexasInstruments-PCM5101PWR.pdf) describe its three-wire clock requirements. Driver readiness is distinct from confirmed audible output; current physical observations are recorded in `docs/validation.json`.

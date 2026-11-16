@@ -29,7 +29,10 @@ def main():
     encoded=(json.dumps(payload,separators=(',',':'))+'\n').encode()
     if len(encoded)>8192:raise SystemExit('Configuration exceeds device limit')
     with serial.Serial(args.port,115200,timeout=1,write_timeout=5) as port:
-        time.sleep(2);port.reset_input_buffer();port.write(encoded);port.flush()
+        time.sleep(2);port.reset_input_buffer();
+        # Keep within the hardware USB RX FIFO while display transfers run.
+        for offset in range(0,len(encoded),64):
+            port.write(encoded[offset:offset+64]);port.flush();time.sleep(.1)
         deadline=time.monotonic()+15
         while time.monotonic()<deadline:
             line=port.readline()

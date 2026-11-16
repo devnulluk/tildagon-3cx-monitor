@@ -17,7 +17,7 @@
 #include "protocol.h"
 
 using namespace spaceport;
-static constexpr char VERSION[]="0.2.0";
+static constexpr char VERSION[]="0.2.1";
 Preferences prefs;
 Engine engine,dashboard;
 SemaphoreHandle_t stateLock;
@@ -32,7 +32,7 @@ String serialLine;
 Arduino_ESP32QSPI bus(21,40,46,45,42,41);
 class WavesharePanel : public Arduino_ST77916 {
  public: WavesharePanel(Arduino_DataBus* b):Arduino_ST77916(b,GFX_NOT_DEFINED,0,true,360,360){}
- protected: void tftInit() override {_bus->sendCommand(ST77916_SWRESET);delay(120);_bus->batchOperation(panel_init,sizeof(panel_init));invertDisplay(false);}
+ protected: void tftInit() override {_bus->sendCommand(ST77916_SWRESET);delay(120);_bus->batchOperation(panel_init,sizeof(panel_init));_bus->beginWrite();_bus->writeC8D8(ST77916_COLMOD,0x55);_bus->endWrite();invertDisplay(false);}
 };
 WavesharePanel panel(&bus);
 class SpaceportCanvas : public Arduino_Canvas {
@@ -48,7 +48,8 @@ volatile Cue audioCue=Cue::Silent;
 volatile uint32_t audioStarted=0;
 volatile bool audioRepeat=false;
 volatile int audioVolume=20;
-bool audioReady=false,displayReady=false;
+bool audioReady=false,displayReady=false,audioFsReady=false;
+volatile uint32_t audioNonzeroSamples=0;volatile int audioWriteStatus=0;
 
 static void expanderReset() {
   // TCA9554: read-modify-write only P1 (vendor EXIO2), preserve other outputs.
@@ -69,7 +70,13 @@ static bool validOrigin(const String& value) {
 }
 static void provision(const String& line) {
   JsonDocument j;
-  if(deserializeJson(j,line)||!j["ssid"].is<const char*>()||!j["password"].is<const char*>()||!j["origin"].is<const char*>()||!j["token"].is<const char*>()||!j["ca"].is<const char*>()||!j["web_key"].is<const char*>()) {Serial.println("SETUP_INVALID");return;}
+  if(deserializeJson(j,line)){Serial.println("SETUP_INVALID");return;}
+  if(j["command"]=="status") {
+    JsonDocument result;result["version"]=VERSION;result["wifi_connected"]=WiFi.status()==WL_CONNECTED;result["ip"]=WiFi.localIP().toString();result["display_ready"]=displayReady;result["audio_ready"]=audioReady;result["audio_filesystem"]=audioFsReady;result["audio_nonzero_samples"]=audioNonzeroSamples;result["audio_write_status"]=audioWriteStatus;result["clock_ready"]=time(nullptr)>1700000000;
+    xSemaphoreTake(stateLock,portMAX_DELAY);result["feed_live"]=dashboard.fresh(millis());result["phone_live"]=engine.fresh(millis());xSemaphoreGive(stateLock);
+    Serial.print("SPACEPORT_STATUS ");serializeJson(result,Serial);Serial.println();return;
+  }
+  if(!j["ssid"].is<const char*>()||!j["password"].is<const char*>()||!j["origin"].is<const char*>()||!j["token"].is<const char*>()||!j["ca"].is<const char*>()||!j["web_key"].is<const char*>()) {Serial.println("SETUP_INVALID");return;}
   String o=j["origin"].as<String>(),cert=j["ca"].as<String>(),k=j["web_key"].as<String>(),t=j["token"].as<String>();
   if(!validOrigin(o)||cert.indexOf("-----BEGIN CERTIFICATE-----")<0||k.length()<16||k.length()>64||t.length()<16||t.length()>512||j["ssid"].as<String>().length()>32||j["password"].as<String>().length()>64){Serial.println("SETUP_INVALID");return;}
   for(char c:t)if(c<=32||c>126){Serial.println("SETUP_INVALID");return;}
@@ -113,15 +120,17 @@ static void networkTask(void*) {
 }
 
 static void audioTask(void*) {
-  i2s_config_t conf={};conf.mode=i2s_mode_t(I2S_MODE_MASTER|I2S_MODE_TX);conf.sample_rate=22050;
-  conf.bits_per_sample=I2S_BITS_PER_SAMPLE_16BIT;conf.channel_format=I2S_CHANNEL_FMT_RIGHT_LEFT;
+  i2s_config_t conf={};conf.mode=i2s_mode_t(I2S_MODE_MASTER|I2S_MODE_TX);conf.sample_rate=44100;
+  // 32-bit stereo slots supply 64 BCK per frame for the PCM5101 PLL.
+  conf.bits_per_sample=I2S_BITS_PER_SAMPLE_32BIT;conf.channel_format=I2S_CHANNEL_FMT_RIGHT_LEFT;
   conf.communication_format=I2S_COMM_FORMAT_STAND_I2S;conf.intr_alloc_flags=ESP_INTR_FLAG_LEVEL1;
   conf.dma_buf_count=6;conf.dma_buf_len=256;conf.use_apll=false;conf.tx_desc_auto_clear=true;
   i2s_pin_config_t pins={};pins.mck_io_num=I2S_PIN_NO_CHANGE;pins.bck_io_num=48;pins.ws_io_num=38;pins.data_out_num=47;pins.data_in_num=I2S_PIN_NO_CHANGE;
   audioReady=i2s_driver_install(I2S_NUM_0,&conf,0,nullptr)==ESP_OK&&i2s_set_pin(I2S_NUM_0,&pins)==ESP_OK;
   bool fsReady=LittleFS.begin(false,"/littlefs",10,"littlefs"); // Never format an existing filesystem on failure.
+  audioFsReady=fsReady;
   File wav;bool wavReady=false;
-  int16_t samples[512];uint8_t pcm[512];uint32_t position=0,previousStart=0;
+  static int32_t samples[1024];uint8_t pcm[512];uint32_t position=0,previousStart=0;
   for(;;) {
     Cue cue=audioCue;uint32_t start=audioStarted;
     if(start!=previousStart){position=0;previousStart=start;wav.close();wavReady=false;
@@ -139,6 +148,7 @@ static void audioTask(void*) {
         if(!wav.seek(44))break;
       }
     }
+    uint32_t nonzero=0;
     for(int i=0;i<256;i++,position++) {
       float value=0,t=position/22050.0f;
       if(cue!=Cue::Silent&&wavReady) {
@@ -153,9 +163,10 @@ static void audioTask(void*) {
           value=(sinf(t*6.2831853f*f)+.18f*sinf(t*6.2831853f*f*2))*envelope;
         }
       }
-      int16_t v=int16_t(value*12000.f*audioVolume/100.f);samples[i*2]=v;samples[i*2+1]=v;
+      int16_t v=int16_t(value*12000.f*audioVolume/100.f);if(v)nonzero++;// Duplicate each 22.05kHz source sample into two 44.1kHz frames.
+      for(int repeat=0;repeat<2;repeat++){samples[i*4+repeat*2]=int32_t(v)*65536;samples[i*4+repeat*2+1]=int32_t(v)*65536;}
     }
-    size_t written=0;if(audioReady)i2s_write(I2S_NUM_0,samples,sizeof(samples),&written,pdMS_TO_TICKS(50));else vTaskDelay(pdMS_TO_TICKS(12));
+    audioNonzeroSamples+=nonzero;size_t written=0;if(audioReady)audioWriteStatus=i2s_write(I2S_NUM_0,samples,sizeof(samples),&written,pdMS_TO_TICKS(50));else vTaskDelay(pdMS_TO_TICKS(12));
   }
 }
 
@@ -209,7 +220,7 @@ static Presentation demoPresentation(uint32_t now) {
 }
 
 void setup() {
-  Serial.begin(115200);pinMode(0,INPUT_PULLUP);pinMode(5,OUTPUT);digitalWrite(5,LOW);
+  Serial.setRxBufferSize(8192);Serial.begin(115200);pinMode(0,INPUT_PULLUP);pinMode(5,OUTPUT);digitalWrite(5,LOW);
   prefs.begin("spaceport",true);ssid=prefs.getString("ssid");password=prefs.getString("password");origin=prefs.getString("origin");token=prefs.getString("token");ca=prefs.getString("ca");webKey=prefs.getString("web_key");partnerNumber=prefs.getString("partner");partnerName=prefs.getString("partner_name","Partner");partnerSurname=prefs.getString("partner_surname");brightness=constrain(prefs.getInt("brightness",50),5,100);volume=prefs.getInt("volume",20);priorityVolume=prefs.getInt("priority",35);permanentMute=prefs.getBool("muted",false);prefs.end();
   configured=validOrigin(origin)&&token.length()>=16&&webKey.length()>=16;engine.muted=permanentMute;dashboard.muted=permanentMute;
   stateLock=xSemaphoreCreateMutex();
@@ -218,8 +229,8 @@ void setup() {
   WiFi.mode(WIFI_STA);WiFi.setHostname("spaceport");if(configured)WiFi.begin(ssid.c_str(),password.c_str());
   configTzTime("GMT0BST,M3.5.0/1,M10.5.0","pool.ntp.org","time.cloudflare.com");
   xTaskCreatePinnedToCore(networkTask,"network",16384,nullptr,1,nullptr,0);
-  xTaskCreatePinnedToCore(audioTask,"audio",4096,nullptr,2,nullptr,0);
-  webSetup();Serial.println("SPACEPORT_READY 0.2.0");
+  xTaskCreatePinnedToCore(audioTask,"audio",8192,nullptr,2,nullptr,0);
+  webSetup();Serial.println("SPACEPORT_READY 0.2.1");
 }
 void loop() {
   web.handleClient();

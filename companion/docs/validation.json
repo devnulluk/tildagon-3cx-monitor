@@ -1,23 +1,39 @@
 {
-  "version": "0.2.0",
-  "date": "2026-11-14",
-  "badge_version": "0.18.0",
-  "roles": {
-    "spaceagon": "3CX and clocks, notification LEDs only",
-    "waveshare": "dashboard and notification screens, plus ringtone audio"
+  "version": "0.2.1",
+  "date": "2026-11-16",
+  "installed": true,
+  "bootloader_mode": "DIO, factory and compiled bootloader headers agree",
+  "factory_backup": "full 16MB, verified against device and local SHA-256; private backup retained",
+  "hardware_fixes": [
+    "DIO boot header retained in merged image",
+    "USB configuration sent in paced chunks, 8192-byte RX buffer",
+    "ST77916 RGB565 mode explicitly selected after vendor init"
+  ],
+  "display": "User confirmed full screen correct after pixel-format fix",
+  "wifi": "connected on hardware",
+  "clock": "NTP ready on hardware",
+  "bridge": "verified HTTPS state live; 10 consecutive live LAN-status samples",
+  "audio_driver": "ready; filesystem mounted; nonzero PCM sent; I2S writes return success",
+  "audio_output": "Speaker audibility not confirmed; latest 44.1kHz/32-bit-slot test awaiting user observation",
+  "audio_clock": "44.1kHz stereo, 32-bit slots; 22.05kHz mono WAV samples duplicated at output",
+  "badge": {
+    "version": "0.18.0",
+    "installed": true,
+    "role": "phone_clock",
+    "runtime_bytes_verified": true,
+    "config_preserved_except_role": true,
+    "trust_root_preserved": true,
+    "startup_live": true,
+    "focused": true,
+    "idle_pages": [
+      "clock"
+    ]
   },
-  "firmware_compile": "pass",
-  "native_engine": "pass, including separate dashboard and audio precedence",
-  "native_protocol": "pass, including dashboard independent of PBX connectivity",
-  "existing_suite": "748 tests pass with project Python 3.14.6",
-  "preview": "host production renderer, synthetic data, generated WAV audio; not physical footage",
-  "firmware_sha256": "See the build-specific release manifest.json",
-  "physical_validation": false,
-  "badge_installed": false,
-  "badge_usb": "COM1 and COM3 only; badge absent",
-  "acknowledgement": "local only; Spaceagon LEDs follow shared TTL/updates",
-  "pending": [
-    "Spaceagon USB install and private device_role config update",
-    "Waveshare display/audio/button/Wi-Fi/backup tests when it arrives"
+  "native_checks": "engine and protocol pass",
+  "remaining": [
+    "audible speaker check",
+    "physical BOOT input",
+    "power-cycle/reconnect soak",
+    "physical shared notification/LED check"
   ]
 }
