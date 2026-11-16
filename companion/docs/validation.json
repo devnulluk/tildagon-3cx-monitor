@@ -47,7 +47,9 @@
     "enabled_on_device": true,
     "pairing_window_started": true,
     "quiet_gate_hardware_check": true,
-    "enrolled": false,
-    "physical_phone_validation": "pending"
+    "enrolled": true,
+    "physical_phone_validation": "paired and detected; locked-screen/range checks pending",
+    "phone_nearby_detected": true,
+    "audio_generated_when_nearby": true
   }
 }
