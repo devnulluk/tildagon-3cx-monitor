@@ -12,7 +12,7 @@ A standalone Wi-Fi companion for the **Waveshare ESP32-S3-LCD-1.85, non-touch**:
 
 ## Phone presence and pegboard mounting
 
-[iPhone pairing and quiet ringing](docs/PRESENCE.md) works locally without Home Assistant. [Skådis carrier print files and editable design](../hardware/skadis-compact/README.md) hide behind the display, with the speaker mounted separately behind the pegboard. Physical phone calibration and printed fit remain to be checked.
+[iPhone pairing and quiet ringing](docs/PRESENCE.md) works locally without Home Assistant. [Skådis carrier print files and editable design](../hardware/skadis-simple/README.md) hide behind the display, with the speaker mounted separately behind the pegboard. Physical phone calibration and printed fit remain to be checked.
 
 ## What it does
 

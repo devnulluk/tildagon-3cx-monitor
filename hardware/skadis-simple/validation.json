@@ -1,0 +1,42 @@
+{
+  "print": {
+    "watertight": true,
+    "components": 1,
+    "volume_mm3": 2469.7237983546756,
+    "bounds_mm": [
+      [
+        5.6,
+        -27.0,
+        5.72205e-07
+      ],
+      [
+        29.2,
+        27.0,
+        36.0
+      ]
+    ]
+  },
+  "assembled": {
+    "watertight": true,
+    "components": 1,
+    "volume_mm3": 2469.7252509422897,
+    "bounds_mm": [
+      [
+        -17.6,
+        -27.0,
+        -14.6
+      ],
+      [
+        18.4,
+        27.0,
+        9.0
+      ]
+    ]
+  },
+  "assembled_maximum_radius_mm": 27.081543530604012,
+  "physical_fit_tested": false,
+  "printed_parts": 1,
+  "extra_fasteners": 0,
+  "screen_screws": 3,
+  "vertical_slot_pitch_mm": 40
+}
