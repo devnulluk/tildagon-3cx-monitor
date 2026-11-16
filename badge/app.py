@@ -384,7 +384,7 @@ class ThreeCXMonitor(app.App):
 
     def _write_leds(self):
         if self.away.away(self._now()) and not self.demo_mode and self.showcase is None:
-            frame=rainbow(self.clock_ms,brightness=self.config.get("away_led_brightness",.03),ceiling=self.controller.ring_brightness)
+            frame=rainbow(self.clock_ms,brightness=self.config.get("away_led_brightness",.05),ceiling=self.controller.ring_brightness)
             if frame!=self._last_leds:
                 for index,colour in enumerate(frame):tildagonos.leds[index+1]=colour
                 tildagonos.leds.write();self._last_leds=frame

@@ -21,7 +21,7 @@ class AwayTests(unittest.TestCase):
   module,m,hw=support.BadgeAppTests.live_monitor(True)
   m.away.configured=True;m.away.accept(dict(version=1,enabled=True,enrolled=True,nearby=False),0)
   with patch.object(m.controller,"led_frame",side_effect=AssertionError("live LEDs must not override away")),patch.object(m.matrix,"away_label") as blank,patch.object(m.expansions,"write_own_status") as eeh:
-   m._write_leds();blank.assert_called_once();self.assertLessEqual(max(max(c) for c in m._last_leds),8);self.assertGreater(len(set(m._last_leds)),1);self.assertEqual(eeh.call_args.args[0],(0,0,0))
+   m._write_leds();blank.assert_called_once();self.assertLessEqual(max(max(c) for c in m._last_leds),13);self.assertGreater(len(set(m._last_leds)),1);self.assertEqual(eeh.call_args.args[0],(0,0,0))
 
  def test_lock_screen_contains_no_call_details(self):
   from test_clocks import Canvas
@@ -49,14 +49,14 @@ class AwayTests(unittest.TestCase):
   frame=away.rainbow(0);later=away.rainbow(100)
   self.assertEqual(away.rainbow(0,brightness=0),[(0,0,0)]*12)
   self.assertLessEqual(max(abs(a-b) for x,y in zip(frame,later) for a,b in zip(x,y)),1)
-  self.assertTrue(all(0<=v<=8 for c in frame for v in c))
+  self.assertTrue(all(0<=v<=13 for c in frame for v in c))
 
  def test_matrix_away_is_static_word_with_no_scroll(self):
   from test_matrix import MatrixTests,payload,matrix
   fixture=MatrixTests();fixture.setUp();display=fixture.display(slot=2)
   self.assertTrue(display.away_label(1000));fixture.drain(display)
   self.assertEqual(display.displayed_mode,"away");self.assertIsNone(display._text_writes)
-  image=fixture.image();self.assertGreater(sum(v>0 for v in image),20);self.assertEqual(max(image),26)
+  image=fixture.image();self.assertGreater(sum(v>0 for v in image),20);self.assertEqual(max(image),180)
   self.assertEqual(len(matrix._GLYPHS['away']),5);self.assertTrue(all(len(row)==17 for row in matrix._GLYPHS['away']))
   display.away_label(20000);fixture.drain(display);self.assertEqual(fixture.image(),image)
   display.update(payload(),True,21000);fixture.drain(display);self.assertNotEqual(fixture.image(),image)

@@ -17,15 +17,15 @@ class AwayState:
 def draw_lock(ctx,label):
     ctx.rgb(.003,.006,.012).rectangle(-120,-120,240,240).fill()
     ctx.line_width=3
-    ctx.rgb(.12,.20,.26).arc(0,-24,16,3.14159265,6.28318531,False).stroke()
-    ctx.rgb(.08,.14,.19).round_rectangle(-24,-24,48,37,7).fill()
-    ctx.rgb(.22,.34,.40).arc(0,-8,3,0,6.28318531,False).fill()
-    ctx.font_size=16;ctx.rgb(.22,.34,.40).move_to(0,43).text("AWAY")
-    ctx.font_size=10;ctx.rgb(.12,.20,.26).move_to(0,64).text(label)
+    ctx.rgb(.30,.45,.55).arc(0,-24,16,3.14159265,6.28318531,False).stroke()
+    ctx.rgb(.16,.25,.32).round_rectangle(-24,-24,48,37,7).fill()
+    ctx.rgb(.48,.66,.76).arc(0,-8,3,0,6.28318531,False).fill()
+    ctx.font_size=16;ctx.rgb(.48,.66,.76).move_to(0,43).text("AWAY")
+    ctx.font_size=10;ctx.rgb(.30,.45,.55).move_to(0,64).text(label)
 
-def rainbow(now_ms, count=12, brightness=.03, ceiling=1.0):
-    if not isinstance(brightness,(int,float)) or isinstance(brightness,bool):brightness=.03
-    if brightness!=brightness:brightness=.03
+def rainbow(now_ms, count=12, brightness=.05, ceiling=1.0):
+    if not isinstance(brightness,(int,float)) or isinstance(brightness,bool):brightness=.05
+    if brightness!=brightness:brightness=.05
     peak=round(255*max(0,min(.1,brightness,ceiling)))
     floor=round(peak*.18)
     result=[]

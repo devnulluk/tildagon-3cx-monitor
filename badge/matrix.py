@@ -424,7 +424,7 @@ class MatrixDisplay:
     def away_label(self, now_ms):
         if not self.refresh(now_ms):return False
         self._clock_ms=now_ms
-        level=26
+        level=180
         if self._last_frame==("away",level):return True
         self._reset_text()
         self._packet[1:]=self._zero

@@ -1,6 +1,6 @@
 # iPhone presence and quiet ringing
 
-Spaceport can recognise one enrolled iPhone over Bluetooth and gate its speaker locally. No Home Assistant, phone app or cloud location service is required. All automatic sounds, including priority calls, are quiet while the phone is absent. When away, Waveshare dims its display and shows a simple lock screen. A linked Spaceagon also hides call details behind an idle lock screen, uses a gentle two-minute rainbow cycle on ring LEDs (3% by default, respecting their saved brightness ceilings) and shows a static AWAY on its matrix. Priority calls and urgent notifications do not override the away display. The EEH logo is off while away. Returning nearby restores the saved normal brightness settings.
+Spaceport can recognise one enrolled iPhone over Bluetooth and gate its speaker locally. No Home Assistant, phone app or cloud location service is required. All automatic sounds, including priority calls, are quiet while the phone is absent. When away, Waveshare dims its display and shows a simple lock screen. A linked Spaceagon also hides call details behind an idle lock screen, uses a gentle two-minute rainbow cycle on ring LEDs (5% by default, respecting their saved brightness ceilings) and shows a static AWAY on its matrix. Priority calls and urgent notifications do not override the away display. The EEH logo is off while away. Returning nearby restores the saved normal brightness settings.
 
 ## Pair
 
