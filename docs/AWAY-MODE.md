@@ -35,3 +35,12 @@ This preview is generated from the real matrix driver's pixel frames using a sim
 ![Snake driver-frame simulation](away-snake.gif)
 
 A native hardware preview confirmed moving head positions, food consumption, growth and 90/255 peak output. The themed welcome was also rendered using the native simulator. Personal settings, phone enrolment and private credentials were preserved.
+
+
+## First welcome of the day
+
+Waveshare plays an original two-part sci-fi boatswain whistle on the first welcome of each UK calendar day. Later returning animations are silent. The date is saved before playback and survives reboots; a backwards clock correction does not replay an earlier day. An invalid clock skips the call. Mute and zero volume suppress the first call without postponing it to a later welcome. Calls and notification alerts interrupt it. It uses the normal sound volume, not the priority volume.
+
+The local control page has **Test boatswain call**. This respects mute, presence and active calls/alerts, and does not consume the daily welcome. The short source preview below is synthesised by the same code used on the device, not a TV audio recording or a recording of the physical speaker.
+
+[Listen to the original boatswain-style welcome](boatswain-welcome.wav)

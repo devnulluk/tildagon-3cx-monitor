@@ -16,9 +16,10 @@
 #include "ui.h"
 #include "protocol.h"
 #include "presence.h"
+#include "welcome_call.h"
 
 using namespace spaceport;
-static constexpr char VERSION[]="0.6.0";
+static constexpr char VERSION[]="0.7.0";
 Preferences prefs;
 PhonePresence presence;
 volatile bool presenceAudioAllowed=true;
@@ -53,6 +54,8 @@ volatile uint32_t audioStarted=0;
 volatile bool audioRepeat=false;
 volatile int audioVolume=20;
 bool audioReady=false,displayReady=false,audioFsReady=false;
+DailyWelcomeCall dailyWelcomeCall;
+volatile uint32_t pipeUntil=0,pipeStarted=0;
 volatile uint32_t toneUntil=0;volatile int toneHz=440,toneChannel=0;
 volatile uint32_t audioBytesWritten=0,audioShortWrites=0;
 volatile uint32_t audioNonzeroSamples=0;volatile int audioWriteStatus=0;
@@ -140,9 +143,10 @@ static void audioTask(void*) {
   bool fsReady=LittleFS.begin(false,"/littlefs",10,"littlefs"); // Never format an existing filesystem on failure.
   audioFsReady=fsReady;
   File wav;bool wavReady=false;
-  static int16_t samples[1024];uint8_t pcm[512];uint32_t position=0,previousStart=0;
+  static int16_t samples[1024];uint8_t pcm[512];uint32_t position=0,previousStart=0,lastPipeStart=0,pipePosition=0;
   for(;;) {
     if(toneUntil&&int32_t(toneUntil-millis())<=0)toneUntil=0;
+    if(pipeUntil&&int32_t(pipeUntil-millis())<=0)pipeUntil=0;
     Cue cue=audioCue;uint32_t start=audioStarted;
     if(start!=previousStart){position=0;previousStart=start;wav.close();wavReady=false;
       static const char* names[]={"","direct","internal","queue","group","priority","partner","info","urgent"};
@@ -160,9 +164,13 @@ static void audioTask(void*) {
       }
     }
     uint32_t nonzero=0;
+    uint32_t blockNow=millis();bool pipeActive=pipeUntil&&int32_t(pipeUntil-blockNow)>0&&cue==Cue::Silent&&!permanentMute&&presenceAudioAllowed;
+    if(pipeStarted!=lastPipeStart){lastPipeStart=pipeStarted;pipePosition=0;}
+    float pipeTime=pipePosition/22050.f;
     for(int i=0;i<256;i++,position++) {
       float value=0,t=position/22050.0f;
       if(toneUntil&&int32_t(toneUntil-millis())>0&&!permanentMute)value=sinf(t*6.2831853f*toneHz);
+      else if(pipeActive)value=welcomePipe(pipeTime+i/22050.f);
       else if(cue!=Cue::Silent&&wavReady) {
         if(size_t(i*2+1)<pcmBytes)value=int16_t(uint16_t(pcm[i*2])|(uint16_t(pcm[i*2+1])<<8))/12000.f;
       } else if(cue!=Cue::Silent&&(audioRepeat||t<.9f)) {
@@ -181,14 +189,16 @@ static void audioTask(void*) {
       if(toneUntil){if(toneChannel==1)right=0;else if(toneChannel==2)left=0;else if(toneChannel==3)right=-right;}
       for(int repeat=0;repeat<2;repeat++){samples[i*4+repeat*2]=left;samples[i*4+repeat*2+1]=right;}
     }
+    if(pipeActive)pipePosition+=256;
     audioNonzeroSamples+=nonzero;size_t written=0;if(audioReady){audioWriteStatus=i2s_write(I2S_NUM_0,samples,sizeof(samples),&written,pdMS_TO_TICKS(50));audioBytesWritten+=written;if(written<sizeof(samples))audioShortWrites++;}else vTaskDelay(pdMS_TO_TICKS(12));
   }
 }
 
 static void setSound(const Presentation& p) {
   if(p.view==View::Ringing)toneUntil=0;
+  if(p.view==View::Ringing||p.view==View::Call||p.view==View::Notice)pipeUntil=0;
   static std::string lastId;static Cue last=Cue::Silent;
-  if(!presence.allows()||permanentMute||(demo&&!demoAudio&&!p.priority)) {audioCue=Cue::Silent;last=Cue::Silent;lastId=p.id;return;}
+  if(!presence.allows()||permanentMute||(demo&&!demoAudio&&!p.priority)) {pipeUntil=0;audioCue=Cue::Silent;last=Cue::Silent;lastId=p.id;return;}
   if(p.view==View::Notice&&p.id==lastId&&p.cue==Cue::Silent) {
     if(millis()-audioStarted>900)audioCue=Cue::Silent;
     return;
@@ -200,7 +210,7 @@ static void setSound(const Presentation& p) {
 static bool authenticate() {
   if(!configured||webKey.length()<16||!web.authenticate("spaceport",webKey.c_str())) {web.requestAuthentication();return false;}return true;
 }
-static const char WEB_PAGE[] PROGMEM=R"HTML(<!doctype html><meta name="viewport" content="width=device-width"><title>Spaceport</title><style>body{background:#060b18;color:#c8ecff;font:18px system-ui;max-width:650px;margin:35px auto;padding:20px}button,input{font:inherit;padding:12px;margin:5px;background:#142840;color:#d4faff;border:1px solid #367b99;border-radius:12px}h1{color:#49e5f5}small{color:#8fa8b4}</style><h1>SPACEPORT</h1><p>Audio and display companion to Spaceagon</p><p id="state">Connecting...</p><button onclick="act('mute')">Mute</button><button onclick="act('unmute')">Unmute</button><button onclick="act('silence')">Silence this alert</button><button onclick="act('dismiss')">Clear local notice</button><button onclick="act('page')">Next idle screen</button><h2>iPhone presence</h2><p id="presence"></p><button onclick="act('presence_on')">Only ring nearby</button><button onclick="act('presence_off')">Disable presence gate</button><button onclick="act('presence_pair')">Pair iPhone (2 minutes)</button><button onclick="if(confirm('Forget paired phone?'))act('presence_forget')">Forget phone</button><p>Nearby threshold (dBm)<input type="number" min="-95" max="-35" value="-72" onchange="act('presence_threshold',this.value)"></p><p>Away timeout (seconds)<input type="number" min="15" max="300" value="60" onchange="act('presence_timeout',this.value)"></p><p>Ring volume <input id="vol" type="range" min="0" max="75" value="20" onchange="act('volume',this.value)"></p><p>Priority volume <input type="range" min="0" max="75" value="35" onchange="act('priority_volume',this.value)"></p><p>Display brightness <input type="range" min="5" max="100" value="50" onchange="act('brightness',this.value)"></p><button onclick="act('test')">Test sound</button><button onclick="act('test_tone',440)">Steady tone (60s)</button><button onclick="act('stop_tone')">Stop tone</button><button onclick="act('demo')">Visual demo</button><button onclick="act('live')">Return to live</button><p><small>Local acknowledgement affects Spaceport only. Calls and DND remain on Spaceagon. Demo sound is off; Test sound plays one short chime.</small></p><script>async function act(action,value){await fetch('/action',{method:'POST',headers:{'Content-Type':'application/json','X-Spaceport':'1'},body:JSON.stringify({action,value:Number(value)})});poll()}async function poll(){let s=await(await fetch('/status')).json();document.querySelector('#state').textContent=`${s.live?'LIVE':'OFFLINE'} / ${s.muted?'MUTED':'SOUND ON'} / ${s.demo?'DEMO':'LIVE DATA'} / v${s.version}`;document.querySelector('#vol').value=s.volume;document.querySelector('#presence').textContent=`${s.presence_enabled?'ENABLED':'DISABLED'} / ${s.pairing?'PAIR NOW':!s.phone_enrolled?'NOT PAIRED':s.phone_nearby?'PHONE NEARBY':'QUIET - PHONE AWAY'} / RSSI ${s.presence_rssi} dBm`}setInterval(poll,3000);poll()</script>)HTML";
+static const char WEB_PAGE[] PROGMEM=R"HTML(<!doctype html><meta name="viewport" content="width=device-width"><title>Spaceport</title><style>body{background:#060b18;color:#c8ecff;font:18px system-ui;max-width:650px;margin:35px auto;padding:20px}button,input{font:inherit;padding:12px;margin:5px;background:#142840;color:#d4faff;border:1px solid #367b99;border-radius:12px}h1{color:#49e5f5}small{color:#8fa8b4}</style><h1>SPACEPORT</h1><p>Audio and display companion to Spaceagon</p><p id="state">Connecting...</p><button onclick="act('mute')">Mute</button><button onclick="act('unmute')">Unmute</button><button onclick="act('silence')">Silence this alert</button><button onclick="act('dismiss')">Clear local notice</button><button onclick="act('page')">Next idle screen</button><h2>iPhone presence</h2><p id="presence"></p><button onclick="act('presence_on')">Only ring nearby</button><button onclick="act('presence_off')">Disable presence gate</button><button onclick="act('presence_pair')">Pair iPhone (2 minutes)</button><button onclick="if(confirm('Forget paired phone?'))act('presence_forget')">Forget phone</button><p>Nearby threshold (dBm)<input type="number" min="-95" max="-35" value="-72" onchange="act('presence_threshold',this.value)"></p><p>Away timeout (seconds)<input type="number" min="15" max="300" value="60" onchange="act('presence_timeout',this.value)"></p><p>Ring volume <input id="vol" type="range" min="0" max="75" value="20" onchange="act('volume',this.value)"></p><p>Priority volume <input type="range" min="0" max="75" value="35" onchange="act('priority_volume',this.value)"></p><p>Display brightness <input type="range" min="5" max="100" value="50" onchange="act('brightness',this.value)"></p><button onclick="act('test')">Test sound</button><button onclick="act('welcome_sound_test')">Test boatswain call</button><button onclick="act('test_tone',440)">Steady tone (60s)</button><button onclick="act('stop_tone')">Stop tone</button><button onclick="act('demo')">Visual demo</button><button onclick="act('live')">Return to live</button><p><small>Local acknowledgement affects Spaceport only. Calls and DND remain on Spaceagon. Demo sound is off; Test sound plays one short chime.</small></p><script>async function act(action,value){await fetch('/action',{method:'POST',headers:{'Content-Type':'application/json','X-Spaceport':'1'},body:JSON.stringify({action,value:Number(value)})});poll()}async function poll(){let s=await(await fetch('/status')).json();document.querySelector('#state').textContent=`${s.live?'LIVE':'OFFLINE'} / ${s.muted?'MUTED':'SOUND ON'} / ${s.demo?'DEMO':'LIVE DATA'} / v${s.version}`;document.querySelector('#vol').value=s.volume;document.querySelector('#presence').textContent=`${s.presence_enabled?'ENABLED':'DISABLED'} / ${s.pairing?'PAIR NOW':!s.phone_enrolled?'NOT PAIRED':s.phone_nearby?'PHONE NEARBY':'QUIET - PHONE AWAY'} / RSSI ${s.presence_rssi} dBm`}setInterval(poll,3000);poll()</script>)HTML";
 static void webSetup() {
   const char* headers[]={"X-Spaceport","Authorization"};web.collectHeaders(headers,2);
   web.on("/presence-link",HTTP_GET,[]{if(!authenticate())return;JsonDocument j;j["url"]="http://"+WiFi.localIP().toString()+"/v1/presence";j["token"]=presenceReadKey;String out;serializeJson(j,out);web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",out);});
@@ -212,22 +222,26 @@ static void webSetup() {
     String out;serializeJson(j,out);web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",out);
   });
   web.on("/",HTTP_GET,[]{if(authenticate())web.send(200,"text/html",FPSTR(WEB_PAGE));});
-  web.on("/status",HTTP_GET,[]{if(!authenticate())return;JsonDocument j;xSemaphoreTake(stateLock,portMAX_DELAY);j["live"]=dashboard.fresh(millis());j["phone_live"]=engine.fresh(millis());xSemaphoreGive(stateLock);j["version"]=VERSION;j["muted"]=permanentMute;j["demo"]=demo;j["volume"]=volume;j["brightness"]=brightness;j["audio_ready"]=audioReady;j["audio_nonzero_samples"]=audioNonzeroSamples;j["free_heap"]=ESP.getFreeHeap();j["minimum_heap"]=ESP.getMinFreeHeap();auto ps=presence.status();j["presence_enabled"]=ps.enabled;j["phone_enrolled"]=ps.enrolled;j["phone_nearby"]=ps.nearby(millis());j["presence_rssi"]=ps.rssi;j["presence_threshold"]=ps.threshold;j["presence_timeout"]=ps.grace/1000;j["pairing"]=presence.pairing();String out;serializeJson(j,out);web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",out);});
+  web.on("/status",HTTP_GET,[]{if(!authenticate())return;JsonDocument j;xSemaphoreTake(stateLock,portMAX_DELAY);j["live"]=dashboard.fresh(millis());j["phone_live"]=engine.fresh(millis());xSemaphoreGive(stateLock);j["version"]=VERSION;j["muted"]=permanentMute;j["demo"]=demo;j["volume"]=volume;j["brightness"]=brightness;j["audio_ready"]=audioReady;j["welcome_call_day"]=dailyWelcomeCall.lastDay;j["welcome_call_active"]=pipeUntil&&int32_t(pipeUntil-millis())>0;j["audio_nonzero_samples"]=audioNonzeroSamples;j["free_heap"]=ESP.getFreeHeap();j["minimum_heap"]=ESP.getMinFreeHeap();auto ps=presence.status();j["presence_enabled"]=ps.enabled;j["phone_enrolled"]=ps.enrolled;j["phone_nearby"]=ps.nearby(millis());j["presence_rssi"]=ps.rssi;j["presence_threshold"]=ps.threshold;j["presence_timeout"]=ps.grace/1000;j["pairing"]=presence.pairing();String out;serializeJson(j,out);web.sendHeader("Cache-Control","no-store");web.send(200,"application/json",out);});
   web.on("/action",HTTP_POST,[]{
     if(!authenticate())return;
     if(web.header("X-Spaceport")!="1"||web.arg("plain").length()>256){web.send(400);return;}
     JsonDocument j;if(deserializeJson(j,web.arg("plain"))){web.send(400);return;}
     String a=j["action"]|"";
     xSemaphoreTake(stateLock,portMAX_DELAY);Presentation phone=engine.present(millis());Presentation shown=dashboard.present(millis());Presentation p=phone.view==View::Ringing?phone:shown;
-    if(a=="presence_on")presence.enable(true);
+    if(a=="welcome_sound_test"){
+      if(!presence.allows()||permanentMute||phone.view==View::Ringing||phone.view==View::Call||shown.view==View::Notice){xSemaphoreGive(stateLock);web.send(409,"application/json","{\"ok\":false}");return;}
+      toneUntil=0;audioCue=Cue::Silent;audioVolume=volume;pipeStarted=millis();pipeUntil=pipeStarted+1900;
+    }
+    else if(a=="presence_on")presence.enable(true);
     else if(a=="presence_off")presence.enable(false);
     else if(a=="presence_pair")presence.pair();
     else if(a=="presence_forget")presence.forget();
     else if(a=="presence_threshold")presence.threshold(j["value"]|-72);
     else if(a=="presence_timeout")presence.timeout(j["value"]|60);
-    else if(a=="mute"){toneUntil=0;permanentMute=true;engine.muted=true;dashboard.muted=true;audioCue=Cue::Silent;}
+    else if(a=="mute"){toneUntil=0;pipeUntil=0;permanentMute=true;engine.muted=true;dashboard.muted=true;audioCue=Cue::Silent;}
     else if(a=="unmute"){permanentMute=false;engine.muted=false;dashboard.muted=false;}
-    else if(a=="silence"){toneUntil=0;engine.silence(p);dashboard.silence(p);audioCue=Cue::Silent;}
+    else if(a=="silence"){toneUntil=0;pipeUntil=0;engine.silence(p);dashboard.silence(p);audioCue=Cue::Silent;}
     else if(a=="dismiss"){dashboard.acknowledge(shown);audioCue=Cue::Silent;}
     else if(a=="page"){page=(page+1)%dashboardPages(time(nullptr));manualPage=true;manualPageAt=millis();}
     else if(a=="volume")volume=constrain(j["value"]|20,0,75);
@@ -235,9 +249,9 @@ static void webSetup() {
     else if(a=="brightness"){brightness=constrain(j["value"]|50,5,100);ledcWrite(0,brightness*255/100);}
     else if(a=="demo"){demo=true;demoAudio=false;demoSince=millis();audioCue=Cue::Silent;}
     else if(a=="live"){demo=false;audioCue=Cue::Silent;}
-    else if(a=="test_tone"){audioCue=Cue::Silent;audioStarted=millis();audioVolume=35;toneHz=constrain(j["value"]|440,100,2000);toneChannel=constrain(j["channel"]|0,0,3);toneUntil=millis()+60000;}
-    else if(a=="stop_tone"){toneUntil=0;audioCue=Cue::Silent;}
-    else if(a=="test"){toneUntil=0;audioStarted=millis();audioRepeat=false;audioVolume=volume;audioCue=Cue::Info;}
+    else if(a=="test_tone"){pipeUntil=0;audioCue=Cue::Silent;audioStarted=millis();audioVolume=35;toneHz=constrain(j["value"]|440,100,2000);toneChannel=constrain(j["channel"]|0,0,3);toneUntil=millis()+60000;}
+    else if(a=="stop_tone"){toneUntil=0;pipeUntil=0;audioCue=Cue::Silent;}
+    else if(a=="test"){toneUntil=0;pipeUntil=0;audioStarted=millis();audioRepeat=false;audioVolume=volume;audioCue=Cue::Info;}
     else {xSemaphoreGive(stateLock);web.send(400);return;}
     xSemaphoreGive(stateLock);
     prefs.begin("spaceport",false);prefs.putInt("brightness",brightness);prefs.putInt("volume",volume);prefs.putInt("priority",priorityVolume);prefs.putBool("muted",permanentMute);prefs.end();web.send(200,"application/json","{\"ok\":true}");
@@ -253,7 +267,7 @@ static Presentation demoPresentation(uint32_t now) {
 
 void setup() {
   Serial.setRxBufferSize(8192);Serial.begin(115200);pinMode(0,INPUT_PULLUP);pinMode(5,OUTPUT);digitalWrite(5,LOW);
-  prefs.begin("spaceport",true);ssid=prefs.getString("ssid");password=prefs.getString("password");origin=prefs.getString("origin");token=prefs.getString("token");ca=prefs.getString("ca");webKey=prefs.getString("web_key");partnerNumber=prefs.getString("partner");partnerName=prefs.getString("partner_name","Partner");partnerSurname=prefs.getString("partner_surname");brightness=constrain(prefs.getInt("brightness",50),5,100);volume=prefs.getInt("volume",20);priorityVolume=prefs.getInt("priority",35);permanentMute=prefs.getBool("muted",false);prefs.end();
+  prefs.begin("spaceport",true);ssid=prefs.getString("ssid");password=prefs.getString("password");origin=prefs.getString("origin");token=prefs.getString("token");ca=prefs.getString("ca");webKey=prefs.getString("web_key");partnerNumber=prefs.getString("partner");partnerName=prefs.getString("partner_name","Partner");partnerSurname=prefs.getString("partner_surname");brightness=constrain(prefs.getInt("brightness",50),5,100);volume=prefs.getInt("volume",20);priorityVolume=prefs.getInt("priority",35);permanentMute=prefs.getBool("muted",false);dailyWelcomeCall.lastDay=prefs.getUInt("whistle_day",0);prefs.end();
   configured=validOrigin(origin)&&token.length()>=16&&webKey.length()>=16;engine.muted=permanentMute;dashboard.muted=permanentMute;
   stateLock=xSemaphoreCreateMutex();
   xTaskCreatePinnedToCore(audioTask,"audio",8192,nullptr,2,nullptr,0);
@@ -261,12 +275,12 @@ void setup() {
   expanderReset();displayReady=screen.begin(40000000);ledcSetup(0,5000,8);ledcAttachPin(5,0);ledcWrite(0,brightness*255/100);
   if(!displayReady)Serial.println("DISPLAY_INIT_FAILED");
   WiFi.mode(WIFI_STA);WiFi.setHostname("spaceport");if(configured)WiFi.begin(ssid.c_str(),password.c_str());
-  configTzTime("GMT0BST,M3.5.0/1,M10.6.0","pool.ntp.org","time.cloudflare.com");
+  configTzTime("GMT0BST,M3.5.0/1,M10.5.0","pool.ntp.org","time.cloudflare.com");
   xTaskCreatePinnedToCore(networkTask,"network",16384,nullptr,1,nullptr,0);
   presence.begin();
   prefs.begin("presence",false);presenceReadKey=prefs.getString("read_key");
   if(presenceReadKey.length()!=64){char key[65];for(int i=0;i<8;i++)snprintf(key+i*8,9,"%08lx",(unsigned long)esp_random());presenceReadKey=key;prefs.putString("read_key",presenceReadKey);}prefs.end();
-  webSetup();Serial.println("SPACEPORT_READY 0.6.0");
+  webSetup();Serial.println("SPACEPORT_READY 0.7.0");
 }
 void loop() {
   presence.tick();presenceAudioAllowed=presence.allows();web.handleClient();
@@ -280,21 +294,30 @@ void loop() {
       else if(p.view==View::Ringing||p.view==View::Notice){engine.silence(p);dashboard.silence(p);}
       else if(held>1500){demo=!demo;demoAudio=false;demoSince=now;}
       else {page=(page+1)%dashboardPages(time(nullptr));manualPage=true;manualPageAt=now;}
-      toneUntil=0;audioCue=Cue::Silent;xSemaphoreGive(stateLock);}
+      toneUntil=0;pipeUntil=0;audioCue=Cue::Silent;xSemaphoreGive(stateLock);}
   }
   if(demo&&now-demoSince>120000)demo=false;
   if(now-lastRender>=100) {
     lastRender=now;xSemaphoreTake(stateLock,portMAX_DELAY);Presentation phone=engine.present(now);Presentation p=dashboard.present(now);Snapshot s=latest;xSemaphoreGive(stateLock);
     // Urgent notifications interrupt the visual tour; phone priority controls audio only.
     if(demo&&!p.priority)p=demoPresentation(now);
+    if(phone.view==View::Call||phone.view==View::Ringing)pipeUntil=0;
     setSound(audioPresentation(phone,p));
     int idlePage=manualPage&&uint32_t(now-manualPageAt)<20000?page:(now/15000)%dashboardPages(time(nullptr));
     if(demo&&p.view==View::Idle)idlePage=std::max(0,int(((now-demoSince)/6000)%7)-2);
     bool away=presence.status().enabled&&!presence.allows();
-    static uint32_t awaySince=0,welcomeUntil=0;
+    static uint32_t awaySince=0,welcomeUntil=0;bool welcomeStarted=false;
     if(away&&!awaySince)awaySince=now;
-    if(!away&&awaySince){if(now-awaySince>5000)welcomeUntil=now+2300;awaySince=0;}
-    if(phone.view==View::Ringing||p.view!=View::Idle||(welcomeUntil&&int32_t(now-welcomeUntil)>=0))welcomeUntil=0;
+    if(!away&&awaySince){if(now-awaySince>5000){welcomeUntil=now+2300;welcomeStarted=true;}awaySince=0;}
+    if(phone.view==View::Ringing||phone.view==View::Call||p.view!=View::Idle||(welcomeUntil&&int32_t(now-welcomeUntil)>=0))welcomeUntil=0;
+    if(welcomeStarted&&welcomeUntil&&!demo&&time(nullptr)>1700000000){
+      time_t epoch=time(nullptr);tm local={};localtime_r(&epoch,&local);
+      uint32_t day=(local.tm_year+1900)*10000+(local.tm_mon+1)*100+local.tm_mday;
+      if(dailyWelcomeCall.claim(day)){
+        prefs.begin("spaceport",false);prefs.putUInt("whistle_day",day);prefs.end();
+        if(!permanentMute&&volume>0&&presence.allows()){toneUntil=0;audioCue=Cue::Silent;audioVolume=volume;pipeStarted=now;pipeUntil=now+1900;}
+      }
+    }
     ledcWrite(0,(away?std::min(brightness,15):brightness)*255/100);
     if(displayReady&&away){screen.fillScreen(0);screen.drawRoundRect(157,130,46,37,7,SP_CYAN);screen.drawCircle(180,127,15,SP_CYAN);screen.fillRect(154,131,52,12,0);screen.drawRoundRect(157,137,46,37,7,SP_CYAN);label(screen,"AWAY",213,3,SP_WHITE);label(screen,"PHONE NOT NEARBY",250,1,SP_CYAN);screen.flush();}
     else if(displayReady&&welcomeUntil&&int32_t(welcomeUntil-now)>0){renderWelcome(screen,now);screen.flush();}
