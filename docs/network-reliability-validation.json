@@ -1,24 +1,19 @@
 {
   "date": "2026-11-17",
   "badge_version": "0.23.0",
-  "before": {
-    "observations": 80,
-    "stale_samples": 4,
+  "final_separate_worker_observation": {
+    "samples": 32,
+    "stale_samples": 2,
     "wifi_losses": 0,
-    "request_failures": 0,
-    "requests": 26,
-    "max_receipt_age_ms": 4377
-  },
-  "after": {
-    "observations": 78,
-    "stale_samples": 0,
-    "wifi_losses": 0,
-    "request_failures": 0,
-    "requests": 51,
-    "max_receipt_age_ms": 3740
+    "reported_errors": 0,
+    "presence_fresh_samples": 32,
+    "last_live": true
   },
   "call_stale_timeout_ms": 5000,
-  "tests_passed": 775,
+  "clock_outage_banner_after_ms": 15000,
   "private_config_preserved": true,
-  "trust_root_preserved": true
+  "trust_root_preserved": true,
+  "note": "Brief stale samples remain possible; clock remains visible, stale calls and controls remain suppressed.",
+  "tests_passed": 773,
+  "clean_restart_live": true
 }

@@ -72,18 +72,6 @@ def fetch_snapshot(url, token, ca_file="ca.der", client=None):
     return get_json(endpoint, token, ca_file=ca_file, timeout=5)
 
 
-def poll_round(url,token,ca_file,client,presence_url="",presence_token=""):
-    # One native worker round avoids paying thread/scheduler handoff twice.
-    value,error,peer=None,None,None
-    try:value=fetch_snapshot(url,token,ca_file,client)
-    except Exception as caught:error=caught
-    received=time.ticks_ms()
-    if presence_url and presence_token:
-        try:peer=get_json(presence_url,presence_token,ca_file=ca_file,timeout=.6)
-        except Exception:pass
-    return value,error,peer,received
-
-
 def send_control(url, token, intent, ca_file="ca.der"):
     action = intent.get("action")
     if action not in ("call", "dnd"):
@@ -592,6 +580,7 @@ class ThreeCXMonitor(app.App):
         import wifi
         import async_helpers
         clock_sync = ClockSync()
+        wifi_tuned = False
         ca_file = str(base_config.get("ca_file") or "ca.der")
         if not ca_file.startswith("/"):
             ca_file = __file__.replace("\\", "/").rsplit("/", 1)[0] + "/" + ca_file
@@ -604,6 +593,7 @@ class ThreeCXMonitor(app.App):
             round_started=self._now()
             try:
                 if not wifi.status():
+                    wifi_tuned = False
                     clock_sync.disconnected()
                     target.failed("CONNECTING WI-FI")
                     wifi.connect()
@@ -614,6 +604,16 @@ class ThreeCXMonitor(app.App):
                         continue
                 if not self._network_current(generation, target):
                     continue
+                if not wifi_tuned:
+                    # Reduce modem-sleep latency for live call status. Older
+                    # firmware may not expose this optional network setting.
+                    try:
+                        import network
+                        station = network.WLAN(network.STA_IF)
+                        station.config(pm=network.WLAN.PM_NONE)
+                    except (ImportError, AttributeError, ValueError, OSError):
+                        pass
+                    wifi_tuned = True
                 if clock_sync.due(self._now()):
                     if not clock_valid():
                         target.failed("SYNCING CLOCK")
@@ -625,6 +625,14 @@ class ThreeCXMonitor(app.App):
                     target.failed("CLOCK SYNC FAILED")
                     await asyncio.sleep(3)
                     continue
+                if presence_url and presence_token and self._now()-self._presence_poll_at>=3000:
+                    self._presence_poll_at=self._now()
+                    try:
+                        presence_value=await async_helpers.unblock(get_json,self._network_yield,presence_url,presence_token,ca_file,1.5)
+                        if self._network_current(generation,target):self.away.accept(presence_value,self._now())
+                    except Exception:
+                        pass
+
                 intent = queue.take()
                 if intent:
                     try:
@@ -639,18 +647,11 @@ class ThreeCXMonitor(app.App):
                             queue.fail_unknown(self._now())
                 if not self._network_current(generation, target):
                     continue
-                peer_due=bool(presence_url and presence_token and self._now()-self._presence_poll_at>=3000)
-                if peer_due:self._presence_poll_at=self._now()
-                value,error,peer,received=await async_helpers.unblock(poll_round,self._network_yield,url,token,ca_file,self.state_client,presence_url if peer_due else "",presence_token if peer_due else "")
-                if not self._network_current(generation,target):continue
-                now=self._now()
-                if peer is not None:self.away.accept(peer,now)
-                if error is not None:raise error
-                received_at=now-max(0,time.ticks_diff(time.ticks_ms(),received))
+                value = await async_helpers.unblock(fetch_snapshot, self._network_yield, url, token, ca_file, self.state_client)
                 if not control_token or control_token == token:
                     value.setdefault("controls", {})["enabled"] = False
                 if self._network_current(generation, target):
-                    target.accept(value, received_at)
+                    target.accept(value, self._now())
             except (ClockError, TLSError, HTTPError) as error:
                 # These exception messages are fixed app text or HTTP status only.
                 if self._network_current(generation, target):
@@ -659,7 +660,7 @@ class ThreeCXMonitor(app.App):
                 # Do not log credentials, caller IDs, URLs, or raw response data.
                 if self._network_current(generation, target):
                     target.failed("BRIDGE UNREACHABLE")
-            await asyncio.sleep(max(0,interval-(self._now()-round_started)/1000))
+            await asyncio.sleep(max(.05,interval-(self._now()-round_started)/1000))
 
     def _stop(self):
         if self.showcase is not None:
