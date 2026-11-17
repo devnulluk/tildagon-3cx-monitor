@@ -72,6 +72,18 @@ def fetch_snapshot(url, token, ca_file="ca.der", client=None):
     return get_json(endpoint, token, ca_file=ca_file, timeout=5)
 
 
+def poll_round(url,token,ca_file,client,presence_url="",presence_token=""):
+    # One native worker round avoids paying thread/scheduler handoff twice.
+    value,error,peer=None,None,None
+    try:value=fetch_snapshot(url,token,ca_file,client)
+    except Exception as caught:error=caught
+    received=time.ticks_ms()
+    if presence_url and presence_token:
+        try:peer=get_json(presence_url,presence_token,ca_file=ca_file,timeout=.6)
+        except Exception:pass
+    return value,error,peer,received
+
+
 def send_control(url, token, intent, ca_file="ca.der"):
     action = intent.get("action")
     if action not in ("call", "dnd"):
@@ -589,6 +601,7 @@ class ThreeCXMonitor(app.App):
                 await asyncio.sleep(.1)
                 continue
             generation, target, queue = self._network_generation, self.controller, self.controls
+            round_started=self._now()
             try:
                 if not wifi.status():
                     clock_sync.disconnected()
@@ -612,14 +625,6 @@ class ThreeCXMonitor(app.App):
                     target.failed("CLOCK SYNC FAILED")
                     await asyncio.sleep(3)
                     continue
-                if presence_url and presence_token and self._now()-self._presence_poll_at>=3000:
-                    self._presence_poll_at=self._now()
-                    try:
-                        presence_value=await async_helpers.unblock(get_json,self._network_yield,presence_url,presence_token,ca_file,1.5)
-                        if self._network_current(generation,target):self.away.accept(presence_value,self._now())
-                    except Exception:
-                        pass
-
                 intent = queue.take()
                 if intent:
                     try:
@@ -634,11 +639,18 @@ class ThreeCXMonitor(app.App):
                             queue.fail_unknown(self._now())
                 if not self._network_current(generation, target):
                     continue
-                value = await async_helpers.unblock(fetch_snapshot, self._network_yield, url, token, ca_file, self.state_client)
+                peer_due=bool(presence_url and presence_token and self._now()-self._presence_poll_at>=3000)
+                if peer_due:self._presence_poll_at=self._now()
+                value,error,peer,received=await async_helpers.unblock(poll_round,self._network_yield,url,token,ca_file,self.state_client,presence_url if peer_due else "",presence_token if peer_due else "")
+                if not self._network_current(generation,target):continue
+                now=self._now()
+                if peer is not None:self.away.accept(peer,now)
+                if error is not None:raise error
+                received_at=now-max(0,time.ticks_diff(time.ticks_ms(),received))
                 if not control_token or control_token == token:
                     value.setdefault("controls", {})["enabled"] = False
                 if self._network_current(generation, target):
-                    target.accept(value, self._now())
+                    target.accept(value, received_at)
             except (ClockError, TLSError, HTTPError) as error:
                 # These exception messages are fixed app text or HTTP status only.
                 if self._network_current(generation, target):
@@ -647,7 +659,7 @@ class ThreeCXMonitor(app.App):
                 # Do not log credentials, caller IDs, URLs, or raw response data.
                 if self._network_current(generation, target):
                     target.failed("BRIDGE UNREACHABLE")
-            await asyncio.sleep(interval)
+            await asyncio.sleep(max(0,interval-(self._now()-round_started)/1000))
 
     def _stop(self):
         if self.showcase is not None:
@@ -1141,7 +1153,8 @@ class ThreeCXMonitor(app.App):
             self._draw_showcase_footer(ctx)
             ctx.restore()
             return
-        graphical_idle = (live and self.idle_pages.active(now) and not self.settings_open and not self.menu_open
+        clock_fallback=(self._phone_clock_role() and not live and self.controller.payload is not None and clock_valid())
+        graphical_idle = ((clock_fallback or (live and self.idle_pages.active(now))) and not self.settings_open and not self.menu_open
                           and not alert and not own_call and now >= self._brightness_notice_until
                           and now >= self.controls.message_until)
         if not graphical_idle:
@@ -1152,6 +1165,11 @@ class ThreeCXMonitor(app.App):
             self._draw_settings(ctx)
         elif self.menu_open and not alert:
             self._draw_menu(ctx)
+        elif clock_fallback:
+            self._draw_idle(ctx,now)
+            if (not self.controller.payload.get("connected") or self.controller.source_age_ms+max(0,now-(self.controller.received_ms or 0))>=15000):
+                ctx.rgb(.02,.03,.05).round_rectangle(-50,-114,100,12,4).fill()
+                self._text(ctx,"CALL DATA OFFLINE",-108,8,95,(.7,.5,.18))
         elif not self.controller.live(now):
             self._text(ctx, "OFFLINE", -20, 32)
             self._text(ctx, "No live data", 18, 24)
@@ -1243,7 +1261,7 @@ class ThreeCXMonitor(app.App):
         return self._sky_value
 
     def _draw_idle(self, ctx, now):
-        page = self.idle_pages.page(now)
+        page = self.idle_pages.page(now) or ("clock" if self._phone_clock_role() else "weather")
         weather, fresh, elapsed = self._weather(now)
         local = self._local_weather_time(weather, elapsed)
         sky = self._sky(weather, elapsed, local)
