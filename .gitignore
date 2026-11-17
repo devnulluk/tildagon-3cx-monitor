@@ -16,3 +16,7 @@ build-context.tar
 badge/ca.der
 *.private.zip
 build-context.tar
+
+companion/include/welcome_audio.private.h
+
+welcome_audio.private.h

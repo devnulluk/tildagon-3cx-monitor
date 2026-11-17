@@ -124,3 +124,7 @@ A newline-terminated `{"command":"status"}` request on the USB serial port retur
 The factory image retains **DIO** in the bootloader header; forcing QIO there caused a ROM boot loop on the first board. The build checks that merging has not changed this byte. The LCD vendor sequence is followed by explicit `COLMOD=0x55` (RGB565); leaving the panel in its default format caused the image to wrap and occupy only part of the screen. Provisioning is paced and the USB RX buffer enlarged to avoid dropping setup bytes during display transfers.
 
 Audio uses 44.1kHz stereo I2S with 32-bit slots. Stored 22.05kHz mono PCM16 is padded to 32 bits and duplicated into two output frames. The [PCM5101 clocking tables](https://files.waveshare.com/wiki/common/TexasInstruments-PCM5101PWR.pdf) describe its three-wire clock requirements. Driver readiness is distinct from confirmed audible output; current physical observations are recorded in `docs/validation.json`.
+
+### Personal first-welcome recording
+
+`tools/import_welcome.py <local-audio-file>` converts a local clip to 22.05 kHz mono PCM embedded in an ignored `welcome_audio.private.h`. Install imageio-ffmpeg first. Rebuild and flash the application only. Playback keeps the once-per-local-day policy, normal volume, and call/alert, mute and presence gates. Personal recordings are not distributed here; builds without the header retain the original synthesized pipe.

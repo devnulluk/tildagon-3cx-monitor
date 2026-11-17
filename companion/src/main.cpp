@@ -17,9 +17,16 @@
 #include "protocol.h"
 #include "presence.h"
 #include "welcome_call.h"
+#if __has_include("welcome_audio.private.h")
+#include "welcome_audio.private.h"
+#define PRIVATE_WELCOME_PCM 1
+static constexpr uint32_t WELCOME_DURATION_MS=(WELCOME_SAMPLES*1000u+22049u)/22050u;
+#else
+static constexpr uint32_t WELCOME_DURATION_MS=1900;
+#endif
 
 using namespace spaceport;
-static constexpr char VERSION[]="0.7.0";
+static constexpr char VERSION[]="0.7.1";
 Preferences prefs;
 PhonePresence presence;
 volatile bool presenceAudioAllowed=true;
@@ -170,7 +177,14 @@ static void audioTask(void*) {
     for(int i=0;i<256;i++,position++) {
       float value=0,t=position/22050.0f;
       if(toneUntil&&int32_t(toneUntil-millis())>0&&!permanentMute)value=sinf(t*6.2831853f*toneHz);
-      else if(pipeActive)value=welcomePipe(pipeTime+i/22050.f);
+      else if(pipeActive){
+#ifdef PRIVATE_WELCOME_PCM
+        uint32_t at=(pipePosition+i)*2;
+        if(at+1<sizeof(WELCOME_PCM))value=int16_t(uint16_t(WELCOME_PCM[at])|(uint16_t(WELCOME_PCM[at+1])<<8))/32768.f;
+#else
+        value=welcomePipe(pipeTime+i/22050.f);
+#endif
+      }
       else if(cue!=Cue::Silent&&wavReady) {
         if(size_t(i*2+1)<pcmBytes)value=int16_t(uint16_t(pcm[i*2])|(uint16_t(pcm[i*2+1])<<8))/12000.f;
       } else if(cue!=Cue::Silent&&(audioRepeat||t<.9f)) {
@@ -231,7 +245,7 @@ static void webSetup() {
     xSemaphoreTake(stateLock,portMAX_DELAY);Presentation phone=engine.present(millis());Presentation shown=dashboard.present(millis());Presentation p=phone.view==View::Ringing?phone:shown;
     if(a=="welcome_sound_test"){
       if(!presence.allows()||permanentMute||phone.view==View::Ringing||phone.view==View::Call||shown.view==View::Notice){xSemaphoreGive(stateLock);web.send(409,"application/json","{\"ok\":false}");return;}
-      toneUntil=0;audioCue=Cue::Silent;audioVolume=volume;pipeStarted=millis();pipeUntil=pipeStarted+1900;
+      toneUntil=0;audioCue=Cue::Silent;audioVolume=volume;pipeStarted=millis();pipeUntil=pipeStarted+WELCOME_DURATION_MS;
     }
     else if(a=="presence_on")presence.enable(true);
     else if(a=="presence_off")presence.enable(false);
@@ -315,7 +329,7 @@ void loop() {
       uint32_t day=(local.tm_year+1900)*10000+(local.tm_mon+1)*100+local.tm_mday;
       if(dailyWelcomeCall.claim(day)){
         prefs.begin("spaceport",false);prefs.putUInt("whistle_day",day);prefs.end();
-        if(!permanentMute&&volume>0&&presence.allows()){toneUntil=0;audioCue=Cue::Silent;audioVolume=volume;pipeStarted=now;pipeUntil=now+1900;}
+        if(!permanentMute&&volume>0&&presence.allows()){toneUntil=0;audioCue=Cue::Silent;audioVolume=volume;pipeStarted=now;pipeUntil=now+WELCOME_DURATION_MS;}
       }
     }
     ledcWrite(0,(away?std::min(brightness,15):brightness)*255/100);
@@ -325,3 +339,4 @@ void loop() {
   }
   delay(2);
 }
+
