@@ -57,6 +57,11 @@ class PhonebookResolver:
         self._prune()
         return {number: name for number, (unused, name) in self._cache.items() if name and self._number(number)}
 
+    def lookup_complete(self, number):
+        """True only after a targeted lookup (including a negative result) finishes."""
+        self._prune()
+        return self._number(number) in self._cache
+
     def cached_extensions(self):
         """Return actual FirstName fields for observed local extension peers."""
         self._prune()

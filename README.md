@@ -183,7 +183,7 @@ For the [on-device showcase](docs/SHOWCASE.md), press keyboard **G**, or use **S
 
 The badge stores bridge access tokens; the PBX application key and optional own-user grant stay on the bridge. State reads may reuse one verified TLS connection. Control requests are single-use and never automatically replayed after an uncertain response. The bridge permits only the configured own extension and speed-dial targets. There is no arbitrary dial field or audio transport. A separate notification bearer can submit display messages without reading call data or invoking phone controls.
 
-Start with [setup](docs/SETUP.md), copy the example configuration locally and keep populated credentials, personal dates and contacts out of Git. Weather uses Open-Meteo; astronomy runs offline from the cited USNO/IMO data. No caller-number guessing service is contacted.
+Start with [setup](docs/SETUP.md), copy the example configuration locally and keep populated credentials, personal dates and contacts out of Git. Weather uses Open-Meteo; astronomy runs offline from the cited USNO/IMO data. Optional [OpenAI caller lookup and a persistent number book](docs/CALLER-LOOKUP.md) can identify unknown incoming and outgoing business numbers. It is disabled until separately configured; guesses say **Likely** and user-confirmed corrections take precedence.
 
 ## Development
 

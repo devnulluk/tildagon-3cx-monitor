@@ -116,6 +116,17 @@ def build_state(config, dns, connected, age_seconds, demo=False, status=""):
         peer_number = text(chosen.get("party_caller_id") or peer_dn, 40)
         peer_name = (contacts.get(norm(peer_number)) or phonebook.get(norm(peer_number))
                      or known_internal.get(peer_dn) or text(chosen.get("party_caller_name")))
+        peer_name_likely = False
+        peer_name_source = "3cx" if peer_name else ""
+        # User-reviewed numbers override upstream names. AI suggestions only
+        # fill genuinely unnamed external peers; they never change call routing.
+        reviewed = config.get("caller_book", {}).get(norm(peer_number))
+        if reviewed and _type(chosen.get("party_dn_type")) != "extension":
+            from .caller_lookup import named
+            if not reviewed.get("likely") or not named(peer_name):
+                peer_name_likely = bool(reviewed.get("likely"))
+                peer_name = ("Likely: " if peer_name_likely else "") + text(reviewed.get("name"), 80)
+                peer_name_source = "openai_web_search" if peer_name_likely else "reviewed"
         if peer_number == "MakeCall" or peer_dn == "MakeCall":
             peer_name, peer_number = "Outgoing call", ""
         routing = [str(p.get(field, "")) for p in related for field in ("referred_by_dn", "on_behalf_of_dn", "originated_by_dn")]
@@ -151,6 +162,7 @@ def build_state(config, dns, connected, age_seconds, demo=False, status=""):
         return {
             "id": text(_call_key(chosen), 64), "state": raw_state.lower(), "direction": direction,
             "peer_name": text(peer_name), "peer_number": peer_number,
+            "peer_name_likely": peer_name_likely, "peer_name_source": peer_name_source,
             "peer_extension": peer_extension, "peer_first_name": peer_first_name,
             "peer_initials": aliases.get(norm(peer_number)) or aliases.get(norm(peer_dn)) or "",
             "kind": kind, "priority": bool(priority), "ddi": ddi,

@@ -25,7 +25,7 @@ def _stale(config, source):
 
 
 def create_app(config, source, token=None, demo=False, control_token=None, actions=None, presence_provider=None, phonebook=None, weather=None,
-               notify_token=None, notifications=None, ntfy_subscriber=None):
+               notify_token=None, notifications=None, ntfy_subscriber=None, caller_book=None, lookup_admin_token=None):
     if not demo and (not isinstance(token, str) or len(token) < 24):
         raise ValueError("BRIDGE_TOKEN must contain at least 24 characters")
     if token is not None and (not isinstance(token, str) or not token.isascii()
@@ -59,6 +59,23 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
     if phonebook is None and presence_provider is not None and config.get("phonebook_lookup") is True and not demo:
         from .contacts import PhonebookResolver
         phonebook = PhonebookResolver(presence_provider, country_code=config.get("country_code", "44"))
+    if not demo:
+        from .caller_lookup import CallerBook, OpenAIBusinessLookup
+        lookup_admin_token = lookup_admin_token or os.environ.get("LOOKUP_ADMIN_TOKEN", "")
+        if caller_book is None and lookup_admin_token:
+            key = os.environ.get("OPENAI_API_KEY", "")
+            key_file = os.environ.get("OPENAI_API_KEY_FILE", "")
+            if key_file and not key:
+                key = Path(key_file).read_text().strip()
+            caller_book = CallerBook(os.environ.get("CALLER_BOOK_FILE", "/data/caller-book.sqlite3"),
+                OpenAIBusinessLookup(key, os.environ.get("OPENAI_LOOKUP_MODEL", "gpt-5-mini")) if key else None,
+                daily_limit=int(os.environ.get("OPENAI_LOOKUP_DAILY_LIMIT", "10")))
+        if caller_book is not None and (not isinstance(lookup_admin_token, str) or len(lookup_admin_token) < 24
+                or not lookup_admin_token.isascii() or any(c.isspace() for c in lookup_admin_token)
+                or any(value and hmac.compare_digest(lookup_admin_token, value) for value in (token, control_token, notify_token))):
+            raise ValueError("Lookup admin token must be separate and at least 24 ASCII characters")
+    else:
+        caller_book = None
     weather_config = validate_weather_config(config.get("weather", {"enabled": False}))
     if demo:
         weather = None
@@ -93,6 +110,12 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
                 return web.json_response({"error": "unauthorized"}, status=401,
                                          headers={"WWW-Authenticate": "Bearer"})
         state_config = dict(config)
+        if caller_book is not None:
+            try:
+                state_config["caller_book"] = caller_book.names()
+            except Exception:
+                # Optional storage must never take down phone monitoring.
+                pass
         if phonebook is not None:
             state_config["phonebook_contacts"] = phonebook.cached_contacts()
             state_config["directory_names"] = phonebook.cached_extensions()
@@ -114,6 +137,20 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
         elif phonebook is not None:
             phonebook.observe([])
             phonebook.observe_extensions([])
+        if caller_book is not None and body["connected"]:
+            from .caller_lookup import named, number_key
+            for call in body["own"]["calls"]:
+                number = number_key(call.get("peer_number"))
+                if call.get("kind") == "internal" or call.get("peer_extension") or not number:
+                    continue
+                # Give 3CX's personal/company book first chance. A review or
+                # cache hit is applied by the model without any network read.
+                complete = phonebook is None or (hasattr(phonebook, "lookup_complete") and phonebook.lookup_complete(number))
+                try:
+                    caller_book.observe(number, call.get("direction", ""),
+                        eligible=complete and not named(call.get("peer_name")))
+                except Exception:
+                    pass
         body["own"]["presence"] = (dict(actions.own_presence) if actions else
                                       {"state": "unknown", "confirmed": False,
                                        "profile": "", "age_seconds": None})
@@ -223,6 +260,13 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
     app.router.add_get("/healthz", health)
     app.router.add_post("/v1/control/{action:call|dnd}", control)
     app.router.add_post("/v1/notify", notify)
+    if caller_book is not None:
+        from .caller_review import add_routes
+        add_routes(app, caller_book, lookup_admin_token)
+        async def caller_book_lifetime(app):
+            yield
+            await caller_book.close()
+        app.cleanup_ctx.append(caller_book_lifetime)
 
     if hasattr(source, "run"):
         async def transport_lifetime(app):

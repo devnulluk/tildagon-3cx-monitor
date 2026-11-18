@@ -1,6 +1,6 @@
 services:
   tildagon-3cx:
-    image: tildagon-3cx-monitor:0.7.0
+    image: tildagon-3cx-monitor:0.8.0
     restart: unless-stopped
     stop_grace_period: 30s
     command: [python, -m, bridge, --host, 0.0.0.0, --port, "8787"]
@@ -22,6 +22,11 @@ services:
       PBX_USER_SECURITY_CODE: ${PBX_USER_SECURITY_CODE:-}
       PBX_USER_REFRESH_TOKEN: ${PBX_USER_REFRESH_TOKEN:-}
       PBX_USER_TOKEN_FILE: /data/own-user-grant.json
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_LOOKUP_MODEL: ${OPENAI_LOOKUP_MODEL:-gpt-5-mini}
+      OPENAI_LOOKUP_DAILY_LIMIT: ${OPENAI_LOOKUP_DAILY_LIMIT:-10}
+      LOOKUP_ADMIN_TOKEN: ${LOOKUP_ADMIN_TOKEN:-}
+      CALLER_BOOK_FILE: /data/caller-book.sqlite3
       BRIDGE_CONFIG_JSON: |-
         {
           "own_extension": "100",

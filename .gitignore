@@ -20,3 +20,7 @@ build-context.tar
 companion/include/welcome_audio.private.h
 
 welcome_audio.private.h
+
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
