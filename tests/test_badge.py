@@ -308,7 +308,7 @@ class BadgeAppTests(unittest.TestCase):
         monitor.update(50)
         self.assertEqual(hw.leds[0],(1,2,3))
         self.assertEqual(hw.leds[13:],[(1,2,3)]*6)
-        monitor._open_menu();monitor.menu_selected=5;monitor._menu_key('ENTER')
+        monitor._open_menu();monitor.menu_selected=6;monitor._menu_key('ENTER')
         self.assertTrue(monitor.terminated)
         self.assertEqual(hw.leds[1:13],[(0,0,0)]*12)
 

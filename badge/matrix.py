@@ -13,6 +13,7 @@ import asyncio
 from .matrix_text import caller_text, columns, timer_bits, notification_text
 from .controls import initials
 from .snake import Snake
+from .focus import rain_frame
 
 # Physical grid derived from the manufacturer's MIT-licensed companion app.
 # Copyright (c)2026 Kristian Hentschel.
@@ -445,6 +446,26 @@ class MatrixDisplay:
         x,y=self._snake.apple();self._packet[GRID[y*WIDTH+x]+1]=90
         self._last_frame=("away_snake",self._snake.ticks);self.last_mode="away_snake"
         self._goal_pending=True;self._goal_peak=90;self._peak=90
+        return True
+
+    def focus_rain(self, progress, now_ms, paused=False):
+        if not self.refresh(now_ms):return False
+        self._clock_ms=now_ms
+        entering=self.last_mode!='focus_rain'
+        if not entering and (self._goal_pending or now_ms<getattr(self,'_focus_due',0)):return True
+        if entering:
+            self._reset_text();self._known[:]=self._zero;self._phase=0
+        self._focus_due=now_ms+180
+        level=_dict(self.setting).get('brightness',.15)
+        peak=int(max(0,min(1,level))*255)
+        frame=rain_frame(progress,now_ms,peak,paused)
+        self._packet[1:]=self._zero
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
+                index=GRID[y*WIDTH+x]
+                if index>=0:self._packet[index+1]=frame[y*WIDTH+x]
+        self._last_frame=('focus_rain',now_ms//180);self.last_mode='focus_rain'
+        self._goal_pending=True;self._goal_peak=peak;self._peak=peak
         return True
 
     def update(self, payload, live, now_ms, page=None, partner=False, weather_fresh=False):

@@ -199,3 +199,7 @@ The [media notes](docs/gallery/README.md) explain how screenshots and animations
 ## Automatic clock recovery
 
 After Wi-Fi connects, the app synchronizes the UTC clock using the firmware NTP client. Failed attempts retry once a minute; an already valid clock lets monitoring continue. An unset clock keeps verified HTTPS paused until time sync succeeds. The network must permit NTP (UDP port 123). TLS certificate and hostname verification remain enabled.
+
+### Focus Orbit
+
+Open **A → Focus orbit → C**, or press keyboard **P**, for a Pomodoro timer with orbital countdown, outer-LED progress and falling pixels on the matrix. Calls and alerts take priority. **C** starts/pauses, **F/B** adjusts a stopped duration, **D** resets and **A** closes the page while the timer continues. See [controls, screenshots and the matrix animation](docs/FOCUS.md).

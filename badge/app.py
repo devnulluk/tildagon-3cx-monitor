@@ -36,6 +36,7 @@ from .space_inputs import SpaceInputs
 from .showcase import Showcase, snapshot as showcase_snapshot, demo_config as showcase_config
 
 from .away import AwayState, draw_lock, draw_welcome, rainbow
+from .focus import FocusTimer, quiet as focus_quiet, draw as draw_focus
 
 SPEED_DIAL_KEYS = {'F':'tb','B':'pd','E':'jh','C':'sm','D':'kz'}
 
@@ -94,6 +95,8 @@ class ThreeCXMonitor(app.App):
     def __init__(self):
         super().__init__()
         self.config = load_config()
+        self.focus = FocusTimer()
+        self.focus_open = False
         self.buttons = Buttons(self)
         self.away = AwayState(bool(self.config.get("presence_url") and self.config.get("presence_token")))
         self._presence_poll_at = -3000
@@ -393,6 +396,9 @@ class ThreeCXMonitor(app.App):
             return
         frame = self.controller.led_frame(self._now())
         notification = self._notification_effect(self.clock_ms)
+        focus_active=(self.focus.active and focus_quiet(self.controller.payload,self.controller.live(self.clock_ms))
+                      and not notification and self.showcase is None and not self.demo_mode)
+        if focus_active:frame=self.focus.led_frame(self.clock_ms,self.controller.ring_brightness)
         urgent = notification is not None and notification.get("priority") == 5
         if urgent:
             frame = [(255, 0, 0)] * 12
@@ -437,8 +443,11 @@ class ThreeCXMonitor(app.App):
                 and (candidate.get('priority')==5 or (live and not active_own))):
             payload=dict(payload)
             payload['_matrix_notification']=candidate
-        self.matrix.update(payload, live, self.clock_ms, page=self.idle_pages.page(self.clock_ms),
-                           partner=matrix_partner, weather_fresh=fresh)
+        if focus_active:
+            self.matrix.focus_rain(self.focus.progress(self.clock_ms),self.clock_ms,self.focus.paused_at is not None)
+        else:
+            self.matrix.update(payload, live, self.clock_ms, page=self.idle_pages.page(self.clock_ms),
+                               partner=matrix_partner, weather_fresh=fresh)
 
     def _adjust_eeh_brightness(self, direction):
         self.config["eeh_brightness"] = self.controller.adjust_brightness(direction)
@@ -700,6 +709,7 @@ class ThreeCXMonitor(app.App):
                 self.controls.queue_call(payload, live, target, self.clock_ms)
 
     def _open_menu(self):
+        self.focus_open = False
         self.menu_open = True
         self.menu_selected = 0
         self.controller.own_view = self.controller.detail_view = False
@@ -725,9 +735,9 @@ class ThreeCXMonitor(app.App):
             return
         if self.controller.alert(self.clock_ms):return
         if key in ('F','UP','LEFT'):
-            self.menu_selected=(self.menu_selected-1)%6
+            self.menu_selected=(self.menu_selected-1)%7
         elif key in ('B','DOWN','RIGHT'):
-            self.menu_selected=(self.menu_selected+1)%6
+            self.menu_selected=(self.menu_selected+1)%7
         elif key in ('C','ENTER','CONFIRM'):
             selected=self.menu_selected
             self._close_menu()
@@ -736,7 +746,17 @@ class ThreeCXMonitor(app.App):
             elif selected==2:self._open_notifications()
             elif selected==3:self._open_settings()
             elif selected==4:self._start_showcase()
+            elif selected==5:self.focus_open=True
             else:self._stop()
+
+    def _focus_key(self,key):
+        if key in ('A','P','ESCAPE','CANCEL'):
+            self.focus_open=False
+            self.idle_pages.close_overview(self.clock_ms)
+        elif key in ('C','ENTER','SPACE','CONFIRM'):self.focus.toggle(self.clock_ms)
+        elif key in ('D','BACKSPACE'):self.focus.reset()
+        elif key in ('F','LEFT','DOWN'):self.focus.adjust(-1)
+        elif key in ('B','RIGHT','UP'):self.focus.adjust(1)
 
     def _phone_attention(self, now):
         """Notifications and new sensors never obscure uncertain/active calls."""
@@ -912,6 +932,7 @@ class ThreeCXMonitor(app.App):
         if self._stopping:
             return False
         self._now()
+        self.focus.tick(self.clock_ms)
         if self._brightness_save_at is not None and self.clock_ms >= self._brightness_save_at:
             self._save_eeh_brightness()
         if self._appearance_save_at is not None and self.clock_ms >= self._appearance_save_at:
@@ -970,6 +991,10 @@ class ThreeCXMonitor(app.App):
             if self._stopping:return False
             self._write_leds()
             return True
+        if self.focus_open and focus_quiet(self.controller.payload,self.controller.live(self.clock_ms)):
+            for key in edges+keys:self._focus_key(key)
+            self._write_leds()
+            return True
         if keyboard:
             # Open settings before processing any other keys in the same frame.
             # Physical speed-dials are suppressed for this whole frame.
@@ -982,6 +1007,10 @@ class ThreeCXMonitor(app.App):
                 return True
             if "N" in keys:
                 self._open_notifications()
+                self._write_leds()
+                return True
+            if "P" in keys:
+                self.focus_open=True
                 self._write_leds()
                 return True
         if 'A' in edges or 'A' in keys:
@@ -1155,6 +1184,11 @@ class ThreeCXMonitor(app.App):
             ctx.restore()
             return
         clock_fallback=(self._phone_clock_role() and not live and self.controller.payload is not None and clock_valid())
+        if (self.focus_open and focus_quiet(self.controller.payload,live) and not notification
+                and not self.menu_open and not self.settings_open and self.showcase is None):
+            draw_focus(ctx,self.focus,now)
+            ctx.restore()
+            return
         graphical_idle = ((clock_fallback or (live and self.idle_pages.active(now))) and not self.settings_open and not self.menu_open
                           and not alert and not own_call and now >= self._brightness_notice_until
                           and now >= self.controls.message_until)
@@ -1337,11 +1371,11 @@ class ThreeCXMonitor(app.App):
     def _draw_menu(self,ctx):
         presence=(self._status_payload().get('own') or {}).get('presence') or {}
         state='ON' if presence.get('state')=='dnd' else 'OFF' if presence.get('state')=='available' else '?'
-        labels=('Speed dials','DND: '+state,'Test notification' if self._phone_clock_role() else 'Notifications','Settings','Demo tour','Exit app')
+        labels=('Speed dials','DND: '+state,'Test notification' if self._phone_clock_role() else 'Notifications','Settings','Demo tour','Focus orbit','Exit app')
         self._text(ctx,'MENU',-84 if self.showcase else -91,27,160,(.24,.90,.83))
-        self._text(ctx,'%d / 6'%(self.menu_selected+1),-61 if self.showcase else -68,11,80,(.6,.7,.8))
-        start=max(0,min(3,self.menu_selected-1))
-        for row,index in enumerate(range(start,min(6,start+3))):
+        self._text(ctx,'%d / 7'%(self.menu_selected+1),-61 if self.showcase else -68,11,80,(.6,.7,.8))
+        start=max(0,min(4,self.menu_selected-1))
+        for row,index in enumerate(range(start,min(7,start+3))):
             y=-36+row*45
             selected=index==self.menu_selected
             ctx.rgb(.025,.060,.085).round_rectangle(-94,y-18,188,37,10).fill()

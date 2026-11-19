@@ -62,8 +62,9 @@ parser.add_argument("--capture-frames", type=int, default=None)
 parser.add_argument("--action-frame", type=int, default=12)
 parser.add_argument("--action-hold-frames", type=int, default=3, help="Duration of a synthetic held key in DEMO")
 parser.add_argument("--diagnose", action="store_true")
+parser.add_argument("--focus-preview",action="store_true",help="Synthetic focus-orbit render")
 options = parser.parse_args()
-if options.welcome_preview:
+if options.welcome_preview or options.focus_preview:
     options.idle_page="clock"
     options.showcase="idle"
 if options.settings_row is not None:
@@ -655,6 +656,11 @@ class PreviewMonitor(ThreeCXMonitor):
             self._accept_demo()
 
     def _draw_idle(self, ctx, now):
+        if options.focus_preview:
+            from threecx_monitor.focus import draw
+            self.focus.phase="focus";self.focus.duration=25*60000;self.focus.started=now-int(self.focus.duration*.62)
+            draw(ctx,self.focus,now)
+            return
         if options.welcome_preview:
             from threecx_monitor.away import draw_welcome
             draw_welcome(ctx,now,{"id":options.theme},options.clock_style)

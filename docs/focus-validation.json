@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-18",
+  "badge_version": "0.24.0",
+  "tests_passed": 796,
+  "native_simulator_lcd_rendered": true,
+  "matrix_gif_from_production_driver": true,
+  "hardware": {
+    "matrix_mode": "focus_rain",
+    "successful_native_focus_frames": 25,
+    "away": false,
+    "live": true,
+    "call_preemption": false,
+    "focus_remaining": 1044
+  },
+  "installation": {
+    "version": "0.24.0",
+    "files_verified": [
+      "app.py",
+      "focus.py",
+      "matrix.py",
+      "metadata.json",
+      "tildagon.toml"
+    ],
+    "private_config_preserved": true,
+    "ca_preserved": true,
+    "relaunch_requested": true
+  },
+  "test_timer_restored": true,
+  "normal_monitor_left_live": true
+}
