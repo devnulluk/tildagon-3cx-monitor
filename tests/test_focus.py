@@ -8,6 +8,31 @@ spec=importlib.util.spec_from_file_location('focus_test',Path(__file__).resolve(
 focus=importlib.util.module_from_spec(spec);spec.loader.exec_module(focus)
 
 class FocusTests(unittest.TestCase):
+ def test_web_controls_are_idempotent_and_preserve_call_queue(self):
+  module,m,hw=support.BadgeAppTests.live_monitor(True)
+  p=m.controller.payload
+  p['device_commands']={'spaceagon':{'id':'one','action':'focus_start','value':None}}
+  m._observe_remote_controls(p,m.clock_ms);self.assertTrue(m.focus.active)
+  m._observe_remote_controls(p,m.clock_ms);self.assertIsNone(m.focus.paused_at)
+  p['device_commands']['spaceagon']={'id':'two','action':'focus_direction','value':3}
+  m._observe_remote_controls(p,m.clock_ms);self.assertEqual(m.matrix.focus_direction,3)
+  self.assertIsNone(m.controls.pending)
+ def test_sand_orientation_and_bright_settled_pixels(self):
+  for direction in range(4):
+   frame=focus.rain_frame(.5,0,100,True,direction)
+   self.assertEqual(len(frame),162)
+   self.assertEqual(sum(bool(p) for p in frame),81)
+   self.assertEqual(max(frame),80)
+  # Completed sand settles against the selected physical edge.
+  for direction,edge in ((0,lambda x,y:y==8),(1,lambda x,y:x==0),(2,lambda x,y:y==0),(3,lambda x,y:x==17)):
+   frame=focus.rain_frame(.01,0,100,True,direction)
+   lit=[(i%18,i//18) for i,p in enumerate(frame) if p]
+   self.assertTrue(all(edge(x,y) for x,y in lit))
+ def test_sand_settings_persist_and_cycle(self):
+  module,m,hw=support.BadgeAppTests.live_monitor(True)
+  m.settings_selected=6;m._settings_key('RIGHT');self.assertEqual(m.matrix.focus_direction,1)
+  m.settings_selected=7;before=m.matrix.focus_brightness;m._settings_key('RIGHT')
+  self.assertGreater(m.matrix.focus_brightness,before)
  def test_app_page_and_call_preemption(self):
   module,m,hw=support.BadgeAppTests.live_monitor(True)
   for member in [m.controller.payload['own']]+m.controller.payload['team']:member.update(state='idle',calls=[])

@@ -370,7 +370,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                 monitor.update(0)
                 if keyboard:
                     self.key(module, monitor, "S")
-                    self.key(module, monitor, "UP")
+                    for _ in range(3):self.key(module, monitor, "UP")
                     self.assertEqual(monitor.settings_selected, 5)
                     self.key(module, monitor, "ENTER")
                 else:
@@ -380,7 +380,7 @@ class ShowcaseIntegrationTests(ShowcaseFixtures, unittest.TestCase):
                     self.assertTrue(monitor.settings_open)
                     monitor.buttons.values.clear()
                     monitor.update(0)
-                    self.physical(module, monitor, "A")
+                    for _ in range(3):self.physical(module, monitor, "A")
                     self.assertEqual(monitor.settings_selected, 5)
                     self.physical(module, monitor, "C")
                 self.assertIsNotNone(monitor.showcase)

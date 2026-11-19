@@ -203,3 +203,7 @@ After Wi-Fi connects, the app synchronizes the UTC clock using the firmware NTP 
 ### Focus Orbit
 
 Open **A → Focus orbit → C**, or press keyboard **P**, for a Pomodoro timer with orbital countdown, outer-LED progress and falling pixels on the matrix. Calls and alerts take priority. **C** starts/pauses, **F/B** adjusts a stopped duration, **D** resets and **A** closes the page while the timer continues. See [controls, screenshots and the matrix animation](docs/FOCUS.md).
+
+## Mission Control and calendar
+
+[Web controls, SOGo calendar and matrix sand orientation](docs/MISSION-CONTROL.md).

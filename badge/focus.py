@@ -77,9 +77,10 @@ def quiet(payload, live):
             return False
     return True
 
-def rain_frame(progress, now, peak, paused=False):
+def rain_frame(progress, now, peak, paused=False, direction=0):
     """18x9 pixels. A sand bed fills with elapsed time; one comet falls above it."""
-    width,height=18,9
+    direction=int(direction)%4
+    width,height=(18,9) if direction%2==0 else (9,18)
     frame=bytearray(width*height)
     peak=max(0,min(255,int(peak)))
     filled=min(162,max(0,int(progress*162)))
@@ -87,7 +88,7 @@ def rain_frame(progress, now, peak, paused=False):
     # allocation-heavy simulations, or changing already settled pixels.
     for i in range(filled):
         layer=i//width;x=((i%width)*7+layer*5)%width;y=height-1-layer
-        frame[y*width+x]=max(1,peak*2//5) if peak else 0
+        frame[y*width+x]=max(1,peak*4//5) if peak else 0
     if not paused and filled<162:
         step=now//180
         floor=height-1-filled//width
@@ -96,7 +97,15 @@ def rain_frame(progress, now, peak, paused=False):
         for tail in range(4):
             y=head-tail
             if y>=0 and not frame[y*width+x]:frame[y*width+x]=peak//(tail+1)
-    return frame
+    if not direction:return frame
+    result=bytearray(162)
+    for y in range(height):
+        for x in range(width):
+            if direction==1:px,py=17-y,x
+            elif direction==2:px,py=17-x,8-y
+            else:px,py=y,8-x
+            result[py*18+px]=frame[y*width+x]
+    return result
 
 
 def draw(ctx, timer, now):

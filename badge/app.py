@@ -163,6 +163,10 @@ class ThreeCXMonitor(app.App):
                 matrix_level = settings.get('threecx_monitor.matrix_call_brightness', self.matrix.call_brightness)
                 if isinstance(matrix_level, (int, float)) and not isinstance(matrix_level, bool) and 0 <= matrix_level <= 1:
                     self.matrix.call_brightness = matrix_level
+                direction = settings.get('threecx_monitor.matrix_focus_direction', self.matrix.focus_direction)
+                if type(direction) is int and 0 <= direction < 4:self.matrix.focus_direction = direction
+                level = settings.get('threecx_monitor.matrix_focus_brightness', self.matrix.focus_brightness)
+                if isinstance(level,(int,float)) and not isinstance(level,bool) and 0 <= level <= 1:self.matrix.focus_brightness = level
             except (ImportError, OSError, ValueError):
                 pass
         self.space_inputs = SpaceInputs(self, self.config, clock=lambda: self.clock_ms)
@@ -473,6 +477,8 @@ class ThreeCXMonitor(app.App):
             settings.set("threecx_monitor.eeh_brightness", self.controller.eeh_brightness)
             settings.set("threecx_monitor.ring_brightness", self.controller.ring_brightness)
             settings.set('threecx_monitor.matrix_call_brightness', self.matrix.call_brightness)
+            settings.set('threecx_monitor.matrix_focus_direction', self.matrix.focus_direction)
+            settings.set('threecx_monitor.matrix_focus_brightness', self.matrix.focus_brightness)
             settings.save()
         except (ImportError, OSError, ValueError):
             pass
@@ -523,9 +529,9 @@ class ThreeCXMonitor(app.App):
                 self.idle_pages.preview(self.clock_ms)
                 self._appearance_preview = False
         elif key in ("UP", "A"):
-            self.settings_selected = (self.settings_selected - 1) % 6
+            self.settings_selected = (self.settings_selected - 1) % 8
         elif key in ("DOWN", "D"):
-            self.settings_selected = (self.settings_selected + 1) % 6
+            self.settings_selected = (self.settings_selected + 1) % 8
         elif key in ("LEFT", "E", "RIGHT", "B"):
             direction = 1 if key in ("RIGHT", "B") else -1
             if self.settings_selected == 0:
@@ -538,6 +544,11 @@ class ThreeCXMonitor(app.App):
                 self.matrix.call_brightness = max(0, min(1, round(self.matrix.call_brightness + direction * .05, 2)))
                 if not self.demo_mode:
                     self._brightness_save_at = self.clock_ms + 1000
+            elif self.settings_selected in (6,7) and self.showcase is None:
+                if self.settings_selected == 6:self.matrix.focus_direction=(self.matrix.focus_direction+direction)%4
+                else:self.matrix.focus_brightness=max(0,min(1,round(self.matrix.focus_brightness+direction*.05,2)))
+                self.matrix._focus_due=0
+                if not self.demo_mode:self._brightness_save_at=self.clock_ms+1000
 
     async def _network_yield(self):
         # The separate foreground loop keeps rendering and animating the LEDs.
@@ -780,8 +791,34 @@ class ThreeCXMonitor(app.App):
                 return True
         return False
 
+    def _observe_remote_controls(self,payload,now):
+        if self.demo_mode or self.showcase is not None or not self.controller.live(now):return
+        command=((payload or {}).get('device_commands') or {}).get('spaceagon')
+        if not isinstance(command,dict) or not command.get('id') or command['id']==getattr(self,'_remote_command_id',None):return
+        self._remote_command_id=command['id']
+        action,value=command.get('action'),command.get('value')
+        if action in ('ring_brightness','eeh_brightness','matrix_brightness','focus_brightness') and type(value) is int and 0<=value<=100:
+            if action=='ring_brightness':self.controller.ring_brightness=value/100
+            elif action=='eeh_brightness':self.controller.eeh_brightness=value/100
+            elif action=='focus_brightness':self.matrix.focus_brightness=value/100
+            else:self.matrix.call_brightness=value/100
+            self._brightness_save_at=now+1000
+        elif action=='focus_direction' and type(value) is int and 0<=value<4:
+            self.matrix.focus_direction=value;self.matrix._focus_due=0;self._brightness_save_at=now+1000
+        elif action=='theme' and value in ['auto']+[t['id'] for t in self.themes.catalog()]:
+            self.themes.select(value);self._appearance_save_at=now+1000
+        elif action=='clock' and value in CLOCKS:
+            self.clock_style=value;self.config['clock_style']=value;self._appearance_save_at=now+1000
+        elif action=='focus_start':
+            if not self.focus.active or self.focus.paused_at is not None:self.focus.toggle(now)
+            self.focus_open=True
+        elif action=='focus_pause':
+            if self.focus.active and self.focus.paused_at is None:self.focus.toggle(now)
+        elif action=='focus_reset':self.focus.reset()
+
     def _observe_notifications(self, now):
         payload = self.controller.payload
+        self._observe_remote_controls(payload,now)
         if (payload is not self._notification_snapshot
                 or self.controller.received_ms != self._notification_received):
             self._notification_snapshot = payload
@@ -1351,9 +1388,11 @@ class ThreeCXMonitor(app.App):
                 ("THEME", "Auto" if self.themes.selection == "auto" else next(item["name"] for item in self.themes.catalog() if item["id"] == self.themes.selection)),
                 ("CLOCK", next(item["name"] for item in get_clock_catalog() if item["id"] == self.clock_style)),
                 ("MATRIX CALL", "%d%%" % round(self.matrix.call_brightness * 100)),
-                ("DEMO", "Play all themes"))
+                ("DEMO", "Play all themes"),
+                ("SAND FALL", ("Down", "Left", "Up", "Right")[self.matrix.focus_direction]),
+                ("FOCUS LIGHT", "%d%%" % round(self.matrix.focus_brightness*100)))
         start = max(0, self.settings_selected - 1)
-        for index in range(start, min(6, start + 2)):
+        for index in range(start, min(len(rows), start + 2)):
             label, level = rows[index]
             row = index - start
             settings_row(ctx, row, level if index < 2 else 0, self.settings_selected == index)

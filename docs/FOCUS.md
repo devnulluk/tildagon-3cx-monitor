@@ -32,3 +32,5 @@ phone call, DND command or notification is sent by the timer.
 The GIF accelerates elapsed progress for illustration. Physical matrix writes
 use the production adapter's bounded asynchronous PWM path. The hardware has
 18×9 display positions and 150 LEDs; unused positions are skipped.
+
+Matrix Settings now includes **Sand Fall** (Down, Left, Up, Right) and **Focus Light**. These settings persist, and can also be changed through [Mission Control](MISSION-CONTROL.md). Settled sand is brighter; incoming-call brightness remains separate.

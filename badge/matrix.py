@@ -195,6 +195,8 @@ class MatrixDisplay:
         self.backend = backend
         config = _dict(config)
         self.setting = config.get("matrix", {})
+        self.focus_direction = int(_dict(self.setting).get('focus_direction', 0)) % 4
+        self.focus_brightness = max(0, min(1, float(_dict(self.setting).get('focus_brightness', .35))))
         call_level = _dict(self.setting).get('call_brightness', 1.0)
         self.call_brightness = (call_level if isinstance(call_level, (int, float))
                                 and not isinstance(call_level, bool) and 0 <= call_level <= 1 else 1.0)
@@ -456,9 +458,9 @@ class MatrixDisplay:
         if entering:
             self._reset_text();self._known[:]=self._zero;self._phase=0
         self._focus_due=now_ms+180
-        level=_dict(self.setting).get('brightness',.15)
+        level=self.focus_brightness
         peak=int(max(0,min(1,level))*255)
-        frame=rain_frame(progress,now_ms,peak,paused)
+        frame=rain_frame(progress,now_ms,peak,paused,self.focus_direction)
         self._packet[1:]=self._zero
         for y in range(HEIGHT):
             for x in range(WIDTH):

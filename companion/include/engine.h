@@ -18,6 +18,7 @@ struct Notice {
   uint32_t remainingMs=0;
 };
 struct Team {std::string initials, state, peer;};
+struct CalendarEvent {std::string title;int64_t start=0,end=0;bool allDay=false;};
 struct Snapshot {
   bool live=false,feedLive=false;
   uint32_t received=0, sourceAgeMs=0;
@@ -27,6 +28,11 @@ struct Snapshot {
   bool weather=false;
   float temperature=0;
   std::string condition,rain;
+  bool calendarEnabled=false,calendarAvailable=false;
+  std::vector<CalendarEvent> calendar;
+  std::string commandId,commandAction;
+  int commandValue=0;
+  int64_t commandExpires=0;
 };
 struct Presentation {
   View view=View::Offline; Cue cue=Cue::Silent;

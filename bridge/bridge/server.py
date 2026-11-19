@@ -25,7 +25,7 @@ def _stale(config, source):
 
 
 def create_app(config, source, token=None, demo=False, control_token=None, actions=None, presence_provider=None, phonebook=None, weather=None,
-               notify_token=None, notifications=None, ntfy_subscriber=None, caller_book=None, lookup_admin_token=None):
+               notify_token=None, notifications=None, ntfy_subscriber=None, caller_book=None, lookup_admin_token=None, calendar=None):
     if not demo and (not isinstance(token, str) or len(token) < 24):
         raise ValueError("BRIDGE_TOKEN must contain at least 24 characters")
     if token is not None and (not isinstance(token, str) or not token.isascii()
@@ -84,6 +84,17 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
         weather = WeatherService(weather_config["latitude"], weather_config["longitude"],
                                  location=weather_config["location"], timezone=weather_config["timezone"],
                                  api_key=os.environ.get("WEATHER_API_KEY") or None)
+
+    if calendar is None and not demo and os.environ.get("CALENDAR_CONFIG_FILE"):
+        from .calendar import CalendarService
+        calendar_path = Path(os.environ["CALENDAR_CONFIG_FILE"])
+        if not calendar_path.exists() and os.environ.get("CALENDAR_CONFIG_JSON"):
+            calendar_path.write_text(os.environ["CALENDAR_CONFIG_JSON"], encoding="utf-8")
+            os.chmod(calendar_path, 0o600)
+        calendar = CalendarService(os.environ["CALENDAR_CONFIG_FILE"])
+
+    from .admin import DeviceCommands
+    device_commands = DeviceCommands()
 
     def authorized(request, expected_token):
         value = request.headers.get("Authorization", "")
@@ -161,6 +172,8 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
         controls.setdefault("targets", controls.get("speed_dials", []))
         body["controls"] = controls
         body["phonebook"] = {"enabled": phonebook is not None, "scope": "company_and_personal" if phonebook is not None else ""}
+        body["calendar"] = calendar.snapshot() if calendar is not None else {"enabled": False}
+        body["device_commands"] = device_commands.snapshot()
         if weather is None:
             body["weather"] = {"enabled": False}
         else:
@@ -260,6 +273,15 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
     app.router.add_get("/healthz", health)
     app.router.add_post("/v1/control/{action:call|dnd}", control)
     app.router.add_post("/v1/notify", notify)
+    if not demo and os.environ.get("ADMIN_TOKEN"):
+        admin_token = os.environ["ADMIN_TOKEN"]
+        if any(value and hmac.compare_digest(admin_token, value) for value in (token, control_token, notify_token, lookup_admin_token)):
+            raise ValueError("Administrator token must be independent")
+        from .admin import add_routes as add_admin_routes
+        async def admin_state(request):
+            response = await state(request.clone(headers={"Authorization": "Bearer " + token}))
+            return json.loads(response.text)
+        add_admin_routes(app, admin_token, admin_state, actions, notifications, calendar, device_commands)
     if caller_book is not None:
         from .caller_review import add_routes
         add_routes(app, caller_book, lookup_admin_token)
@@ -291,6 +313,12 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
             yield
             await phonebook.close()
         app.cleanup_ctx.append(phonebook_lifetime)
+    if calendar is not None:
+        async def calendar_lifetime(app):
+            await calendar.start()
+            yield
+            await calendar.close()
+        app.cleanup_ctx.append(calendar_lifetime)
     if weather is not None:
         async def weather_lifetime(app):
             try:

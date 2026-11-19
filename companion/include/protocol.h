@@ -42,6 +42,17 @@ inline Snapshot parseState(JsonDocument& j,uint32_t now,const std::string& partn
   JsonObject rain=w["rain_next_hour"].as<JsonObject>();
   std::string status=rain["status"]|"unknown";
   s.rain=status=="dry_likely"?"Dry next hour":status=="rain_likely"?"Rain in next hour":"Rain forecast uncertain";
+  s.calendarEnabled=j["calendar"]["enabled"]==true;
+  s.calendarAvailable=j["calendar"]["available"]==true&&!j["calendar"]["stale"].as<bool>();
+  if(s.calendarAvailable)for(JsonObject e:j["calendar"]["events"].as<JsonArray>()){
+    if(s.calendar.size()>=32)break;
+    CalendarEvent event;event.title=ascii(e["title"]|"Busy",100);
+    event.start=e["start"]|int64_t(0);event.end=e["end"]|int64_t(0);event.allDay=e["all_day"]==true;
+    if(event.start>0&&event.end>event.start)s.calendar.push_back(event);
+  }
+  JsonObject command=j["device_commands"]["waveshare"].as<JsonObject>();
+  s.commandId=ascii(command["id"]|"",32);s.commandAction=ascii(command["action"]|"",24);
+  s.commandValue=command["value"]|0;s.commandExpires=command["expires"]|int64_t(0);
   return s;
 }
 

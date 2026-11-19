@@ -65,6 +65,34 @@ inline void paragraph(Arduino_GFX& g,const std::string& text,int y,uint16_t c=SP
   if(!line.empty())label(g,line,y+row*24,1,c,270);
 }
 inline int dashboardPages(time_t epoch) {struct tm local={};localtime_r(&epoch,&local);return epoch>=1700000000&&local.tm_mon==11&&local.tm_mday<=24?5:4;}
+inline int dashboardPages(time_t epoch,bool calendar){return dashboardPages(epoch)+(calendar?1:0);}
+inline void renderCalendar(Arduino_GFX& g,const Snapshot& s,time_t epoch){
+  label(g,"MISSION SCHEDULE",48,1,SP_CYAN,245);
+  struct tm local={};localtime_r(&epoch,&local);char date[32];strftime(date,sizeof date,"%a %d %B",&local);
+  label(g,date,75,2,SP_WHITE,250);
+  // Calendar-day arithmetic keeps the strip correct across UK daylight saving changes.
+  for(int i=0;i<7;i++){
+    struct tm day=local;day.tm_hour=12;day.tm_mday+=i;day.tm_isdst=-1;time_t stamp=mktime(&day);
+    struct tm d={};localtime_r(&stamp,&d);int x=69+i*37;
+    if(!i)g.fillRoundRect(x-16,89,33,43,8,0x1168);
+    char b[8];strftime(b,sizeof b,"%a",&d);g.setFont(&FreeSans9pt7b);g.setTextSize(1);g.setTextColor(i?SP_DIM:SP_CYAN);g.setCursor(x-14,105);g.print(b);
+    snprintf(b,sizeof b,"%d",d.tm_mday);g.setCursor(x-10,126);g.print(b);
+  }
+  if(!s.calendarAvailable){label(g,"Calendar unavailable",205,2,SP_DIM,280);label(g,"Waiting for Outlook sync",237,1,SP_CYAN,275);return;}
+  int row=0;
+  for(const auto& e:s.calendar){
+    if(e.end<=epoch)continue;if(row>=3)break;
+    time_t start=e.start,end=e.end;struct tm a={},b={};localtime_r(&start,&a);localtime_r(&end,&b);
+    char when[56];
+    if(e.allDay)strftime(when,sizeof when,"%a %d / All day",&a);
+    else {char begin[24],finish[12];strftime(begin,sizeof begin,"%a %d / %H:%M",&a);strftime(finish,sizeof finish,"%H:%M",&b);snprintf(when,sizeof when,"%s - %s",begin,finish);}
+    int y=144+row*56;uint16_t c=e.start<=epoch?SP_GOLD:SP_CYAN;
+    g.drawRoundRect(46,y,268,51,10,SP_DIM);g.fillRoundRect(47,y+7,3,35,1,c);
+    label(g,when,y+17,1,c,245);label(g,e.title,y+40,2,SP_WHITE,246);row++;
+  }
+  if(!row)label(g,"Clear skies ahead",215,2,SP_WHITE,280);
+  label(g,"OUTLOOK / NEXT 7 DAYS",329,1,SP_DIM,230);
+}
 inline void render(Arduino_GFX& g,const Presentation& p,const Snapshot& s,uint32_t now,int page,bool configured,const std::string& ip,bool muted,bool demo) {
   uint16_t accent=p.partner?SP_PINK:p.priority?0xf986:p.kind=="ring_group"?0xab7f:p.kind=="internal"?SP_GOLD:SP_CYAN;
   backdrop(g,now,accent);
@@ -95,7 +123,9 @@ inline void render(Arduino_GFX& g,const Presentation& p,const Snapshot& s,uint32
     label(g,"AUDIO FAIL-SAFE ACTIVE",300,1,SP_GOLD,240);
   }else {
     time_t epoch=time(nullptr);struct tm local={};localtime_r(&epoch,&local);
-    if(page==0) {
+    if(s.calendarEnabled&&page==dashboardPages(epoch)) {
+      renderCalendar(g,s,epoch);
+    }else if(page==0) {
       label(g,"PLANETARY WEATHER",65,1,SP_CYAN,245);
       if(s.weather){g.fillCircle(180,116,23,SP_GOLD);for(int i=0;i<8;i++){float a=i*.785398f;g.drawLine(180+cosf(a)*30,116+sinf(a)*30,180+cosf(a)*40,116+sinf(a)*40,SP_GOLD);}
         char b[20];snprintf(b,sizeof b,"%.0f C",s.temperature);label(g,b,208,3,SP_WHITE);label(g,s.condition,242,2,SP_DIM);label(g,s.rain,289,1,SP_CYAN,280);

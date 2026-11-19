@@ -1,0 +1,21 @@
+{
+  "bridge_image": "0.9.1",
+  "badge_version": "0.25.0",
+  "waveshare_version": "0.8.0",
+  "python_full_tests": 806,
+  "additional_focused_tests": 11,
+  "calendar_authenticated": true,
+  "live_calendar_available": true,
+  "waveshare_brightness_round_trip": [
+    50,
+    49,
+    50
+  ],
+  "badge_remote_sand_direction_saved": 1,
+  "private_badge_configuration_preserved": true,
+  "private_ca_preserved": true,
+  "waveshare_nvs_preserved": true,
+  "calls_not_placed": true,
+  "dnd_not_changed": true,
+  "preview_events_synthetic": true
+}
