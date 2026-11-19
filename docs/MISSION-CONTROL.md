@@ -12,11 +12,28 @@ volume, brightness, mute, alert acknowledgement and page selection.
 Calling asks for confirmation and uses the existing own-extension call control.
 Presence gating and call/notification priorities remain on the devices.
 
-Device commands expire after 60 seconds. A newer command replaces an outstanding
-command for the same device. The console reports **queued**, not delivered:
-there is currently no device acknowledgement channel. Sliders show proposed
-values, not live device readings. A restarted broker drops pending commands.
-Settings received by a device are saved using its normal local settings store.
+Device settings are reported from both devices every ten seconds. The console
+shows their report age and disables controls when the device is offline. Display
+frame counters detect a renderer that has stopped advancing for 35 seconds.
+
+Changes have distinct **queued**, **applied**, **rejected** and **expired** states.
+Applied requires an acknowledgement for the exact command ID from the target
+device; reported setting values are checked against the request when available.
+A queued change does not replace the last reported actual value. Commands are
+serialized per device (up to eight waiting commands), and expire after 60 seconds.
+A broker restart clears pending commands, acknowledgements and live reports.
+
+Focus controls include work duration (5–90 minutes), short break (1–60), long
+break (1–90), and long-break interval (2–12 completed work sessions). They persist
+on the badge. Changing work duration leaves a running session untouched; upcoming
+breaks use the latest break policy. Start/resume, pause and reset remain explicit.
+
+Reports use authenticated POST `/v1/state` on the existing bridge connection.
+They contain a settings allowlist, boot ID, sequence and optional acknowledgement;
+mailbox passwords, Wi-Fi credentials and API keys are not reported. The existing
+read capability authenticates device reports; it is shared by the installed
+clients, so this is not a separate cryptographic device identity. Device reports
+cannot make calls, administer the broker or submit notifications.
 
 ## Calendar
 
@@ -63,7 +80,7 @@ Keep existing state/control/notification/review routes. Do not expose all bridge
 paths or device web interfaces. Every admin API request requires its independent
 bearer capability plus `X-Spaceport-Admin: 1`; badges cannot administer the broker.
 
-Validation: 806 Python checks passed; Waveshare firmware built and application-
+Validation: 812 Python checks passed; Waveshare firmware built and application-
 only flashed, preserving NVS. Spaceagon source files were hash-verified on USB,
 with private configuration and CA unchanged. Screenshots above use synthetic
 events; they are host/browser previews, not photographs of either display.

@@ -5,6 +5,9 @@ import math
 class FocusTimer:
     def __init__(self):
         self.minutes = 25
+        self.break_minutes = 5
+        self.long_break_minutes = 15
+        self.long_break_every = 4
         self.phase = 'ready'
         self.started = 0
         self.duration = 25*60000
@@ -23,7 +26,7 @@ class FocusTimer:
             if self.phase == 'focus':
                 self.completed += 1
                 self.phase = 'break'
-                self.duration = (15 if self.completed % 4 == 0 else 5)*60000
+                self.duration = (self.long_break_minutes if self.completed % self.long_break_every == 0 else self.break_minutes)*60000
             else:
                 self.phase = 'done'
             if self.phase == 'break' and now-self.started >= self.duration:

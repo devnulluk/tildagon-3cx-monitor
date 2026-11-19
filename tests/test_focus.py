@@ -8,6 +8,22 @@ spec=importlib.util.spec_from_file_location('focus_test',Path(__file__).resolve(
 focus=importlib.util.module_from_spec(spec);spec.loader.exec_module(focus)
 
 class FocusTests(unittest.TestCase):
+ def test_custom_duration_policy_preserves_active_session(self):
+  f=focus.FocusTimer();f.minutes=30;f.break_minutes=7;f.long_break_minutes=20;f.long_break_every=2
+  f.toggle(0);self.assertEqual(f.duration,30*60000)
+  f.minutes=40;self.assertEqual(f.duration,30*60000)
+  f.tick(30*60000);self.assertEqual(f.duration,7*60000)
+  f.tick(37*60000);f.toggle(38*60000);f.tick(78*60000)
+  self.assertEqual(f.duration,20*60000)
+ def test_remote_duration_is_reported_without_changing_running_timer(self):
+  module,m,hw=support.BadgeAppTests.live_monitor(True)
+  m.focus.toggle(m.clock_ms);before=m.focus.duration
+  p=m.controller.payload;p['device_commands']={'spaceagon':{'id':'duration','action':'focus_minutes','value':35}}
+  import sys,types
+  settings=types.SimpleNamespace(set=lambda *args:None,save=lambda:None)
+  with patch.dict(sys.modules,{'settings':settings}):m._observe_remote_controls(p,m.clock_ms)
+  self.assertEqual(m.focus.duration,before);self.assertEqual(m._device_report()['settings']['focus_minutes'],35)
+  self.assertEqual(m._remote_ack['status'],'applied')
  def test_web_controls_are_idempotent_and_preserve_call_queue(self):
   module,m,hw=support.BadgeAppTests.live_monitor(True)
   p=m.controller.payload

@@ -96,6 +96,18 @@ class ThreeCXMonitor(app.App):
         super().__init__()
         self.config = load_config()
         self.focus = FocusTimer()
+        self._remote_ack = None
+        self._report_seq = 0
+        self._report_at = -10000
+        self._remote_boot = __import__('binascii').hexlify(__import__('os').urandom(8)).decode()
+        self._frame_counter = 0
+        if self.config.get('demo') is not True:
+            try:
+                import settings
+                for key,field,low,high in (('focus_minutes','minutes',5,90),('break_minutes','break_minutes',1,60),('long_break_minutes','long_break_minutes',1,90),('long_break_every','long_break_every',2,12)):
+                    value=settings.get('threecx_monitor.'+key,getattr(self.focus,field))
+                    if type(value) is int and low<=value<=high:setattr(self.focus,field,value)
+            except (ImportError,OSError,ValueError):pass
         self.focus_open = False
         self.buttons = Buttons(self)
         self.away = AwayState(bool(self.config.get("presence_url") and self.config.get("presence_token")))
@@ -672,6 +684,11 @@ class ThreeCXMonitor(app.App):
                     value.setdefault("controls", {})["enabled"] = False
                 if self._network_current(generation, target):
                     target.accept(value, self._now())
+                    if self._now()-self._report_at>=10000:
+                        self._report_at=self._now();self._report_seq+=1
+                        report=self._device_report()
+                        try:await async_helpers.unblock(post_json,self._network_yield,url.rstrip('/')+'/v1/state',token,report,ca_file,2)
+                        except Exception:pass
             except (ClockError, TLSError, HTTPError) as error:
                 # These exception messages are fixed app text or HTTP status only.
                 if self._network_current(generation, target):
@@ -791,11 +808,22 @@ class ThreeCXMonitor(app.App):
                 return True
         return False
 
+    def _device_report(self):
+        return {'device':'spaceagon','boot':self._remote_boot,'seq':self._report_seq,'version':'0.26.0',
+                'ack':self._remote_ack,'settings':{
+                'ring_brightness':round(self.controller.ring_brightness*100), 'eeh_brightness':round(self.controller.eeh_brightness*100),
+                'matrix_brightness':round(self.matrix.call_brightness*100),'focus_brightness':round(self.matrix.focus_brightness*100),
+                'focus_direction':self.matrix.focus_direction,'theme':self.themes.selection,'clock':self.clock_style,
+                'focus_minutes':self.focus.minutes,'break_minutes':self.focus.break_minutes,'long_break_minutes':self.focus.long_break_minutes,
+                'long_break_every':self.focus.long_break_every,'focus_phase':self.focus.phase,'focus_paused':self.focus.paused_at is not None,
+                'focus_remaining':self.focus.remaining(self.clock_ms),'frame_counter':self._frame_counter}}
+
     def _observe_remote_controls(self,payload,now):
         if self.demo_mode or self.showcase is not None or not self.controller.live(now):return
         command=((payload or {}).get('device_commands') or {}).get('spaceagon')
         if not isinstance(command,dict) or not command.get('id') or command['id']==getattr(self,'_remote_command_id',None):return
         self._remote_command_id=command['id']
+        self._remote_ack={'id':command['id'],'status':'applied'}
         action,value=command.get('action'),command.get('value')
         if action in ('ring_brightness','eeh_brightness','matrix_brightness','focus_brightness') and type(value) is int and 0<=value<=100:
             if action=='ring_brightness':self.controller.ring_brightness=value/100
@@ -815,10 +843,18 @@ class ThreeCXMonitor(app.App):
         elif action=='focus_pause':
             if self.focus.active and self.focus.paused_at is None:self.focus.toggle(now)
         elif action=='focus_reset':self.focus.reset()
+        elif action in ('focus_minutes','break_minutes','long_break_minutes','long_break_every'):
+            field,low,high={'focus_minutes':('minutes',5,90),'break_minutes':('break_minutes',1,60),'long_break_minutes':('long_break_minutes',1,90),'long_break_every':('long_break_every',2,12)}[action]
+            if type(value) is not int or not low<=value<=high:self._remote_ack['status']='rejected';return
+            setattr(self.focus,field,value)
+            try:
+                import settings
+                settings.set('threecx_monitor.'+action,value);settings.save()
+            except (ImportError,OSError,ValueError):self._remote_ack['status']='rejected'
+        else:self._remote_ack['status']='rejected'
 
     def _observe_notifications(self, now):
         payload = self.controller.payload
-        self._observe_remote_controls(payload,now)
         if (payload is not self._notification_snapshot
                 or self.controller.received_ms != self._notification_received):
             self._notification_snapshot = payload
@@ -970,6 +1006,7 @@ class ThreeCXMonitor(app.App):
             return False
         self._now()
         self.focus.tick(self.clock_ms)
+        self._observe_remote_controls(self.controller.payload,self.clock_ms)
         if self._brightness_save_at is not None and self.clock_ms >= self._brightness_save_at:
             self._save_eeh_brightness()
         if self._appearance_save_at is not None and self.clock_ms >= self._appearance_save_at:
@@ -1165,6 +1202,7 @@ class ThreeCXMonitor(app.App):
         return peer if any(c.isalpha() for c in str(peer)) else ""
 
     def draw(self, ctx):
+        self._frame_counter+=1
         now = self._now()
         self._tick_showcase()
         self._observe_idle(now)

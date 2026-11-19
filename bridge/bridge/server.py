@@ -270,6 +270,16 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
 
     app = web.Application(middlewares=[no_store], client_max_size=1024)
     app.router.add_get("/v1/state", state)
+    async def device_report(request):
+        if not authorized(request,token):return web.json_response({'error':'unauthorized'},status=401)
+        if 'Origin' in request.headers:return web.json_response({'error':'browser_request_denied'},status=403)
+        try:
+            if request.content_type!='application/json':raise ValueError()
+            data=await request.clone(client_max_size=4096).json()
+            device_commands.report(data)
+        except (ValueError,TypeError,KeyError):return web.json_response({'error':'invalid_report'},status=400)
+        return web.json_response({'ok':True})
+    app.router.add_post("/v1/state",device_report)
     app.router.add_get("/healthz", health)
     app.router.add_post("/v1/control/{action:call|dnd}", control)
     app.router.add_post("/v1/notify", notify)
@@ -280,7 +290,7 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
         from .admin import add_routes as add_admin_routes
         async def admin_state(request):
             response = await state(request.clone(headers={"Authorization": "Bearer " + token}))
-            return json.loads(response.text)
+            result=json.loads(response.text);result.update(device_commands.admin_snapshot());return result
         add_admin_routes(app, admin_token, admin_state, actions, notifications, calendar, device_commands)
     if caller_book is not None:
         from .caller_review import add_routes

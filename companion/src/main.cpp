@@ -26,13 +26,15 @@ static constexpr uint32_t WELCOME_DURATION_MS=1900;
 #endif
 
 using namespace spaceport;
-static constexpr char VERSION[]="0.8.0";
+static constexpr char VERSION[]="0.9.0";
 Preferences prefs;
 PhonePresence presence;
 volatile bool presenceAudioAllowed=true;
 Engine engine,dashboard;
 SemaphoreHandle_t stateLock;
 Snapshot latest;
+std::string reportedCommand,reportedCommandStatus;
+uint32_t renderCounter=0;
 WebServer web(80);
 String ssid,password,origin,token,ca,webKey,partnerNumber,partnerName,partnerSurname;
 bool configured=false, demo=false, demoAudio=false, permanentMute=false;
@@ -110,6 +112,7 @@ static void provision(const String& line) {
 
 static void networkTask(void*) {
   uint32_t lastConnect=0;
+  uint32_t lastReport=0,reportSeq=0;String reportBoot=String(esp_random(),HEX)+String(esp_random(),HEX);
   for(;;) {
     if(configured&&WiFi.status()!=WL_CONNECTED&&millis()-lastConnect>15000){lastConnect=millis();WiFi.begin(ssid.c_str(),password.c_str());}
     if(configured&&WiFi.status()==WL_CONNECTED&&time(nullptr)>1700000000) {
@@ -132,6 +135,14 @@ static void networkTask(void*) {
           }
         }
         http.end();
+        if(millis()-lastReport>=10000){
+          lastReport=millis();JsonDocument report;report["device"]="waveshare";report["boot"]=reportBoot;report["seq"]=++reportSeq;report["version"]=VERSION;
+          xSemaphoreTake(stateLock,portMAX_DELAY);
+          auto settings=report["settings"].to<JsonObject>();settings["volume"]=volume;settings["priority_volume"]=priorityVolume;settings["brightness"]=brightness;settings["muted"]=permanentMute;settings["demo"]=demo;settings["page"]=page;settings["frame_counter"]=renderCounter;
+          if(!reportedCommand.empty()){report["ack"]["id"]=reportedCommand;report["ack"]["status"]=reportedCommandStatus;}
+          xSemaphoreGive(stateLock);String json;serializeJson(report,json);
+          if(http.begin(tls,origin+"/v1/state")){http.addHeader("Authorization","Bearer "+token);http.addHeader("Content-Type","application/json");http.POST(json);http.end();}
+        }
       }
     }
     vTaskDelay(pdMS_TO_TICKS(750));
@@ -315,6 +326,7 @@ void loop() {
     else if(a=="live")demo=false;
     else if(a=="test"){toneUntil=0;pipeUntil=0;audioStarted=millis();audioRepeat=false;audioVolume=volume;audioCue=Cue::Info;}
     prefs.begin("spaceport",false);prefs.putInt("brightness",brightness);prefs.putInt("volume",volume);prefs.putInt("priority",priorityVolume);prefs.putBool("muted",permanentMute);prefs.end();
+    reportedCommand=lastRemoteCommand;reportedCommandStatus="applied";
   }
   xSemaphoreGive(stateLock);
   while(Serial.available()) {char c=Serial.read();if(c=='\n'){provision(serialLine);serialLine="";}else if(c!='\r'){if(serialLine.length()<8192)serialLine+=c;else serialLine="";}}
@@ -332,6 +344,7 @@ void loop() {
   if(demo&&now-demoSince>120000)demo=false;
   if(now-lastRender>=100) {
     lastRender=now;xSemaphoreTake(stateLock,portMAX_DELAY);Presentation phone=engine.present(now);Presentation p=dashboard.present(now);Snapshot s=latest;xSemaphoreGive(stateLock);
+    renderCounter++;
     // Urgent notifications interrupt the visual tour; phone priority controls audio only.
     if(demo&&!p.priority)p=demoPresentation(now);
     if(phone.view==View::Call||phone.view==View::Ringing)pipeUntil=0;
