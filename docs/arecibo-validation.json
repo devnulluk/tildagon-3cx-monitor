@@ -1,5 +1,5 @@
 {
-  "badge_version": "0.27.0",
+  "badge_version": "0.27.1",
   "waveshare_version": "0.10.0",
   "python_tests": 816,
   "message_bits": 1679,
@@ -20,5 +20,7 @@
   "badge_ca_preserved": true,
   "waveshare_nvs_preserved": true,
   "live_device_reports_verified": true,
-  "previews_are_physical_recordings": false
+  "previews_are_physical_recordings": false,
+  "matrix_animation_removed": true,
+  "removal_regression_tests": 42
 }

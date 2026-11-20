@@ -461,10 +461,6 @@ class ThreeCXMonitor(app.App):
             payload['_matrix_notification']=candidate
         if focus_active:
             self.matrix.focus_rain(self.focus.progress(self.clock_ms),self.clock_ms,self.focus.paused_at is not None)
-        elif (self.showcase is None and not self.demo_mode and not notification
-              and self.idle_pages.active(self.clock_ms) and focus_quiet(payload,live)
-              and self.clock_ms%120000<56700):
-            self.matrix.arecibo(self.clock_ms)
         else:
             self.matrix.update(payload, live, self.clock_ms, page=self.idle_pages.page(self.clock_ms),
                                partner=matrix_partner, weather_fresh=fresh)
@@ -813,7 +809,7 @@ class ThreeCXMonitor(app.App):
         return False
 
     def _device_report(self):
-        return {'device':'spaceagon','boot':self._remote_boot,'seq':self._report_seq,'version':'0.27.0',
+        return {'device':'spaceagon','boot':self._remote_boot,'seq':self._report_seq,'version':'0.27.1',
                 'ack':self._remote_ack,'settings':{
                 'ring_brightness':round(self.controller.ring_brightness*100), 'eeh_brightness':round(self.controller.eeh_brightness*100),
                 'matrix_brightness':round(self.matrix.call_brightness*100),'focus_brightness':round(self.matrix.focus_brightness*100),
