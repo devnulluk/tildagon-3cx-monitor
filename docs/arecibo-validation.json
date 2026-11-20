@@ -1,0 +1,24 @@
+{
+  "badge_version": "0.27.0",
+  "waveshare_version": "0.10.0",
+  "python_tests": 816,
+  "message_bits": 1679,
+  "source_rows": 73,
+  "source_columns": 23,
+  "sha256_ascii_bits": "24babf56f872fc2c38c940b4a438811be454f04a041fe56b3c239662f261dd66",
+  "matrix_viewport_coverage_bits": 1679,
+  "matrix_width": 18,
+  "matrix_short_row_dark": true,
+  "matrix_priority_tests": [
+    "calls",
+    "focus",
+    "away"
+  ],
+  "lcd_preview_frames": 99,
+  "lcd_idle_dwell_seconds": 30,
+  "badge_private_config_preserved": true,
+  "badge_ca_preserved": true,
+  "waveshare_nvs_preserved": true,
+  "live_device_reports_verified": true,
+  "previews_are_physical_recordings": false
+}

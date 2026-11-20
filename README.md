@@ -207,3 +207,7 @@ Open **A → Focus orbit → C**, or press keyboard **P**, for a Pomodoro timer 
 ## Mission Control and calendar
 
 [Web controls, SOGo calendar and matrix sand orientation](docs/MISSION-CONTROL.md).
+
+## Ambient transmissions
+
+[Hello, Universe — scrolling Arecibo message on Waveshare and the matrix](docs/ARECIBO.md), with animated previews and original message data.

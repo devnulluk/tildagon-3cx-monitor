@@ -14,6 +14,7 @@ from .matrix_text import caller_text, columns, timer_bits, notification_text
 from .controls import initials
 from .snake import Snake
 from .focus import rain_frame
+from .arecibo import matrix_frame as arecibo_frame
 
 # Physical grid derived from the manufacturer's MIT-licensed companion app.
 # Copyright (c)2026 Kristian Hentschel.
@@ -448,6 +449,20 @@ class MatrixDisplay:
         x,y=self._snake.apple();self._packet[GRID[y*WIDTH+x]+1]=90
         self._last_frame=("away_snake",self._snake.ticks);self.last_mode="away_snake"
         self._goal_pending=True;self._goal_peak=90;self._peak=90
+        return True
+
+    def arecibo(self,now_ms):
+        if not self.refresh(now_ms):return False
+        self._clock_ms=now_ms;entering=self.last_mode!='arecibo'
+        if not entering and (self._goal_pending or now_ms<getattr(self,'_arecibo_due',0)):return True
+        if entering:self._reset_text();self._known[:]=self._zero;self._phase=0
+        self._arecibo_due=now_ms+140
+        frame=arecibo_frame(now_ms%120000,min(120,max(0,int(self.focus_brightness*255))))
+        self._packet[1:]=self._zero
+        for position,index in enumerate(GRID):
+            if index>=0:self._packet[index+1]=frame[position]
+        self._last_frame=('arecibo',now_ms//140);self.last_mode='arecibo'
+        self._goal_pending=True;self._goal_peak=max(frame);self._peak=max(frame)
         return True
 
     def focus_rain(self, progress, now_ms, paused=False):

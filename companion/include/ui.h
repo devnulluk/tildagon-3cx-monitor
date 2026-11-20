@@ -5,6 +5,7 @@
 #include <Fonts/FreeSans9pt7b.h>
 #include <time.h>
 #include "engine.h"
+#include "arecibo.h"
 
 namespace spaceport {
 constexpr uint16_t SP_NAVY=0x0043, SP_CYAN=0x37df, SP_PINK=0xfb76, SP_GOLD=0xfe4a, SP_WHITE=0xefbf, SP_DIM=0x7452;
@@ -64,8 +65,31 @@ inline void paragraph(Arduino_GFX& g,const std::string& text,int y,uint16_t c=SP
   }
   if(!line.empty())label(g,line,y+row*24,1,c,270);
 }
-inline int dashboardPages(time_t epoch) {struct tm local={};localtime_r(&epoch,&local);return epoch>=1700000000&&local.tm_mon==11&&local.tm_mday<=24?5:4;}
+inline int dashboardPages(time_t epoch) {struct tm local={};localtime_r(&epoch,&local);return epoch>=1700000000&&local.tm_mon==11&&local.tm_mday<=24?6:5;}
 inline int dashboardPages(time_t epoch,bool calendar){return dashboardPages(epoch)+(calendar?1:0);}
+inline int dashboardPageAt(time_t epoch,uint32_t now,bool calendar){
+  int pages=dashboardPages(epoch,calendar);uint32_t offset=now%(pages*15000+15000);
+  for(int i=0;i<pages;i++){uint32_t duration=i==4?30000:15000;if(offset<duration)return i;offset-=duration;}
+  return 0;
+}
+inline uint16_t areciboColour(int row){return row<5?SP_WHITE:row<11?SP_PINK:row<29?0x87f0:row<45?SP_CYAN:row<58?0xfc6e:row<65?SP_GOLD:0x67fd;}
+inline void renderArecibo(Arduino_GFX& g,uint32_t now){
+  label(g,"HELLO, UNIVERSE",55,2,SP_CYAN,250);
+  label(g,"ARECIBO / 16 NOV 1974",74,1,SP_DIM,255);
+  int head=int(areciboScroll(now))-22;
+  // A crisp, full-width 23-column viewport. The miniature retains the whole message.
+  g.drawRoundRect(82,79,196,212,12,0x19ca);
+  for(int y=0;y<26;y++)for(int x=0;x<23;x++){
+    int source=head+y;if(areciboBit(x,source))g.fillRoundRect(88+x*8,82+y*8,6,6,1,areciboColour(source));
+  }
+  for(int y=0;y<73;y++)for(int x=0;x<23;x++)if(areciboBit(x,y))g.fillRect(44+x,135+y,1,1,areciboColour(y));
+  g.drawRoundRect(41,135+std::max(0,head),29,std::max(1,std::min(73,head+26)-std::max(0,head)),0,SP_CYAN);
+  float a=now/1800.f;g.fillCircle(298+int(cosf(a)*10),184+int(sinf(a)*10),3,SP_GOLD);
+  g.drawCircle(298,184,13,0x19ca);
+  int middle=head+13;
+  const char* section=middle<0?"A MESSAGE FROM EARTH":middle<5?"NUMBERS":middle<11?"THE ELEMENTS OF LIFE":middle<29?"BUILDING BLOCKS":middle<45?"OUR DNA":middle<58?"HUMANKIND":middle<65?"OUR SOLAR SYSTEM":"THE ARECIBO TELESCOPE";
+  label(g,section,309,1,SP_WHITE,240);label(g,"1,679 BITS / M13",332,1,SP_DIM,200);
+}
 inline void renderCalendar(Arduino_GFX& g,const Snapshot& s,time_t epoch){
   label(g,"MISSION SCHEDULE",48,1,SP_CYAN,245);
   struct tm local={};localtime_r(&epoch,&local);char date[32];strftime(date,sizeof date,"%a %d %B",&local);
@@ -125,6 +149,8 @@ inline void render(Arduino_GFX& g,const Presentation& p,const Snapshot& s,uint32
     time_t epoch=time(nullptr);struct tm local={};localtime_r(&epoch,&local);
     if(s.calendarEnabled&&page==dashboardPages(epoch)) {
       renderCalendar(g,s,epoch);
+    }else if(page==4) {
+      renderArecibo(g,now);
     }else if(page==0) {
       label(g,"PLANETARY WEATHER",65,1,SP_CYAN,245);
       if(s.weather){g.fillCircle(180,116,23,SP_GOLD);for(int i=0;i<8;i++){float a=i*.785398f;g.drawLine(180+cosf(a)*30,116+sinf(a)*30,180+cosf(a)*40,116+sinf(a)*40,SP_GOLD);}
@@ -174,7 +200,7 @@ inline void render(Arduino_GFX& g,const Presentation& p,const Snapshot& s,uint32
   }
   if(demo)label(g,"DEMO",343,1,SP_GOLD,90);
   else if(muted)label(g,"MUTED",343,1,SP_GOLD,90);
-  else if(p.view==View::Idle)label(g,ip,343,1,SP_DIM,155);
+  else if(p.view==View::Idle&&page!=4)label(g,ip,343,1,SP_DIM,155);
 }
 inline void renderWelcome(Arduino_GFX& g,uint32_t now){
   g.fillScreen(SP_NAVY);
