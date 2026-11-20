@@ -26,7 +26,7 @@ static constexpr uint32_t WELCOME_DURATION_MS=1900;
 #endif
 
 using namespace spaceport;
-static constexpr char VERSION[]="0.10.0";
+static constexpr char VERSION[]="0.10.1";
 Preferences prefs;
 PhonePresence presence;
 volatile bool presenceAudioAllowed=true;
@@ -138,7 +138,7 @@ static void networkTask(void*) {
         if(millis()-lastReport>=10000){
           lastReport=millis();JsonDocument report;report["device"]="waveshare";report["boot"]=reportBoot;report["seq"]=++reportSeq;report["version"]=VERSION;
           xSemaphoreTake(stateLock,portMAX_DELAY);
-          auto settings=report["settings"].to<JsonObject>();settings["volume"]=volume;settings["priority_volume"]=priorityVolume;settings["brightness"]=brightness;settings["muted"]=permanentMute;settings["demo"]=demo;settings["page"]=page;settings["frame_counter"]=renderCounter;
+          auto settings=report["settings"].to<JsonObject>();settings["volume"]=volume;settings["priority_volume"]=priorityVolume;settings["brightness"]=brightness;settings["muted"]=permanentMute;settings["demo"]=demo;settings["page"]=page;settings["frame_counter"]=renderCounter;settings["presence_enabled"]=presence.status().enabled;settings["phone_nearby"]=presence.allows();
           if(!reportedCommand.empty()){report["ack"]["id"]=reportedCommand;report["ack"]["status"]=reportedCommandStatus;}
           xSemaphoreGive(stateLock);String json;serializeJson(report,json);
           if(http.begin(tls,origin+"/v1/state")){http.addHeader("Authorization","Bearer "+token);http.addHeader("Content-Type","application/json");http.POST(json);http.end();}

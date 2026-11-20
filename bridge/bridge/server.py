@@ -283,6 +283,15 @@ def create_app(config, source, token=None, demo=False, control_token=None, actio
     app.router.add_get("/healthz", health)
     app.router.add_post("/v1/control/{action:call|dnd}", control)
     app.router.add_post("/v1/notify", notify)
+    if not demo and os.environ.get('TABLET_TOKEN'):
+        tablet_token=os.environ['TABLET_TOKEN']
+        if any(value and hmac.compare_digest(tablet_token,value) for value in (token,control_token,notify_token,lookup_admin_token,os.environ.get('ADMIN_TOKEN'))):
+            raise ValueError('Tablet capability must be independent')
+        from .tablet import add_routes as add_tablet_routes
+        async def tablet_state(request):
+            response=await state(request.clone(headers={'Authorization':'Bearer '+token}))
+            return json.loads(response.text)
+        add_tablet_routes(app,tablet_token,tablet_state,device_commands)
     if not demo and os.environ.get("ADMIN_TOKEN"):
         admin_token = os.environ["ADMIN_TOKEN"]
         if any(value and hmac.compare_digest(admin_token, value) for value in (token, control_token, notify_token, lookup_admin_token)):

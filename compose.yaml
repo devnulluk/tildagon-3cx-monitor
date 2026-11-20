@@ -1,12 +1,13 @@
 services:
   tildagon-3cx:
     build: .
-    image: tildagon-3cx-monitor:0.8.0
+    image: tildagon-3cx-monitor:0.11.0
     restart: unless-stopped
     stop_grace_period: 30s
     ports:
       - "${BRIDGE_BIND_ADDRESS:-127.0.0.1}:8787:8787"
     environment:
+      TABLET_TOKEN: ${TABLET_TOKEN:-}
       PBX_URL: ${PBX_URL:?Set PBX_URL in .env}
       PBX_CLIENT_ID: ${PBX_CLIENT_ID:?Set PBX_CLIENT_ID in .env}
       PBX_CLIENT_SECRET: ${PBX_CLIENT_SECRET:?Set PBX_CLIENT_SECRET in .env}

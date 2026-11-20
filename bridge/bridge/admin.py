@@ -61,7 +61,7 @@ class DeviceCommands:
         if not isinstance(data,dict) or set(data)-{'device','boot','seq','settings','ack','version'}:raise ValueError()
         device=data.get('device');settings=data.get('settings')
         allowed={'spaceagon':{'ring_brightness','eeh_brightness','matrix_brightness','focus_brightness','focus_direction','theme','clock','focus_minutes','break_minutes','long_break_minutes','long_break_every','focus_phase','focus_paused','focus_remaining','frame_counter'},
-                 'waveshare':{'volume','priority_volume','brightness','muted','demo','page','frame_counter'}}
+                 'waveshare':{'volume','priority_volume','brightness','muted','demo','page','frame_counter','presence_enabled','phone_nearby'}}
         if device not in allowed or not isinstance(settings,dict) or set(settings)-allowed[device]:raise ValueError()
         if not isinstance(data.get('boot'),str) or not 1<=len(data['boot'])<=40 or type(data.get('seq')) is not int or data['seq']<0:raise ValueError()
         for value in settings.values():
